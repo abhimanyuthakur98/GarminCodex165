@@ -1,6 +1,11 @@
 package com.garmincodex.app
 
-import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.*
+import androidx.compose.ui.graphics.drawscope.clipRect
+import androidx.compose.ui.graphics.drawscope.clipPath
+import androidx.compose.foundation.text.BasicText
+import androidx.compose.foundation.text.TextAutoSize
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.foundation.*
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
@@ -40,19 +45,28 @@ private fun time(t: Long) = Instant.ofEpochMilli(t).atZone(ZoneId.systemDefault(
 @Composable private fun InsightPanel(content: @Composable ColumnScope.() -> Unit) { Column(Modifier.fillMaxWidth().background(Brush.linearGradient(listOf(Color(0xFF202724), Slate)), RoundedCornerShape(24.dp)).border(1.dp, Color.White.copy(alpha = .06f), RoundedCornerShape(24.dp)).padding(20.dp), verticalArrangement = Arrangement.spacedBy(14.dp), content = content) }
 @Composable private fun Caption(text: String) { Text(text.uppercase(), color = Fog, fontSize = 10.sp, letterSpacing = 1.6.sp) }
 
-@Composable internal fun GoalRingCard(title: String, value: Double?, goal: Int, color: Color, modifier: Modifier = Modifier, onClick: () -> Unit, onEdit: () -> Unit) {
+@Composable internal fun GoalRingCard(title: String, value: Double?, goal: Int, color: Color, modifier: Modifier = Modifier, onClick: () -> Unit, onEdit: () -> Unit, totalCalories: Double? = null, onPermissions: (() -> Unit)? = null) {
+    val entrance = chartEntrance()
     val progress by animateFloatAsState(((value ?: 0.0) / goal).toFloat().coerceIn(0f, 1f), label = "goal")
-    Column(modifier.testTag("goal-$title").background(Brush.verticalGradient(listOf(color.copy(alpha = .12f), Slate)), RoundedCornerShape(25.dp)).border(1.dp, color.copy(alpha = .13f), RoundedCornerShape(25.dp)).clickable(onClickLabel = "Open $title details", onClick = onClick).padding(14.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(7.dp)) {
+    Column(modifier.testTag("goal-$title").background(Brush.verticalGradient(listOf(color.copy(alpha = .12f).compositeOver(Slate), Slate)), RoundedCornerShape(25.dp)).border(1.dp, color.copy(alpha = .13f), RoundedCornerShape(25.dp)).clickable(onClickLabel = "Open $title details", onClick = onClick).padding(14.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(7.dp)) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) { Text(title.uppercase(), fontSize = 10.sp, letterSpacing = 1.sp, fontWeight = FontWeight.Bold); TextButton(onClick = onEdit, contentPadding = PaddingValues(0.dp), modifier = Modifier.sizeIn(minWidth = 48.dp, minHeight = 48.dp)) { Text("Edit", fontSize = 11.sp, color = color) } }
-        Box(Modifier.fillMaxWidth().aspectRatio(1.15f).semantics { contentDescription = "$title ${value?.roundToInt() ?: "unavailable"}, goal $goal" }, contentAlignment = Alignment.Center) {
+        Box(Modifier.fillMaxWidth().aspectRatio(1f).semantics { contentDescription = "$title ${value?.roundToInt() ?: "unavailable"}, goal $goal" }, contentAlignment = Alignment.Center) {
             Canvas(Modifier.fillMaxSize().padding(9.dp)) {
                 val side = min(size.width, size.height); val origin = Offset((size.width - side) / 2, (size.height - side) / 2)
                 drawArc(color.copy(alpha = .12f), -90f, 360f, false, topLeft = origin, size = Size(side, side), style = Stroke(8.dp.toPx()))
-                drawArc(color, -90f, 360f * progress, false, topLeft = origin, size = Size(side, side), style = Stroke(8.dp.toPx(), cap = StrokeCap.Round))
+                drawArc(color, -90f, 360f * progress * entrance, false, topLeft = origin, size = Size(side, side), style = Stroke(8.dp.toPx(), cap = StrokeCap.Round))
             }
-            Column(horizontalAlignment = Alignment.CenterHorizontally) { Text(value?.roundToInt()?.let { String.format(Locale.US, "%,d", it) } ?: "—", fontSize = 26.sp, fontWeight = FontWeight.Bold, color = color); Text(if (value == null) "NO DATA" else "${(value / goal * 100).roundToInt()}%", fontSize = 10.sp, color = Fog) }
+            Column(Modifier.fillMaxWidth(.68f), horizontalAlignment = Alignment.CenterHorizontally) {
+                BasicText(value?.roundToInt()?.let { String.format(Locale.US, "%,d", it) } ?: "\u2014", modifier = Modifier.fillMaxWidth(), style = TextStyle(color = color, fontWeight = FontWeight.Bold, textAlign = androidx.compose.ui.text.style.TextAlign.Center), maxLines = 1, autoSize = TextAutoSize.StepBased(12.sp, 28.sp))
+                Text(if (value == null) "NOT SHARED" else "${(value / goal * 100).roundToInt()}%", fontSize = 9.sp, color = Fog, maxLines = 1)
+            }
         }
         Text("of ${String.format(Locale.US, "%,d", goal)} ${if (title == "Steps") "steps" else "active kcal"}", color = Fog, fontSize = 10.sp)
+        if (title == "Calories") {
+            Text(totalCalories?.roundToInt()?.let { "$it kcal total" } ?: "Total not shared", color = Fog, fontSize = 11.sp)
+            if (value == null && onPermissions != null) TextButton(onClick = onPermissions, contentPadding = PaddingValues(0.dp)) { Text("Check access", color = color, fontSize = 11.sp) }
+        }
+        Spacer(Modifier.weight(1f))
         Text("Hourly details  ↗", color = color, fontSize = 11.sp)
     }
 }
@@ -86,12 +100,13 @@ private fun time(t: Long) = Instant.ofEpochMilli(t).atZone(ZoneId.systemDefault(
                 when (kind) {
                     "steps", "calories" -> {
                         val steps = kind == "steps"; val color = if (steps) Lime else Orange
-                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.Bottom) { Text((if (steps) d?.steps?.toDouble() else d?.activeCalories)?.roundToInt()?.let { String.format(Locale.US, "%,d", it) } ?: "—", fontSize = 58.sp, fontWeight = FontWeight.Bold, color = color); Text(if (steps) "steps" else "active kcal", color = Fog, modifier = Modifier.padding(bottom = 12.dp)) }
+                        val showTotal = !steps && d?.activeCalories == null && d?.calories != null
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.Bottom) { Text((if (steps) d?.steps?.toDouble() else if (showTotal) d?.calories else d?.activeCalories)?.roundToInt()?.let { String.format(Locale.US, "%,d", it) } ?: "—", fontSize = 58.sp, fontWeight = FontWeight.Bold, color = color); Text(if (steps) "steps" else if (showTotal) "total kcal" else "active kcal", color = Fog, modifier = Modifier.padding(bottom = 12.dp)) }
                         Text("Daily goal ${if (steps) goals.steps else goals.activeCalories} · tap Edit goal to change", color = Fog, fontSize = 12.sp)
                         if (!steps) CalorieBreakdown(d)
                         InsightPanel {
-                            Caption("Hourly ${if (steps) "steps" else "active energy"}")
-                            HourlyChart(HourBucket.decode(d?.hourly ?: ""), steps, color)
+                            Caption("Hourly ${if (steps) "steps" else if (showTotal) "total energy" else "active energy"}")
+                            HourlyChart(HourBucket.decode(d?.hourly ?: ""), steps, color, showTotal)
                             Text("Tap a bar to inspect its hour. Empty intervals mean no record, not zero. Health Connect may distribute a source interval across hourly buckets.", color = Fog, fontSize = 11.sp)
                         }
                     }
@@ -115,9 +130,10 @@ private fun time(t: Long) = Instant.ofEpochMilli(t).atZone(ZoneId.systemDefault(
         if (d?.activeCalories == null) Text("Active energy unavailable. Review the new active-calorie read permission in Connect, then sync. Garmin must also share this category.", color = Orange, fontSize = 12.sp)
     }
 }
-@Composable private fun HourlyChart(hours: List<HourBucket>, steps: Boolean, color: Color) {
+@Composable private fun HourlyChart(hours: List<HourBucket>, steps: Boolean, color: Color, total: Boolean = false) {
+    val entrance = chartEntrance()
     var selected by remember(hours, steps) { mutableIntStateOf(-1) }
-    fun value(h: HourBucket) = if (steps) h.steps?.toDouble() else h.active
+    fun value(h: HourBucket) = if (steps) h.steps?.toDouble() else if (total) h.total else h.active
     val data = hours.filter { value(it) != null }
     val peak = data.maxByOrNull { value(it) ?: 0.0 }
     val chosen = hours.getOrNull(selected)
@@ -126,7 +142,7 @@ private fun time(t: Long) = Instant.ofEpochMilli(t).atZone(ZoneId.systemDefault(
         if (hours.isEmpty()) return@Canvas
         val max = (data.maxOfOrNull { value(it) ?: 0.0 } ?: 1.0).coerceAtLeast(1.0); val width = size.width / hours.size
         repeat(4) { drawLine(Color.White.copy(alpha = .05f), Offset(0f, it * size.height / 4), Offset(size.width, it * size.height / 4), 1f) }
-        hours.forEachIndexed { i, h -> val v = value(h); val height = if (v == null) 3.dp.toPx() else (v / max * (size.height - 10)).toFloat().coerceAtLeast(3.dp.toPx()); drawRoundRect(if (v == null) Color.White.copy(alpha = .08f) else if (i == selected) Color.White else color, Offset(i * width + 2, size.height - height), Size((width - 4).coerceAtLeast(1f), height), androidx.compose.ui.geometry.CornerRadius(4.dp.toPx())) }
+        hours.forEachIndexed { i, h -> val v = value(h); val height = if (v == null) 3.dp.toPx() else (v / max * entrance * (size.height - 10)).toFloat().coerceAtLeast(3.dp.toPx()); drawRoundRect(if (v == null) Color.White.copy(alpha = .08f) else if (i == selected) Color.White else color, Offset(i * width + 2, size.height - height), Size((width - 4).coerceAtLeast(1f), height), androidx.compose.ui.geometry.CornerRadius(4.dp.toPx())) }
     }
     if (hours.isNotEmpty()) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) { Text(time(hours.first().start), color = Fog, fontSize = 10.sp); Text(time(hours.last().end), color = Fog, fontSize = 10.sp) }
@@ -135,6 +151,7 @@ private fun time(t: Long) = Instant.ofEpochMilli(t).atZone(ZoneId.systemDefault(
 }
 @Composable private fun InteractiveHeart(d: ConnectedDay?) {
     val points = remember(d?.chart) { d?.chart?.split(';')?.mapNotNull { val p = it.split(','); if (p.size == 2) runCatching { HrPoint(p[0].toLong(), p[1].toInt()) }.getOrNull() else null }?.sortedBy { it.time } ?: emptyList() }
+    val entrance = chartEntrance()
     var selected by remember(points) { mutableIntStateOf(0) }
     val point = points.getOrNull(selected)
     Text(point?.let { "${it.bpm} bpm  ·  ${time(it.time)}" } ?: "No heart-rate records", color = Mint, fontSize = 28.sp, fontWeight = FontWeight.Bold)
@@ -143,7 +160,7 @@ private fun time(t: Long) = Instant.ofEpochMilli(t).atZone(ZoneId.systemDefault(
         fun x(p: HrPoint) = (p.time - points.first().time).toFloat() / (points.last().time - points.first().time).coerceAtLeast(1) * size.width
         fun y(p: HrPoint) = size.height * (1 - (p.bpm - 30) / 190f).coerceIn(0f, 1f)
         repeat(4) { drawLine(Color.White.copy(alpha = .07f), Offset(0f, it * size.height / 4), Offset(size.width, it * size.height / 4), 1f) }
-        points.zipWithNext().forEach { (a,b) -> if (b.time - a.time <= 600000) drawLine(Mint, Offset(x(a), y(a)), Offset(x(b), y(b)), 2.dp.toPx()) }
+        clipRect(right = size.width * entrance) { points.zipWithNext().forEach { (a,b) -> if (b.time - a.time <= 600000) drawLine(Mint, Offset(x(a), y(a)), Offset(x(b), y(b)), 2.dp.toPx()) } }
         point?.let { drawLine(Fog, Offset(x(it), 0f), Offset(x(it), size.height), 1.dp.toPx()); drawCircle(Color.White, 5.dp.toPx(), Offset(x(it), y(it))) }
     }
     if (points.size > 1) Slider(value = selected.toFloat(), onValueChange = { selected = it.roundToInt() }, valueRange = 0f..points.lastIndex.toFloat(), modifier = Modifier.semantics { contentDescription = "Select heart-rate sample" })
@@ -154,17 +171,12 @@ private fun time(t: Long) = Instant.ofEpochMilli(t).atZone(ZoneId.systemDefault(
     Caption("Fitness Age / Pulse Lab")
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) { Text("Your long-term\npicture.", fontSize = 34.sp, fontWeight = FontWeight.Bold, lineHeight = 37.sp); TextButton(onClick = onAge) { Text(if (goals.age == null) "Set age" else "Age ${goals.age}", color = Mint) } }
     Box(Modifier.fillMaxWidth().aspectRatio(1f), contentAlignment = Alignment.Center) {
-        Canvas(Modifier.fillMaxSize().padding(12.dp)) {
-            val radius = size.minDimension / 2; val center = center
-            drawCircle(Brush.radialGradient(listOf(Color.Transparent, Mint.copy(alpha = .03f), Mint.copy(alpha = .2f)), radius = radius), radius)
-            drawCircle(Mint.copy(alpha = .35f), radius, style = Stroke(1.dp.toPx()))
-            val random = Random(165)
-            repeat(350) { val angle = random.nextDouble() * 2 * PI; val r = radius * (.58 + random.nextDouble() * .4); val p = center + Offset((cos(angle) * r).toFloat(), (sin(angle) * r).toFloat()); drawCircle(Mint.copy(alpha = (.12 + random.nextDouble() * .65).toFloat()), (1 + random.nextDouble() * 2.5).dp.toPx(), p) }
-        }
+        FitnessOrb(Modifier.fillMaxSize().padding(12.dp))
         Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) { Text(result.age?.let(::fmt) ?: "—", fontSize = 62.sp, fontWeight = FontWeight.Bold); Caption("Experimental fitness age"); Text(result.age?.let { val delta = it - goals.age!!; "${fmt(abs(delta))} years ${if (delta <= 0) "below" else "above"} your age" } ?: "${result.days}/7 complete days", color = Mint, fontSize = 13.sp) }
     }
     InsightPanel { Caption("A wellness illustration, not biological age"); Text(result.reason, fontSize = 14.sp); Text("This is an unvalidated Pulse heuristic based on habits and recovery. It does not measure aging, predict lifespan or reproduce WHOOP Age. Chronological age is your input; the offset is illustrative.", color = Fog, fontSize = 12.sp) }
-    result.factors.forEach { factor -> InsightPanel { Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) { Text(factor.name, fontWeight = FontWeight.Bold); Text("${factor.score.roundToInt()}/100", color = Mint) }; Text(factor.detail, color = Fog, fontSize = 12.sp); LinearProgressIndicator(progress = { (factor.score / 100).toFloat() }, modifier = Modifier.fillMaxWidth(), color = Mint, trackColor = Color.White.copy(alpha = .07f)) } }
+    val entrance = chartEntrance()
+    result.factors.forEach { factor -> InsightPanel { Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) { Text(factor.name, fontWeight = FontWeight.Bold); Text("${factor.score.roundToInt()}/100", color = Mint) }; Text(factor.detail, color = Fog, fontSize = 12.sp); LinearProgressIndicator(progress = { (factor.score / 100).toFloat() * entrance }, modifier = Modifier.fillMaxWidth(), color = Mint, trackColor = Color.White.copy(alpha = .07f)) } }
     InsightPanel { Caption("Transparent model"); Text("Movement, sleep, recovery and cardio contribute equally. Index 70 maps to your entered age. Each 6 index points adjusts the displayed age by 1 year, capped at ±5 years (minimum age 18). Fixed reference targets prevent goal changes from gaming the result.", color = Fog, fontSize = 12.sp) }
 }
 
@@ -175,5 +187,40 @@ private fun time(t: Long) = Instant.ofEpochMilli(t).atZone(ZoneId.systemDefault(
         Caption("Edit daily goal")
         OutlinedTextField(value, { value = it.filter(Char::isDigit).take(6) }, modifier = Modifier.fillMaxWidth().testTag("goal-input"), label = { Text(if (kind == "steps") "Steps / day" else "Active kcal / day") }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), singleLine = true, isError = !valid)
         Row { Button(enabled = valid, onClick = { onSave(if (kind == "steps") goals.copy(steps = parsed!!) else goals.copy(activeCalories = parsed!!)); onClose() }) { Text("Save goal") }; TextButton(onClick = onClose) { Text("Cancel") } }
+    }
+}
+
+/** One-shot animations use Compose's duration scale, including the system's disabled animations. */
+@Composable internal fun chartEntrance(): Float {
+    val progress = remember { Animatable(0f) }
+    LaunchedEffect(Unit) { progress.animateTo(1f, tween(1100, easing = FastOutSlowInEasing)) }
+    return progress.value
+}
+
+@Composable private fun FitnessOrb(modifier: Modifier) {
+    val transition = rememberInfiniteTransition(label = "orb")
+    val phase by transition.animateFloat(0f, (2 * PI).toFloat(), infiniteRepeatable(tween(18000, easing = LinearEasing)), label = "drift")
+    val entrance = chartEntrance()
+    val particles = remember { val random = Random(165); List(240) { floatArrayOf(random.nextFloat() * 6.283185f, .55f + random.nextFloat() * .4f, random.nextFloat(), random.nextFloat()) } }
+    Canvas(modifier) {
+        val radius = size.minDimension * .47f
+        val outline = Path()
+        for (i in 0..180) {
+            val angle = i * 2 * PI / 180
+            val r = radius * (1 + .018 * sin(angle * 3 + phase) + .012 * cos(angle * 5 - phase))
+            val x = center.x + (cos(angle) * r).toFloat(); val y = center.y + (sin(angle) * r).toFloat()
+            if (i == 0) outline.moveTo(x, y) else outline.lineTo(x, y)
+        }
+        outline.close()
+        drawPath(outline, Brush.radialGradient(listOf(Color.Transparent, Mint.copy(alpha = .025f * entrance), Mint.copy(alpha = .20f * entrance)), center, radius))
+        drawPath(outline, Mint.copy(alpha = .25f * entrance), style = Stroke(1.dp.toPx()))
+        clipPath(outline) {
+            particles.forEach { p ->
+                val angle = p[0] + phase * if (p[3] > .5f) 1 else -1
+                val r = radius * (p[1] + .035f * sin(phase * 2 + p[0]))
+                val position = center + Offset(cos(angle) * r, sin(angle) * r)
+                drawCircle(Mint.copy(alpha = (.18f + p[2] * .55f) * entrance), (1f + p[3] * 1.8f).dp.toPx(), position)
+            }
+        }
     }
 }

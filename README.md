@@ -97,3 +97,11 @@ Install `Pulse165-0.3.0.apk` over the existing local build. Your imported days a
 Goals persist in private on-device preferences. They apply globally to the viewed day; there is no dated goal history. Data imports migrate additively to Room v3 with nullable new calorie fields and empty hourly history until the next sync. Clearing imported health data leaves your personal goal preferences; uninstalling clears both.
 
 Tests additionally cover goal validation/persistence, interactive goal editing and chart navigation, null/zero hourly encoding, missing-hour and DST preservation, calorie consistency, age-calibration bounds and exclusion of duplicate/current-day records, and preservation of v2 imported days during migration.
+
+## 0.3.1: motion and compact-screen polish
+
+- Goal rings use square geometry and auto-sized values so five- and six-digit step counts stay inside the ring. Paired cards keep equal heights.
+- Rings, sleep timelines, HR lines, hourly bars, strain zones, trends and Fitness Age factors animate on entering their view. Animations use Compose duration scaling (including system-disabled animations).
+- Fitness Age has gently morphing edges and drifting particles; the animation is decorative and does not encode additional health measurements.
+- The calorie card now displays imported total calories separately and offers **Check access** when active energy is missing. Details show a clearly labelled total-energy chart when only total energy is available. Total energy never fills the active goal ring. Active/BMR data cannot be recovered if Garmin has not shared those record types; allow the category in both apps and sync again.
+- Verification includes a 320dp ring layout with 10,911 steps, missing active energy with available total energy, permission-button routing, and deterministic entrance-animation timing.

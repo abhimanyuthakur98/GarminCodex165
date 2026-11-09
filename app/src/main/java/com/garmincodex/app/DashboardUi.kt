@@ -12,6 +12,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.*
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
@@ -76,9 +77,9 @@ private fun clock(t: Long?) = t?.let { Instant.ofEpochMilli(it).atZone(ZoneId.sy
                     when (metric) {
                         0 -> {
                             Box(Modifier.clickable(onClickLabel = "Recovery details") { detail = "recovery" }) { RecoveryPanel(day) }
-                            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                                GoalRingCard("Steps", day?.steps?.toDouble(), goals.steps, Lime, Modifier.weight(1f), { detail = "steps" }, { goalEditor = "steps" })
-                                GoalRingCard("Calories", day?.activeCalories, goals.activeCalories, Orange, Modifier.weight(1f), { detail = "calories" }, { goalEditor = "calories" })
+                            Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                                GoalRingCard("Steps", day?.steps?.toDouble(), goals.steps, Lime, Modifier.weight(1f).fillMaxHeight(), { detail = "steps" }, { goalEditor = "steps" })
+                                GoalRingCard("Calories", day?.activeCalories, goals.activeCalories, Orange, Modifier.weight(1f).fillMaxHeight(), { detail = "calories" }, { goalEditor = "calories" }, totalCalories = day?.calories, onPermissions = onConnect)
                             }
                             Box(Modifier.clickable(onClickLabel = "Sleep details") { detail = "sleep" }) { SleepPanel(day, needState, true) }
                             Box(Modifier.clickable(onClickLabel = "Heart rate details") { detail = "hr" }) { HeartPanel(day) }
@@ -148,9 +149,10 @@ private fun clock(t: Long?) = t?.let { Instant.ofEpochMilli(it).atZone(ZoneId.sy
     }
 }
 @Composable private fun RingMetric(title: String, value: String, progress: Float, color: Color, modifier: Modifier, onClick: () -> Unit) {
+    val entrance = chartEntrance()
     Column(modifier.clickable(onClick = onClick).semantics { contentDescription = "$title $value" }, horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Box(Modifier.padding(horizontal = 5.dp).fillMaxWidth().aspectRatio(1f), contentAlignment = Alignment.Center) {
-            Canvas(Modifier.fillMaxSize().padding(7.dp)) { drawArc(Line, -90f, 360f, false, style = Stroke(6.dp.toPx())); drawArc(color, -90f, 360f * progress.coerceIn(0f, 1f), false, style = Stroke(6.dp.toPx(), cap = StrokeCap.Round)) }
+            Canvas(Modifier.fillMaxSize().padding(7.dp)) { drawArc(Line, -90f, 360f, false, style = Stroke(6.dp.toPx())); drawArc(color, -90f, 360f * progress.coerceIn(0f, 1f) * entrance, false, style = Stroke(6.dp.toPx(), cap = StrokeCap.Round)) }
             Text(value, color = color, fontSize = 23.sp, fontWeight = FontWeight.Bold)
         }; Label(title, Color.White)
     }
@@ -182,15 +184,16 @@ private fun clock(t: Long?) = t?.let { Instant.ofEpochMilli(it).atZone(ZoneId.sy
     }
 }
 @Composable private fun SleepTimeline(d: ConnectedDay) {
+    val entrance = chartEntrance()
     val spans = remember(d.stages) { d.stages.split(';').mapNotNull { val p = it.split(','); if (p.size == 3) runCatching { SleepSpan(p[0].toLong(), p[1].toLong(), p[2].toInt()) }.getOrNull() else null } }
     Canvas(Modifier.fillMaxWidth().height(78.dp).semantics { contentDescription = "Sleep timeline ${clock(d.sleepStart)} to ${clock(d.sleepEnd)}" }) {
         val start = d.sleepStart ?: return@Canvas; val end = d.sleepEnd ?: return@Canvas; val duration = (end - start).coerceAtLeast(1)
         repeat(4) { i -> drawLine(Line, Offset(0f, i * size.height / 4), Offset(size.width, i * size.height / 4), 1f) }
-        spans.forEach { s ->
+        clipRect(right = size.width * entrance) { spans.forEach { s ->
             val color = when (s.stage) { 5 -> Color(0xFF7566CC); 4 -> Purple; 6 -> Blue; 1, 3, 7 -> Color(0xFFE8C172); 2 -> Purple.copy(alpha = .5f); else -> Line }
             val level = when (s.stage) { 5 -> 3; 4, 2 -> 2; 6 -> 1; else -> 0 }
             drawRoundRect(color, Offset((s.start - start).toFloat() / duration * size.width, level * size.height / 4), Size(((s.end - s.start).toFloat() / duration * size.width).coerceAtLeast(1f), size.height / 4 - 3), androidx.compose.ui.geometry.CornerRadius(3f))
-        }
+        } }
     }
 }
 @Composable internal fun HeartPanel(d: ConnectedDay?) {
@@ -204,20 +207,22 @@ private fun clock(t: Long?) = t?.let { Instant.ofEpochMilli(it).atZone(ZoneId.sy
     }
 }
 @Composable private fun DailyHeartChart(points: List<HrPoint>, date: String) {
+    val entrance = chartEntrance()
     Canvas(Modifier.fillMaxWidth().height(120.dp)) {
         val start = LocalDate.parse(date).atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli(); val end = LocalDate.parse(date).plusDays(1).atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli()
         fun x(t: Long) = ((t - start).toDouble() / (end - start) * size.width).toFloat()
         fun y(hr: Int) = size.height * (1 - (hr - 30) / 190f).coerceIn(0f, 1f)
         repeat(4) { i -> drawLine(Line, Offset(0f, i * size.height / 4), Offset(size.width, i * size.height / 4), 1f) }
-        points.forEach { drawCircle(Blue, 1.5.dp.toPx(), Offset(x(it.time), y(it.bpm))) }
-        points.zipWithNext().forEach { (a, b) -> if (b.time - a.time <= 600000) drawLine(Blue, Offset(x(a.time), y(a.bpm)), Offset(x(b.time), y(b.bpm)), 1.5.dp.toPx()) }
+        clipRect(right = size.width * entrance) { points.forEach { drawCircle(Blue, 1.5.dp.toPx(), Offset(x(it.time), y(it.bpm))) }
+        points.zipWithNext().forEach { (a, b) -> if (b.time - a.time <= 600000) drawLine(Blue, Offset(x(a.time), y(a.bpm)), Offset(x(b.time), y(b.bpm)), 1.5.dp.toPx()) } }
     }
 }
 @Composable internal fun StrainPanel(d: ConnectedDay?, maximum: Int, resting: Int) {
+    val entrance = chartEntrance()
     Panel {
         Label("CARDIOVASCULAR LOAD", Blue); Text(d?.takeIf { it.coveredMinutes > 0 }?.let { number(Scores.strain(it.load)) } ?: "—", fontSize = 48.sp, fontWeight = FontWeight.Bold, color = Blue); Text("Daily strain / 21 • estimated from imported HR", color = Muted, fontSize = 12.sp)
         val zones = d?.zones?.split(',')?.mapNotNull { it.toDoubleOrNull() } ?: emptyList()
-        listOf("Rest / below 30%", "Easy / 30–50%", "Light / 50–60%", "Moderate / 60–70%", "Hard / 70–80%", "Very hard / 80–90%", "Peak / 90%+").forEachIndexed { i, name -> val minutes = zones.getOrElse(i) { 0.0 }; Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) { Text(name, color = Muted, fontSize = 11.sp); Text(duration(minutes.roundToInt()), fontSize = 11.sp) }; LinearProgressIndicator(progress = { (minutes / (zones.maxOrNull() ?: 1.0).coerceAtLeast(1.0)).toFloat() }, modifier = Modifier.fillMaxWidth().height(4.dp), color = Blue, trackColor = Line) }
+        listOf("Rest / below 30%", "Easy / 30–50%", "Light / 50–60%", "Moderate / 60–70%", "Hard / 70–80%", "Very hard / 80–90%", "Peak / 90%+").forEachIndexed { i, name -> val minutes = zones.getOrElse(i) { 0.0 }; Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) { Text(name, color = Muted, fontSize = 11.sp); Text(duration(minutes.roundToInt()), fontSize = 11.sp) }; LinearProgressIndicator(progress = { (minutes / (zones.maxOrNull() ?: 1.0).coerceAtLeast(1.0)).toFloat() * entrance }, modifier = Modifier.fillMaxWidth().height(4.dp), color = Blue, trackColor = Line) }
         Text("HR reserve: resting $resting / max $maximum bpm. Estimates between readings up to 5 minutes apart; longer gaps add no load. BLE sessions stay separate to avoid double-counting workouts.", color = Muted, fontSize = 11.sp)
     }
 }
@@ -230,10 +235,11 @@ private fun clock(t: Long?) = t?.let { Instant.ofEpochMilli(it).atZone(ZoneId.sy
     Text("Your rhythm", fontSize = 32.sp, fontWeight = FontWeight.Bold); Label("DAILY HISTORY")
     val actual = days.filter { it.hrCount > 0 || it.sleepStart != null || it.steps != null }
     if (actual.isEmpty()) Panel { Text("Your history starts with your first import."); Text("Connect Health Connect and sync Garmin. Imported days remain available offline.", color = Muted) }
+    val entrance = chartEntrance()
     actual.forEach { d -> Column(Modifier.fillMaxWidth().background(Card, RoundedCornerShape(16.dp)).clickable { onDay(d.date) }.padding(18.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) { Text(LocalDate.parse(d.date).format(DateTimeFormatter.ofPattern("EEE, d MMM")), fontWeight = FontWeight.Bold); Text("›", color = Muted) }
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) { MiniStat("SLEEP", duration(d.asleep)); MiniStat("RECOVERY", d.recovery?.let { "$it%" } ?: "—"); MiniStat("STRAIN", if (d.coveredMinutes > 0) number(Scores.strain(d.load)) else "—") }
-        LinearProgressIndicator(progress = { ((d.asleep ?: 0) / need.toFloat()).coerceIn(0f, 1f) }, modifier = Modifier.fillMaxWidth().height(5.dp), color = Purple, trackColor = Line)
+        LinearProgressIndicator(progress = { ((d.asleep ?: 0) / need.toFloat()).coerceIn(0f, 1f) * entrance }, modifier = Modifier.fillMaxWidth().height(5.dp), color = Purple, trackColor = Line)
     } }
 }
 @Composable fun WatchDialog(watches: List<NearbyWatch>, status: String, onClose: () -> Unit, onScan: () -> Unit, onSelect: (String) -> Unit) { AlertDialog(onDismissRequest = onClose, title = { Text("Live HR sensor") }, text = { Column { Text(status); Text("Enable Broadcast Heart Rate on the watch. Optional for daily sync.", color = Muted, fontSize = 12.sp); watches.forEach { TextButton(onClick = { onSelect(it.address) }) { Text("${it.name}\n${it.address}") } } } }, confirmButton = { TextButton(onClick = onScan) { Text("Scan again") } }, dismissButton = { TextButton(onClick = onClose) { Text("Close") } }) }
