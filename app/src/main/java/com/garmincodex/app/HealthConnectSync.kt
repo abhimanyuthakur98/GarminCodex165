@@ -24,6 +24,12 @@ data class SyncState(val busy: Boolean = false, val message: String = "Connect G
 class HealthConnectSync(private val context: Context, private val dao: DailyDao) {
     private val prefs = context.getSharedPreferences("health_sync", Context.MODE_PRIVATE)
     val status = MutableStateFlow(SyncState(lastSync = prefs.getLong("lastSync", 0)))
+    val goals = MutableStateFlow(PersonalGoals(prefs.getInt("stepGoal", 8000), prefs.getInt("activeGoal", 500), prefs.getInt("age", 0).takeIf { it in 18..100 }))
+    fun saveGoals(value: PersonalGoals) {
+        value.validate()
+        prefs.edit().putInt("stepGoal", value.steps).putInt("activeGoal", value.activeCalories).putInt("age", value.age ?: 0).apply()
+        goals.value = value
+    }
     val sleepNeed get() = prefs.getInt("sleepNeed", 480)
     val maximumHr get() = prefs.getInt("maximumHr", 190)
     val restingHr get() = prefs.getInt("restingHr", 55)
@@ -84,6 +90,14 @@ class HealthConnectSync(private val context: Context, private val dao: DailyDao)
                 DailyAnalysis.sleep(SleepInput(main.startTime.toEpochMilli(), main.endTime.toEpochMilli(), main.stages.map { SleepSpan(it.startTime.toEpochMilli(), it.endTime.toEpochMilli(), it.stage) }))
             }
             val overnight = nights.mapValues { (_, night) -> DailyAnalysis.overnightHr(hr, night) }
+            val hourlyMetrics = buildSet {
+                if (HealthPermission.getReadPermission(StepsRecord::class) in granted) add(StepsRecord.COUNT_TOTAL)
+                if (HealthPermission.getReadPermission(ActiveCaloriesBurnedRecord::class) in granted) add(ActiveCaloriesBurnedRecord.ACTIVE_CALORIES_TOTAL)
+                if (HealthPermission.getReadPermission(TotalCaloriesBurnedRecord::class) in granted) add(TotalCaloriesBurnedRecord.ENERGY_TOTAL)
+            }
+            val hourly = if (hourlyMetrics.isEmpty()) emptyList() else client.aggregateGroupByDuration(
+                AggregateGroupByDurationRequest(hourlyMetrics, TimeRangeFilter.between(first.atStartOfDay(zone).toInstant(), now), Duration.ofHours(1), dataOriginFilter = origin)
+            ).map { bucket -> HourBucket(bucket.startTime.toEpochMilli(), bucket.endTime.toEpochMilli(), bucket.result[StepsRecord.COUNT_TOTAL], bucket.result[ActiveCaloriesBurnedRecord.ACTIVE_CALORIES_TOTAL]?.inKilocalories, bucket.result[TotalCaloriesBurnedRecord.ENERGY_TOTAL]?.inKilocalories) }
             val result = (0L..13L).map { offset ->
                 val date = first.plusDays(offset); val dayStart = date.atStartOfDay(zone).toInstant(); val dayEnd = minOf(date.plusDays(1).atStartOfDay(zone).toInstant(), now)
                 val points = hr.filter { it.time >= dayStart.toEpochMilli() && it.time < dayEnd.toEpochMilli() }
@@ -92,7 +106,11 @@ class HealthConnectSync(private val context: Context, private val dao: DailyDao)
                     if (HealthPermission.getReadPermission(StepsRecord::class) in granted) add(StepsRecord.COUNT_TOTAL)
                     if (HealthPermission.getReadPermission(TotalCaloriesBurnedRecord::class) in granted) add(TotalCaloriesBurnedRecord.ENERGY_TOTAL)
                 }
-                val aggregate = if (metrics.isEmpty()) null else client.aggregate(AggregateRequest(metrics, TimeRangeFilter.between(dayStart, dayEnd), dataOriginFilter = origin))
+                val extendedMetrics = metrics.toMutableSet().apply {
+                    if (HealthPermission.getReadPermission(ActiveCaloriesBurnedRecord::class) in granted) add(ActiveCaloriesBurnedRecord.ACTIVE_CALORIES_TOTAL)
+                    if (HealthPermission.getReadPermission(BasalMetabolicRateRecord::class) in granted) add(BasalMetabolicRateRecord.BASAL_CALORIES_TOTAL)
+                }
+                val aggregate = if (extendedMetrics.isEmpty()) null else client.aggregate(AggregateRequest(extendedMetrics, TimeRangeFilter.between(dayStart, dayEnd), dataOriginFilter = origin))
                 val night = nights[date]
                 val baseline = overnight.filter { (d, value) -> d < date && d >= date.minusDays(7) && value != null }.values.filterNotNull()
                 val wakeTimes = nights.filterKeys { it <= date && it >= date.minusDays(6) }.toSortedMap().values.map { it.end }
@@ -108,7 +126,10 @@ class HealthConnectSync(private val context: Context, private val dao: DailyDao)
                     night?.start, night?.end, night?.asleep, night?.deep ?: 0, night?.light ?: 0, night?.rem ?: 0, night?.awake ?: 0, night?.unknown ?: 0,
                     night?.stages?.joinToString(";") { "${it.start},${it.end},${it.stage}" } ?: "",
                     overnight[date], rest, hrv, DailyAnalysis.recovery(night, overnight[date], baseline, sleepNeed), baseline.size,
-                    DailyAnalysis.consistency(wakeTimes, zone), now.toEpochMilli(), load.points.lastOrNull()?.time)
+                    DailyAnalysis.consistency(wakeTimes, zone), now.toEpochMilli(), load.points.lastOrNull()?.time,
+                    aggregate?.get(ActiveCaloriesBurnedRecord.ACTIVE_CALORIES_TOTAL)?.inKilocalories,
+                    aggregate?.get(BasalMetabolicRateRecord.BASAL_CALORIES_TOTAL)?.inKilocalories,
+                    HourBucket.fill(dayStart.toEpochMilli(), dayEnd.toEpochMilli(), hourly).joinToString(";") { it.encode() })
             }
             dao.replaceConnected(first.toString(), result)
             prefs.edit().putLong("lastSync", now.toEpochMilli()).apply()
@@ -121,7 +142,7 @@ class HealthConnectSync(private val context: Context, private val dao: DailyDao)
         catch (e: Exception) { status.value = status.value.copy(busy = false, message = if (e is SecurityException) "Health access changed. Grant permissions and sync again." else "Sync interrupted (${e.javaClass.simpleName}). Keep the app open and retry. Your previous import is retained."); false }
     }
     companion object {
-        val READ_PERMISSIONS = setOf(HeartRateRecord::class, SleepSessionRecord::class, StepsRecord::class, TotalCaloriesBurnedRecord::class, RestingHeartRateRecord::class, HeartRateVariabilityRmssdRecord::class).map { HealthPermission.getReadPermission(it) }.toSet()
+        val READ_PERMISSIONS = setOf(HeartRateRecord::class, SleepSessionRecord::class, StepsRecord::class, TotalCaloriesBurnedRecord::class, ActiveCaloriesBurnedRecord::class, BasalMetabolicRateRecord::class, RestingHeartRateRecord::class, HeartRateVariabilityRmssdRecord::class).map { HealthPermission.getReadPermission(it) }.toSet()
     }
 }
 class HealthSyncWorker(context: Context, params: WorkerParameters) : CoroutineWorker(context, params), KoinComponent {

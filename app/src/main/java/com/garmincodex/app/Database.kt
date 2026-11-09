@@ -16,7 +16,9 @@ data class ConnectedDay(
     val deep: Int = 0, val light: Int = 0, val rem: Int = 0, val awake: Int = 0, val unknownSleep: Int = 0,
     val stages: String = "", val overnightHr: Double? = null, val restingHr: Double? = null, val hrv: Double? = null,
     val recovery: Int? = null, val baselineNights: Int = 0, val consistency: Int? = null,
-    val updatedAt: Long = 0, val lastSample: Long? = null
+    val updatedAt: Long = 0, val lastSample: Long? = null,
+    val activeCalories: Double? = null, val basalCalories: Double? = null,
+    @ColumnInfo(defaultValue = "''") val hourly: String = ""
 )
 @Dao
 interface DailyDao {
@@ -29,8 +31,8 @@ interface DailyDao {
     @Upsert suspend fun putConnected(days: List<ConnectedDay>)
     @Transaction suspend fun replaceConnected(since: String, days: List<ConnectedDay>) { deleteConnectedSince(since); putConnected(days) }
 }
-@Database(entities = [DailyRecord::class, ConnectedDay::class], version = 2, exportSchema = true,
-    autoMigrations = [AutoMigration(from = 1, to = 2)])
+@Database(entities = [DailyRecord::class, ConnectedDay::class], version = 3, exportSchema = true,
+    autoMigrations = [AutoMigration(from = 1, to = 2), AutoMigration(from = 2, to = 3)])
 abstract class PulseDatabase : RoomDatabase() { abstract fun days(): DailyDao }
 
 interface GarminSyncGateway { suspend fun fetchDays(): List<DailyRecord> }

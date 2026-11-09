@@ -1,6 +1,6 @@
 # Pulse 165 — real Garmin daily dashboard
 
-Native Android / Kotlin / Compose companion for Garmin Forerunner 165. Version **0.2.0** replaces the demo-first MVP with a real, on-device Health Connect import. The app name and pulse icon are unchanged.
+Native Android / Kotlin / Compose companion for Garmin Forerunner 165. Version **0.3.0** adds interactive insights and personal activity goals on top of the working, on-device Health Connect import. The app name and pulse icon are unchanged.
 
 ## Install and connect (Android 14+, including Android 17)
 
@@ -50,7 +50,7 @@ On the watch enable **Health & Wellness → Wrist Heart Rate → Broadcast Heart
 
 Compact sleep/recovery/strain rings, date navigation, metric tabs, recovery context, sleep hypnogram, daily heart-rate chart, zone durations and Trends. Real data is the default. **Connect → Open synthetic design preview** is a clearly labeled, in-memory visual preview; it never writes to imported history. Exit the banner to return to actual data. The original mock sensor implementation remains available to developers through the SensorFeed boundary.
 
-Imports page through all readable HR/sleep records, normalize duplicates, aggregate cumulative data by local calendar day (including DST), and atomically replace the last 14 days. This reflects source corrections/deletions in that window. Older imported summaries remain for offline trends; use Clear to remove them. Room v1→v2 migration preserves earlier BLE/demo daily records in a separate table.
+Imports page through all readable HR/sleep records, normalize duplicates, aggregate cumulative data by local calendar day (including DST), and atomically replace the last 14 days. This reflects source corrections/deletions in that window. Older imported summaries remain for offline trends; use Clear to remove them. Room v1→v2→v3 migration preserves earlier BLE/demo daily records in a separate table.
 
 ## Privacy
 
@@ -82,3 +82,18 @@ Open **Actions → Android APK → successful run → Artifacts → Pulse165-deb
 - [Read records, pagination and background access](https://developer.android.com/health-and-fitness/health-connect/read-data)
 - [Garmin public SDKs/examples](https://github.com/garmin)
 - [Garmin Health SDK (alternative approved integration)](https://developer.garmin.com/health-sdk/)
+
+## 0.3.0: interactive insights and refreshed design
+
+Install `Pulse165-0.3.0.apk` over the existing local build. Your imported days are preserved. After upgrading, go to **Connect → Review read permissions**, allow **Active calories burned** and optionally **Basal metabolic rate**, then sync again. No new Bluetooth pairing is needed. If Garmin does not supply a category, it remains unavailable.
+
+- **Interactive charts:** tap recovery, sleep, strain or daily HR to open a full-screen breakdown. The HR detail supports point selection by tap or an accessible slider. Sleep details list actual stage intervals. Android Back or the visible Back button closes the screen.
+- **Steps:** lime ring, custom daily goal, hourly bars, peak hour and selectable hour readouts. Tap the card for details or its **Edit** control to change the goal. Goal validation: 1,000–100,000 steps.
+- **Calories:** orange ring tracks **active calories** against your target (100–5,000 kcal). Detail displays active, total, reported basal energy and derived resting/other separately. Resting/other is `total − active` only when both are present and nonnegative; it is **not measured BMR**. No fabricated active/BMR values or metabolic equations are used. Basal aggregation covers the imported day-to-date interval, not an assumed full-day rate.
+- **Hourly data:** Health Connect duration aggregation restricted to Garmin. Missing hours retain empty slots; zero and missing are distinct. DST days can contain 23 or 25 hours; selected-hour labels include UTC offset. Hourly allocation can be apportioned from longer source intervals by Health Connect; it does not imply per-minute sensor precision. If the watch only exports coarse data, the app cannot recover more exact timing.
+- **Fitness Age:** new tab and overview entry. Enter chronological age (18–100) locally. This is an explicitly **unvalidated wellness illustration**, not biological age, life expectancy, Garmin Fitness Age or WHOOP Age. It requires 7 complete days in the preceding 14, excluding today; each needs steps, sleep, recovery and ≥120 minutes HR coverage. Four equally weighted factors use fixed references: 8,000 steps/day, 480 sleep minutes/night, Pulse recovery percentage, and 30 minutes/day above 50% HR reserve. The mean index maps to entered age with `(70 − index) / 6`, capped at ±5 years and minimum age 18. Personal goal changes do not alter these fixed references. No pace-of-aging claim is made.
+- **Visual refresh:** near-black backgrounds, subtle gradient cards, luminous lime/orange/mint accents, compact week strip, goal rings and a deterministic particle orb built directly in Compose Canvas. References inspire the style; app name/icon remain unchanged.
+
+Goals persist in private on-device preferences. They apply globally to the viewed day; there is no dated goal history. Data imports migrate additively to Room v3 with nullable new calorie fields and empty hourly history until the next sync. Clearing imported health data leaves your personal goal preferences; uninstalling clears both.
+
+Tests additionally cover goal validation/persistence, interactive goal editing and chart navigation, null/zero hourly encoding, missing-hour and DST preservation, calorie consistency, age-calibration bounds and exclusion of duplicate/current-day records, and preservation of v2 imported days during migration.
