@@ -40,10 +40,10 @@ private fun clock(t: Long?) = t?.let { Instant.ofEpochMilli(it).atZone(ZoneId.sy
 
 @Composable fun PulseDashboard(days: List<ConnectedDay>, sync: SyncState, live: DashboardState, connection: String, message: String?, sleepNeed: Int, maximumHr: Int, restingHr: Int,
     onConnect: () -> Unit, onSync: () -> Unit, onHealthSettings: () -> Unit, onGarmin: () -> Unit, onBackground: () -> Unit,
-    onProfile: (Int, Int, Int) -> Unit, onClear: () -> Unit, onLive: () -> Unit, onStop: () -> Unit, goals: PersonalGoals = PersonalGoals(), onGoals: (PersonalGoals) -> Unit = {}) {
+    onProfile: (Int, Int, Int) -> Unit, onClear: () -> Unit, onLive: () -> Unit, onStop: () -> Unit, goals: PersonalGoals = PersonalGoals(), onGoals: (PersonalGoals) -> Unit = {}, preferences: DashboardPreferences = DashboardPreferences(), onPreferences: (DashboardPreferences) -> Unit = {}) {
     var detail by rememberSaveable { mutableStateOf<String?>(null) }
     var goalEditor by rememberSaveable { mutableStateOf<String?>(null) }
-    var page by rememberSaveable { mutableIntStateOf(0) }; var metric by rememberSaveable { mutableIntStateOf(0) }
+    var page by rememberSaveable { mutableIntStateOf(preferences.startPage.coerceIn(0, 3)) }; var metric by rememberSaveable { mutableIntStateOf(0) }
     var selected by rememberSaveable { mutableStateOf(LocalDate.now().toString()) }
     var preview by rememberSaveable { mutableStateOf(false) }
     val day = if (preview) previewDay(selected) else days.firstOrNull { it.date == selected }
@@ -76,15 +76,21 @@ private fun clock(t: Long?) = t?.let { Instant.ofEpochMilli(it).atZone(ZoneId.sy
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) { listOf("Overview", "Sleep", "Strain").forEachIndexed { i, title -> FilterChip(selected = metric == i, onClick = { metric = i }, label = { Text(title) }) } }
                     when (metric) {
                         0 -> {
-                            MorningBriefing(day, if (preview) listOf(day!!) else days, selected, needState)
-                            Box(Modifier.clickable(onClickLabel = "Recovery details") { detail = "recovery" }) { RecoveryPanel(day) }
-                            Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                                GoalRingCard("Steps", day?.steps?.toDouble(), goals.steps, Lime, Modifier.weight(1f).fillMaxHeight(), { detail = "steps" }, { goalEditor = "steps" })
-                                GoalRingCard("Calories", day?.activeCalories, goals.activeCalories, Orange, Modifier.weight(1f).fillMaxHeight(), { detail = "calories" }, { goalEditor = "calories" }, totalCalories = day?.calories, onPermissions = onConnect)
-                            }
-                            Box(Modifier.clickable(onClickLabel = "Sleep details") { detail = "sleep" }) { SleepPanel(day, needState, true) }
-                            Box(Modifier.clickable(onClickLabel = "Heart rate details") { detail = "hr" }) { HeartPanel(day) }
-                            Panel { Label("FITNESS AGE • PULSE LAB", Green); Text("Your habits, in perspective.", fontSize = 23.sp, fontWeight = FontWeight.Bold); Text("Explore a transparent, experimental age comparison from your recent activity and recovery.", color = Muted, fontSize = 12.sp); TextButton(onClick = { page = 2 }) { Text("Explore Fitness Age  ↗") } }
+                            preferences.normalized().order.filter { it !in preferences.hidden }.forEach { card -> key(card) {
+                                when(card) {
+                                    "briefing" -> MorningBriefing(day, if (preview) listOf(day!!) else days, selected, needState)
+                                    "recovery" -> Box(Modifier.clickable(onClickLabel = "Recovery details") { detail = "recovery" }) { RecoveryPanel(day) }
+                                    "activity" -> Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                                        GoalRingCard("Steps", day?.steps?.toDouble(), goals.steps, Lime, Modifier.weight(1f).fillMaxHeight(), { detail = "steps" }, { goalEditor = "steps" })
+                                        GoalRingCard("Calories", day?.activeCalories, goals.activeCalories, Orange, Modifier.weight(1f).fillMaxHeight(), { detail = "calories" }, { goalEditor = "calories" }, totalCalories = day?.calories, onPermissions = onConnect)
+                                    }
+                                    "timeline" -> TimelineCard(day) { detail = "sleep" }
+                                    "sleep" -> Box(Modifier.clickable(onClickLabel = "Sleep details") { detail = "sleep" }) { SleepPanel(day, needState, true) }
+                                    "heart" -> Box(Modifier.clickable(onClickLabel = "Heart rate details") { detail = "hr" }) { HeartPanel(day) }
+                                    "fitness" -> Panel { Label("FITNESS AGE • PULSE LAB", Green); Text("Your habits, in perspective.", fontSize = 23.sp, fontWeight = FontWeight.Bold); TextButton(onClick = { page = 2 }) { Text("Explore Fitness Age ↗") } }
+                                }
+                            } }
+                            TextButton(onClick = { page = 3 }) { Text("Customise this dashboard") }
                         }
                         1 -> { Box(Modifier.clickable(onClickLabel = "Sleep stage details") { detail = "sleep" }) { SleepPanel(day, needState, false) }; SleepPlanner(days, goals, needState, onGoals) }
                         2 -> { Box(Modifier.clickable(onClickLabel = "Strain details") { detail = "strain" }) { StrainPanel(day, maxState, restState) }; Box(Modifier.clickable(onClickLabel = "Heart rate details") { detail = "hr" }) { HeartPanel(day) }; LivePanel(live, connection, onLive, onStop) }
@@ -92,10 +98,11 @@ private fun clock(t: Long?) = t?.let { Instant.ofEpochMilli(it).atZone(ZoneId.sy
                     if (!preview && (day == null || day.hrCount == 0 && day.sleepStart == null)) Panel { Text("No Garmin measurements for this day", fontWeight = FontWeight.Bold); Text("Sync your watch in Garmin Connect first. If sharing was just enabled, Garmin may only send new data; check after your next night of sleep.", color = Muted, fontSize = 13.sp); TextButton(onClick = { page = 3 }) { Text("Check connection & permissions") } }
                     Text("${if (preview) "Synthetic preview" else "Garmin → Health Connect → Pulse"} • Independent estimates, not Garmin or WHOOP scores.", color = Muted, fontSize = 10.sp)
                 }
-                1 -> { WeeklyReport(days, needState); TrendsPage(days, needState) { selected = it; page = 0 } }
+                1 -> { BaselineCard(days); WeeklyReport(days, needState); TrendsPage(days, needState) { selected = it; page = 0 } }
                 2 -> FitnessAgePage(if (preview) (1L..10L).map { previewDay(LocalDate.now().minusDays(it).toString()) } else days, goals) { goalEditor = "age" }
                 3 -> {
                     Text("Your watch.\nYour daily picture.", fontSize = 30.sp, lineHeight = 34.sp, fontWeight = FontWeight.Bold)
+                    DashboardEditor(preferences, onPreferences)
                     DataStatusCard(day, sync, onConnect, onHealthSettings)
                     SetupCard(onConnect, onGarmin, onHealthSettings)
                     Panel {

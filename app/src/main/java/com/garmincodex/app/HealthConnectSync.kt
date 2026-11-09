@@ -30,6 +30,15 @@ class HealthConnectSync(private val context: Context, private val dao: DailyDao)
         prefs.edit().putInt("stepGoal", value.steps).putInt("activeGoal", value.activeCalories).putInt("age", value.age ?: 0).putInt("wakeMinute", value.wakeMinute).apply()
         goals.value = value
     }
+    val dashboardPreferences = MutableStateFlow(DashboardPreferences(
+        prefs.getString("cardOrder", null)?.split(',') ?: DashboardPreferences.CARDS,
+        prefs.getString("hiddenCards", "")!!.split(',').filter { it.isNotBlank() }.toSet(),
+        prefs.getInt("startPage", 0)).normalized())
+    fun saveDashboard(value: DashboardPreferences) {
+        val normalized = value.normalized()
+        prefs.edit().putString("cardOrder", normalized.order.joinToString(",")).putString("hiddenCards", normalized.hidden.joinToString(",")).putInt("startPage", normalized.startPage).apply()
+        dashboardPreferences.value = normalized
+    }
     val sleepNeed get() = prefs.getInt("sleepNeed", 480)
     val maximumHr get() = prefs.getInt("maximumHr", 190)
     val restingHr get() = prefs.getInt("restingHr", 55)

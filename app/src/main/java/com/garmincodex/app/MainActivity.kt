@@ -39,6 +39,7 @@ class MainActivity : ComponentActivity() {
             @Suppress("UNCHECKED_CAST") override fun <T : androidx.lifecycle.ViewModel> create(modelClass: Class<T>): T = get<DashboardViewModel>() as T
         })[DashboardViewModel::class.java]
         setContent {
+            val dashboardPreferences by vm.sync.dashboardPreferences.collectAsStateWithLifecycle()
             val goals by vm.sync.goals.collectAsStateWithLifecycle()
             val days by vm.connected.collectAsStateWithLifecycle()
             val sync by vm.syncStatus.collectAsStateWithLifecycle()
@@ -54,7 +55,7 @@ class MainActivity : ComponentActivity() {
                     onProfile = { n, m, r -> vm.sync.saveProfile(n, m, r); vm.refresh() }, onClear = { vm.clearImported() },
                     onLive = { stopService(Intent(this, TrackingService::class.java)); blePermissions.launch(if (Build.VERSION.SDK_INT >= 31) arrayOf(Manifest.permission.BLUETOOTH_SCAN, Manifest.permission.BLUETOOTH_CONNECT) else arrayOf(Manifest.permission.ACCESS_FINE_LOCATION)) },
                     onStop = { vm.stop(); stopService(Intent(this, TrackingService::class.java)) },
-                    goals = goals, onGoals = { vm.sync.saveGoals(it) })
+                    goals = goals, onGoals = { vm.sync.saveGoals(it) }, preferences = dashboardPreferences, onPreferences = { vm.sync.saveDashboard(it) })
                 if (choosing.value) WatchDialog(watches, connection, { choosing.value = false }, { vm.scan() }) {
                     vm.select(it); choosing.value = false
                     try { ContextCompat.startForegroundService(this, Intent(this, TrackingService::class.java)) }
