@@ -24,10 +24,10 @@ data class SyncState(val busy: Boolean = false, val message: String = "Connect G
 class HealthConnectSync(private val context: Context, private val dao: DailyDao) {
     private val prefs = context.getSharedPreferences("health_sync", Context.MODE_PRIVATE)
     val status = MutableStateFlow(SyncState(lastSync = prefs.getLong("lastSync", 0)))
-    val goals = MutableStateFlow(PersonalGoals(prefs.getInt("stepGoal", 8000), prefs.getInt("activeGoal", 500), prefs.getInt("age", 0).takeIf { it in 18..100 }))
+    val goals = MutableStateFlow(PersonalGoals(prefs.getInt("stepGoal", 8000), prefs.getInt("activeGoal", 500), prefs.getInt("age", 0).takeIf { it in 18..100 }, prefs.getInt("wakeMinute", 420)))
     fun saveGoals(value: PersonalGoals) {
         value.validate()
-        prefs.edit().putInt("stepGoal", value.steps).putInt("activeGoal", value.activeCalories).putInt("age", value.age ?: 0).apply()
+        prefs.edit().putInt("stepGoal", value.steps).putInt("activeGoal", value.activeCalories).putInt("age", value.age ?: 0).putInt("wakeMinute", value.wakeMinute).apply()
         goals.value = value
     }
     val sleepNeed get() = prefs.getInt("sleepNeed", 480)

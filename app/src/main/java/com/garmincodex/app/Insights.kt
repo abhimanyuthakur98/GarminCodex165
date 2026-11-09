@@ -3,8 +3,8 @@ package com.garmincodex.app
 import java.time.LocalDate
 import kotlin.math.*
 
-data class PersonalGoals(val steps: Int = 8000, val activeCalories: Int = 500, val age: Int? = null) {
-    fun validate() { require(steps in 1000..100000 && activeCalories in 100..5000 && (age == null || age in 18..100)) }
+data class PersonalGoals(val steps: Int = 8000, val activeCalories: Int = 500, val age: Int? = null, val wakeMinute: Int = 420) {
+    fun validate() { require(wakeMinute in 0..1439 && steps in 1000..100000 && activeCalories in 100..5000 && (age == null || age in 18..100)) }
 }
 data class HourBucket(val start: Long, val end: Long, val steps: Long?, val active: Double?, val total: Double?) {
     fun encode() = "$start,$end,${steps ?: ""},${active ?: ""},${total ?: ""}"

@@ -171,8 +171,9 @@ private fun time(t: Long) = Instant.ofEpochMilli(t).atZone(ZoneId.systemDefault(
     Caption("Fitness Age / Pulse Lab")
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) { Text("Your long-term\npicture.", fontSize = 34.sp, fontWeight = FontWeight.Bold, lineHeight = 37.sp); TextButton(onClick = onAge) { Text(if (goals.age == null) "Set age" else "Age ${goals.age}", color = Mint) } }
     Box(Modifier.fillMaxWidth().aspectRatio(1f), contentAlignment = Alignment.Center) {
-        FitnessOrb(Modifier.fillMaxSize().padding(12.dp))
-        Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) { Text(result.age?.let(::fmt) ?: "—", fontSize = 62.sp, fontWeight = FontWeight.Bold); Caption("Experimental fitness age"); Text(result.age?.let { val delta = it - goals.age!!; "${fmt(abs(delta))} years ${if (delta <= 0) "below" else "above"} your age" } ?: "${result.days}/7 complete days", color = Mint, fontSize = 13.sp) }
+        FitnessOrb(Modifier.fillMaxSize())
+        Canvas(Modifier.fillMaxSize()) { drawCircle(Brush.radialGradient(listOf(Color(0xFF090D0C).copy(alpha = .92f), Color.Transparent), radius = size.minDimension * .32f), radius = size.minDimension * .32f) }
+        Column(Modifier.fillMaxWidth(.82f), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) { Text(result.age?.let(::fmt) ?: "—", fontSize = 62.sp, fontWeight = FontWeight.Bold); Text("EXPERIMENTAL FITNESS AGE", color = Fog, fontSize = 10.sp, textAlign = androidx.compose.ui.text.style.TextAlign.Center); Text(result.age?.let { val delta = it - goals.age!!; "${fmt(abs(delta))} years ${if (delta <= 0) "below" else "above"} your age" } ?: "${result.days}/7 complete days", color = Mint, fontSize = 13.sp, textAlign = androidx.compose.ui.text.style.TextAlign.Center) }
     }
     InsightPanel { Caption("A wellness illustration, not biological age"); Text(result.reason, fontSize = 14.sp); Text("This is an unvalidated Pulse heuristic based on habits and recovery. It does not measure aging, predict lifespan or reproduce WHOOP Age. Chronological age is your input; the offset is illustrative.", color = Fog, fontSize = 12.sp) }
     val entrance = chartEntrance()
@@ -201,9 +202,9 @@ private fun time(t: Long) = Instant.ofEpochMilli(t).atZone(ZoneId.systemDefault(
     val transition = rememberInfiniteTransition(label = "orb")
     val phase by transition.animateFloat(0f, (2 * PI).toFloat(), infiniteRepeatable(tween(18000, easing = LinearEasing)), label = "drift")
     val entrance = chartEntrance()
-    val particles = remember { val random = Random(165); List(240) { floatArrayOf(random.nextFloat() * 6.283185f, .55f + random.nextFloat() * .4f, random.nextFloat(), random.nextFloat()) } }
+    val particles = remember { val random = Random(165); List(240) { floatArrayOf(random.nextFloat() * 6.283185f, random.nextFloat(), random.nextFloat(), random.nextFloat()) } }
     Canvas(modifier) {
-        val radius = size.minDimension * .47f
+        val radius = size.minDimension * .48f
         val outline = Path()
         for (i in 0..180) {
             val angle = i * 2 * PI / 180
@@ -216,10 +217,11 @@ private fun time(t: Long) = Instant.ofEpochMilli(t).atZone(ZoneId.systemDefault(
         drawPath(outline, Mint.copy(alpha = .25f * entrance), style = Stroke(1.dp.toPx()))
         clipPath(outline) {
             particles.forEach { p ->
-                val angle = p[0] + phase * if (p[3] > .5f) 1 else -1
-                val r = radius * (p[1] + .035f * sin(phase * 2 + p[0]))
+                val travel = (p[1] + phase / (2 * PI.toFloat())) % 1f
+                val angle = p[0] + .06f * sin(phase + p[0])
+                val r = radius * (.08f + .92f * travel)
                 val position = center + Offset(cos(angle) * r, sin(angle) * r)
-                drawCircle(Mint.copy(alpha = (.18f + p[2] * .55f) * entrance), (1f + p[3] * 1.8f).dp.toPx(), position)
+                drawCircle(Mint.copy(alpha = (.18f + p[2] * .55f) * entrance * (travel * 5).coerceAtMost(1f) * ((1 - travel) * 8).coerceAtMost(1f)), (1f + p[3] * 1.8f).dp.toPx(), position)
             }
         }
     }
