@@ -1,0 +1,226 @@
+{
+  "formatVersion": 1,
+  "database": {
+    "version": 2,
+    "identityHash": "cd35a055294f857b93afdcc74f0306fc",
+    "entities": [
+      {
+        "tableName": "DailyRecord",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`date` TEXT NOT NULL, `source` TEXT NOT NULL, `load` REAL NOT NULL, `recovery` INTEGER, `sleepMinutes` INTEGER, `updatedAt` INTEGER NOT NULL, PRIMARY KEY(`date`, `source`))",
+        "fields": [
+          {
+            "fieldPath": "date",
+            "columnName": "date",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "source",
+            "columnName": "source",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "load",
+            "columnName": "load",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "recovery",
+            "columnName": "recovery",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "sleepMinutes",
+            "columnName": "sleepMinutes",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "updatedAt",
+            "columnName": "updatedAt",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "date",
+            "source"
+          ]
+        }
+      },
+      {
+        "tableName": "ConnectedDay",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`date` TEXT NOT NULL, `load` REAL NOT NULL, `coveredMinutes` INTEGER NOT NULL, `hrCount` INTEGER NOT NULL, `hrMin` INTEGER, `hrMax` INTEGER, `hrAverage` INTEGER, `chart` TEXT NOT NULL, `zones` TEXT NOT NULL, `steps` INTEGER, `calories` REAL, `sleepStart` INTEGER, `sleepEnd` INTEGER, `asleep` INTEGER, `deep` INTEGER NOT NULL, `light` INTEGER NOT NULL, `rem` INTEGER NOT NULL, `awake` INTEGER NOT NULL, `unknownSleep` INTEGER NOT NULL, `stages` TEXT NOT NULL, `overnightHr` REAL, `restingHr` REAL, `hrv` REAL, `recovery` INTEGER, `baselineNights` INTEGER NOT NULL, `consistency` INTEGER, `updatedAt` INTEGER NOT NULL, `lastSample` INTEGER, PRIMARY KEY(`date`))",
+        "fields": [
+          {
+            "fieldPath": "date",
+            "columnName": "date",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "load",
+            "columnName": "load",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "coveredMinutes",
+            "columnName": "coveredMinutes",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "hrCount",
+            "columnName": "hrCount",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "hrMin",
+            "columnName": "hrMin",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "hrMax",
+            "columnName": "hrMax",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "hrAverage",
+            "columnName": "hrAverage",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "chart",
+            "columnName": "chart",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "zones",
+            "columnName": "zones",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "steps",
+            "columnName": "steps",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "calories",
+            "columnName": "calories",
+            "affinity": "REAL"
+          },
+          {
+            "fieldPath": "sleepStart",
+            "columnName": "sleepStart",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "sleepEnd",
+            "columnName": "sleepEnd",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "asleep",
+            "columnName": "asleep",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "deep",
+            "columnName": "deep",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "light",
+            "columnName": "light",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "rem",
+            "columnName": "rem",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "awake",
+            "columnName": "awake",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "unknownSleep",
+            "columnName": "unknownSleep",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "stages",
+            "columnName": "stages",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "overnightHr",
+            "columnName": "overnightHr",
+            "affinity": "REAL"
+          },
+          {
+            "fieldPath": "restingHr",
+            "columnName": "restingHr",
+            "affinity": "REAL"
+          },
+          {
+            "fieldPath": "hrv",
+            "columnName": "hrv",
+            "affinity": "REAL"
+          },
+          {
+            "fieldPath": "recovery",
+            "columnName": "recovery",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "baselineNights",
+            "columnName": "baselineNights",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "consistency",
+            "columnName": "consistency",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "updatedAt",
+            "columnName": "updatedAt",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "lastSample",
+            "columnName": "lastSample",
+            "affinity": "INTEGER"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "date"
+          ]
+        }
+      }
+    ],
+    "setupQueries": [
+      "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'cd35a055294f857b93afdcc74f0306fc')"
+    ]
+  }
+}

@@ -56,7 +56,12 @@ class HealthRepository(private val dao: DailyDao, val ble: BleFeed) {
     fun stop() { requestedMode = null; job?.cancel(); ble.stopScan() }
     fun stopLive() { if (requestedMode == "LIVE") stop() }
 }
-class DashboardViewModel(private val repo: HealthRepository) : ViewModel() {
+class DashboardViewModel(private val repo: HealthRepository, val sync: HealthConnectSync, dao: DailyDao) : ViewModel() {
+    val connected = dao.connected().stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+    val syncStatus = sync.status.asStateFlow()
+    private var syncJob: Job? = null
+    fun refresh() { if (syncJob?.isActive == true) return; syncJob = viewModelScope.launch { sync.sync() } }
+    fun clearImported() { viewModelScope.launch { sync.clear() } }
     val state = repo.state.asStateFlow()
     val history = repo.history.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
     val devices = repo.ble.devices.asStateFlow()
@@ -76,7 +81,8 @@ class PulseApp : Application() {
             single { get<PulseDatabase>().days() }
             single { BleFeed(get()) }
             single { HealthRepository(get(), get()) }
-            factory { DashboardViewModel(get()) }
+            single { HealthConnectSync(get(), get()) }
+            factory { DashboardViewModel(get(), get(), get()) }
             single { SyncImporter(get()) }
         }) }
     }

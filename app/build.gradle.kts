@@ -6,8 +6,9 @@ plugins {
 android {
     namespace = "com.garmincodex.app"
     compileSdk = 36
-    defaultConfig { applicationId = "com.garmincodex.app"; minSdk = 26; targetSdk = 36; versionCode = 1; versionName = "0.1.0" }
+    defaultConfig { applicationId = "com.garmincodex.app"; minSdk = 26; targetSdk = 36; versionCode = 2; versionName = "0.2.0" }
     buildFeatures { compose = true }
+    testOptions { unitTests.isIncludeAndroidResources = true }
     compileOptions { sourceCompatibility = JavaVersion.VERSION_17; targetCompatibility = JavaVersion.VERSION_17 }
 }
 ksp { arg("room.schemaLocation", "$projectDir/schemas") }
@@ -25,5 +26,12 @@ dependencies {
     implementation("io.insert-koin:koin-android:4.1.0")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.10.2")
     implementation("androidx.core:core-ktx:1.16.0")
+    implementation("androidx.health.connect:connect-client:1.1.0")
+    implementation("androidx.work:work-runtime-ktx:2.10.3")
     testImplementation("junit:junit:4.13.2")
+    testImplementation("org.robolectric:robolectric:4.16.1")
+    testImplementation("androidx.compose.ui:ui-test-junit4")
+    testImplementation("io.github.takahirom.roborazzi:roborazzi:1.50.0")
+    testImplementation("io.github.takahirom.roborazzi:roborazzi-compose:1.50.0")
+    debugImplementation("androidx.compose.ui:ui-test-manifest")
 }
