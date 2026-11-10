@@ -12,12 +12,13 @@ class WorkoutTest {
             val start=DateTime(1000000000L)
             val fileId=FileIdMesg(); fileId.type=com.garmin.fit.File.ACTIVITY; fileId.manufacturer=Manufacturer.GARMIN; fileId.timeCreated=start
             encoder.write(fileId)
-            repeat(10) { i -> val point=RecordMesg();point.timestamp=DateTime(1000000000L+i*60);point.heartRate=(100+i).toShort();encoder.write(point) }
-            val session=SessionMesg(); session.startTime=start;session.timestamp=DateTime(1000000600L);session.sport=Sport.RUNNING;session.totalCalories=120;encoder.write(session);encoder.close()
+            repeat(10) { i -> val point=RecordMesg();point.timestamp=DateTime(1000000000L+i*60);point.heartRate=(100+i).toShort();point.enhancedSpeed=3.0f;encoder.write(point) }
+            val session=SessionMesg(); session.startTime=start;session.timestamp=DateTime(1000000600L);session.sport=Sport.RUNNING;session.totalCalories=120;session.totalDistance=1800f;session.totalTimerTime=590f;session.totalMovingTime=580f;encoder.write(session);val lap=LapMesg();lap.startTime=start;lap.timestamp=DateTime(1000000300L);lap.totalDistance=900f;lap.totalTimerTime=295f;encoder.write(lap);encoder.close()
             val bytes=file.readBytes()
             val first=FitWorkoutReader.read(bytes).single()
             assertEquals(first,FitWorkoutReader.read(bytes).single())
             assertEquals("RUNNING",first.type)
+            assertEquals(1800.0,first.distanceMeters!!,.01); assertEquals(590.0,first.timerSeconds!!,.01); assertEquals(580.0,first.movingSeconds!!,.01); assertEquals(10,PaceSample.decode(first.paceChart).size);assertEquals(900.0,RunLap.decode(first.laps).single().distance!!,.01)
             assertEquals(120.0,first.calories!!,.01)
             assertEquals(10,WorkoutAnalysis.points(first).size)
             assertEquals(600000,first.end-first.start)

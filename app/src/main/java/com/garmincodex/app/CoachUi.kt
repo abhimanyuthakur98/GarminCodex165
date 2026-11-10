@@ -39,14 +39,15 @@ import kotlin.math.roundToInt
         Text("Make room for rest.", fontSize = 24.sp, fontWeight = FontWeight.Bold)
         Text("Bedtime ${DailyCoach.bedtime(goals.wakeMinute, need)}  →  Wake ${LocalTime.of(goals.wakeMinute / 60, goals.wakeMinute % 60)}", fontSize = 20.sp, color = Color(0xFFA9B6FF))
         Text("Allows ${need / 60}h ${need % 60}m for your sleep goal. Plan extra time to wind down and fall asleep.", fontSize = 13.sp)
-        Text("${shortage.first / 60}h ${shortage.first % 60}m below goal across ${shortage.second}/7 recorded nights. Missing nights are excluded; this is a goal shortfall, not a clinical sleep-debt estimate.", color = Color.Gray, fontSize = 12.sp)
+        WeekSleepChart(days,LocalDate.now(),need)
+        Text("${shortage.first / 60}h ${shortage.first % 60}m below goal · ${shortage.second}/7 recorded nights", color = Color.Gray, fontSize = 12.sp)
         val consistency = days.firstOrNull { it.date == LocalDate.now().toString() }?.consistency
         Text("Wake consistency: ${consistency?.let { "$it%" } ?: "more nights needed"}", fontSize = 13.sp)
         if (edit) {
             OutlinedTextField(input, { input = it.take(5) }, label = { Text("Wake time (24-hour HH:mm)") }, modifier = Modifier.fillMaxWidth().testTag("wake-input"), keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text), singleLine = true, isError = parsed == null)
             Row { Button(enabled = parsed != null, onClick = { parsed?.let { onGoals(goals.copy(wakeMinute = it.hour * 60 + it.minute)) }; edit = false }) { Text("Save wake time") }; TextButton(onClick = { edit = false }) { Text("Cancel") } }
         } else TextButton(onClick = { edit = true }) { Text("Change wake time") }
-        Text("Planning only; no alarm is scheduled. Change your sleep goal in Connect → Your targets.", fontSize = 11.sp, color = Color.Gray)
+        ChartExplanation("Missing nights are excluded. This is a goal shortfall, not a clinical sleep-debt estimate. Planning only; no alarm is scheduled. Change your sleep goal in Connect → Your targets.")
     }
 }
 @Composable internal fun WeeklyReport(days: List<ConnectedDay>, need: Int) {
@@ -58,7 +59,7 @@ import kotlin.math.roundToInt
         metrics.forEach { (label, value) ->
             val result = DailyCoach.weekly(days, end, value)
             Text(label, fontWeight = FontWeight.Bold)
-            Text(result.current?.let { String.format(java.util.Locale.US, "%.1f average", it) } ?: "No records")
+            MetricBars(listOf(Triple("This week",result.current,result.current?.let{String.format(java.util.Locale.US,"%.1f",it)} ?: "No records"),Triple("Previous",result.previous,result.previous?.let{String.format(java.util.Locale.US,"%.1f",it)} ?: "No records")))
             Text("${result.currentDays}/7 days · previous ${result.previousDays}/7 days" + (if (result.currentDays == 7 && result.previousDays == 7) " · ${String.format(java.util.Locale.US, "%+.1f", result.current!! - result.previous!!)} change" else " · comparison waits for complete weeks"), color = Color.Gray, fontSize = 11.sp)
             HorizontalDivider(color = Color.White.copy(alpha = .08f))
         }
@@ -66,12 +67,18 @@ import kotlin.math.roundToInt
         Text("Sleep goal met on ${nights.count { it >= need }}/${nights.size} recorded nights.", color = Lime, fontSize = 13.sp)
     }
 }
-@Composable internal fun DataStatusCard(day: ConnectedDay?, sync: SyncState, onPermissions: () -> Unit, onSettings: () -> Unit) {
+@Composable internal fun DataStatusCard(day: ConnectedDay?, sync: SyncState, onPermissions: () -> Unit, onSettings: () -> Unit, days: List<ConnectedDay> = emptyList()) {
     var expanded by remember { mutableStateOf(false) }
     CoachCard("DATA STATUS") {
         Text(if (sync.busy) "Importing Garmin records…" else if (sync.lastSync == 0L) "No successful import yet" else "Last import: " + Instant.ofEpochMilli(sync.lastSync).atZone(ZoneId.systemDefault()).format(DateTimeFormatter.ofPattern("d MMM, HH:mm")), fontSize = 13.sp)
+        ImportCoverage(days)
         TextButton(onClick = { expanded = !expanded }) { Text(if (expanded) "Hide data categories" else "Check data categories") }
         if (expanded) {
+            if(sync.diagnostics.isNotBlank()) {
+                Text("LAST SUCCESSFUL IMPORT",color=Lime,fontSize=11.sp)
+                Text(sync.diagnostics,fontSize=12.sp,lineHeight=20.sp)
+                Text("Counts describe imported Garmin data, not permission grants. A zero means no data was read; review the permission rows below. FIT imports are separate.",fontSize=11.sp,color=Color.Gray)
+            }
             val fields = listOf(Triple("Heart rate", HeartRateRecord::class, (day?.hrCount ?: 0) > 0), Triple("Sleep", SleepSessionRecord::class, day?.sleepStart != null), Triple("Steps", StepsRecord::class, day?.steps != null), Triple("Active calories", ActiveCaloriesBurnedRecord::class, day?.activeCalories != null), Triple("Total calories", TotalCaloriesBurnedRecord::class, day?.calories != null), Triple("Basal energy", BasalMetabolicRateRecord::class, day?.basalCalories != null))
             fields.forEach { (label, type, present) ->
                 val allowed = HealthPermission.getReadPermission(type) in sync.granted

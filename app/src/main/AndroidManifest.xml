@@ -27,6 +27,7 @@
         <activity-alias android:name="ViewPermissionUsageActivity" android:exported="true" android:targetActivity=".PrivacyActivity" android:permission="android.permission.START_VIEW_PERMISSION_USAGE">
             <intent-filter><action android:name="android.intent.action.VIEW_PERMISSION_USAGE"/><category android:name="android.intent.category.HEALTH_PERMISSIONS"/></intent-filter>
         </activity-alias>
+        <receiver android:name=".PulseWidget" android:exported="false" android:label="Pulse Daily"><intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /></intent-filter><meta-data android:name="android.appwidget.provider" android:resource="@xml/pulse_widget_info" /></receiver>
         <service android:name=".TrackingService" android:exported="false" android:foregroundServiceType="connectedDevice" />
     </application>
 </manifest>

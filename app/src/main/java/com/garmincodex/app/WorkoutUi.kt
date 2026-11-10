@@ -22,13 +22,14 @@ private fun workoutTime(time:Long)=Instant.ofEpochMilli(time).atZone(ZoneId.syst
 private fun minutes(w:Workout)=(w.end-w.start)/60000.0
 private fun decimal(value:Double)=String.format(java.util.Locale.US,"%.1f",value)
 @Composable private fun WorkoutCard(content:@Composable ColumnScope.()->Unit) { Column(Modifier.fillMaxWidth().background(Brush.linearGradient(listOf(Color(0xFF29221D),Color(0xFF171D1A))),RoundedCornerShape(26.dp)).border(1.dp,Orange.copy(alpha=.09f),RoundedCornerShape(26.dp)).padding(20.dp),verticalArrangement=Arrangement.spacedBy(12.dp),content=content) }
-@Composable internal fun WorkoutLibrary(workouts:List<Workout>, checkIns:List<WorkoutCheckIn>, resting:Int, maximum:Int, onCheckIn:(WorkoutCheckIn)->Unit,onImport:()->Unit,onPermissions:()->Unit,onRemove:(String)->Unit,message:String?,busy:Boolean) {
+@Composable internal fun WorkoutLibrary(workouts:List<Workout>, checkIns:List<WorkoutCheckIn>, resting:Int, maximum:Int, onCheckIn:(WorkoutCheckIn)->Unit,onImport:()->Unit,onPermissions:()->Unit,onRemove:(String)->Unit,message:String?,busy:Boolean,miles:Boolean=false,onMiles:(Boolean)->Unit={}) {
     var selectedId by remember { mutableStateOf<String?>(null) }
     var filter by remember { mutableStateOf("All") }
     var window by remember { mutableIntStateOf(0) }
     Text("Your training story.",fontSize=32.sp,fontWeight=FontWeight.Bold)
     Text("Recorded sessions, not inferred workouts.",color=Color.Gray,fontSize=13.sp)
     Row { Button(onClick=onImport,enabled=!busy) { Text(if(busy) "Importing…" else "Import FIT") }; TextButton(onClick=onPermissions) { Text("Allow exercise") } }
+    Row(horizontalArrangement=Arrangement.spacedBy(8.dp)) { FilterChip(!miles,{onMiles(false)},label={Text("Kilometres")});FilterChip(miles,{onMiles(true)},label={Text("Miles")}) }
     message?.let { Text(it,color=Lime,fontSize=12.sp) }
     Row(Modifier.horizontalScroll(rememberScrollState()),horizontalArrangement=Arrangement.spacedBy(8.dp)) { listOf("All" to 0,"7 days" to 7,"30 days" to 30).forEach { (label,n) -> FilterChip(window==n,{window=n},label={Text(label)}) } }
     Row(Modifier.horizontalScroll(rememberScrollState()),horizontalArrangement=Arrangement.spacedBy(8.dp)) { (listOf("All")+workouts.map {it.type}.distinct().sorted()).forEach { type -> FilterChip(filter==type,{filter=type},label={Text(if(type=="All") "All activities" else WorkoutAnalysis.title(type))}) } }
@@ -38,13 +39,14 @@ private fun decimal(value:Double)=String.format(java.util.Locale.US,"%.1f",value
     filtered.forEach { w -> Box(Modifier.clickable(onClickLabel="Open ${w.title}"){selectedId=w.id}) { WorkoutCard {
         Text(w.title,fontSize=22.sp,fontWeight=FontWeight.Bold)
         Text(workoutTime(w.start),color=Lime,fontSize=12.sp)
+        w.distanceMeters?.let { Text(RunningMetrics.distance(it,miles),color=Orange,fontWeight=FontWeight.Bold) }
         Text("${decimal(minutes(w))} min elapsed · ${if(w.source=="FIT") "FIT file" else "Garmin / Health Connect"}",fontSize=12.sp)
         checkIns.firstOrNull {it.workoutId==w.id}?.let { Text("Effort ${it.effort}/10 · soreness ${it.soreness}/10",color=Color.Gray,fontSize=12.sp) }
     } } }
     Text("FIT and Health Connect entries remain separate. The same session may appear twice; comparisons stay within one source. Workouts never add a second copy of load to your daily score.",color=Color.Gray,fontSize=11.sp)
-    selectedId?.let { id -> workouts.firstOrNull {it.id==id}?.let { w -> WorkoutDetails(w,workouts,checkIns.firstOrNull {it.workoutId==id},resting,maximum,onCheckIn,{onRemove(id);selectedId=null}) {selectedId=null} } }
+    selectedId?.let { id -> workouts.firstOrNull {it.id==id}?.let { w -> WorkoutDetails(w,workouts,checkIns.firstOrNull {it.workoutId==id},resting,maximum,onCheckIn,{onRemove(id);selectedId=null},miles) {selectedId=null} } }
 }
-@Composable internal fun WorkoutDetails(w:Workout,all:List<Workout>,checkIn:WorkoutCheckIn?,resting:Int,maximum:Int,onSave:(WorkoutCheckIn)->Unit,onRemove:()->Unit,onClose:()->Unit) {
+@Composable internal fun WorkoutDetails(w:Workout,all:List<Workout>,checkIn:WorkoutCheckIn?,resting:Int,maximum:Int,onSave:(WorkoutCheckIn)->Unit,onRemove:()->Unit,miles:Boolean=false,onClose:()->Unit) {
     val points=remember(w.chart){WorkoutAnalysis.points(w)}
     val load=remember(points,resting,maximum){DailyAnalysis.load(points,resting,maximum)}
     val chart=remember(points){points.groupBy { (it.time-w.start)/((w.end-w.start)/500).coerceAtLeast(1000) }.values.map { chunk -> HrPoint(chunk.first().time,chunk.map {it.bpm}.average().roundToInt()) }.joinToString(";"){"${it.time},${it.bpm}"}}
@@ -62,6 +64,7 @@ private fun decimal(value:Double)=String.format(java.util.Locale.US,"%.1f",value
             Text("${points.size} HR samples · ${load.coveredMinutes} min HR coverage",fontSize=12.sp,color=Color.Gray)
             Text("Elapsed duration includes pauses. Health Connect energy may be apportioned from longer source intervals. Missing HR is not filled in.",fontSize=11.sp,color=Color.Gray)
         }
+        RunningDetails(w,miles)
         WorkoutCard {
             Text("HEART RATE",fontWeight=FontWeight.Bold)
             InteractiveHeart(ConnectedDay(date=Instant.ofEpochMilli(w.start).atZone(ZoneId.systemDefault()).toLocalDate().toString(),chart=chart))
@@ -79,11 +82,13 @@ private fun decimal(value:Double)=String.format(java.util.Locale.US,"%.1f",value
         }
         WorkoutCard {
             Text("PREVIOUS SAME-TYPE SESSION",fontWeight=FontWeight.Bold)
-            val previous=WorkoutAnalysis.previous(w,all)
-            if(previous==null) Text("Another earlier ${WorkoutAnalysis.title(w.type)} session from this source is needed.",color=Color.Gray)
+            val previous=RunningMetrics.comparable(w,all)
+            if(previous==null) Text("Another earlier ${WorkoutAnalysis.title(w.type)} session from this source${if((w.distanceMeters ?: 0.0)>0) " within 10% of this distance" else ""} is needed.",color=Color.Gray)
             else {
                 Text(workoutTime(previous.start),color=Lime)
-                Text("Elapsed time: ${decimal(minutes(w))} vs ${decimal(minutes(previous))} min")
+                MetricBars(listOf(Triple("This session",minutes(w),"${decimal(minutes(w))} min"),Triple("Previous",minutes(previous),"${decimal(minutes(previous))} min")),Orange)
+                if((w.distanceMeters ?: 0.0)>0) { Text("Distance match within 10%: ${RunningMetrics.distance(w.distanceMeters,miles)} vs ${RunningMetrics.distance(previous.distanceMeters,miles)}");Text("Timer pace: ${RunningMetrics.pace(RunningMetrics.speed(w.distanceMeters,w.timerSeconds),miles)} vs ${RunningMetrics.pace(RunningMetrics.speed(previous.distanceMeters,previous.timerSeconds),miles)}") }
+                Text("Moving time: ${w.movingSeconds?.let{decimal(it/60)} ?: "—"} vs ${previous.movingSeconds?.let{decimal(it/60)} ?: "—"} min")
                 val prevHr=WorkoutAnalysis.points(previous)
                 if(points.isNotEmpty() && prevHr.isNotEmpty()) Text("Mean recorded HR: ${points.map {it.bpm}.average().roundToInt()} vs ${prevHr.map {it.bpm}.average().roundToInt()} bpm")
                 Text("Descriptive comparison only. Route, distance, conditions and sampling may differ; a lower HR alone does not prove improved fitness.",fontSize=11.sp,color=Color.Gray)

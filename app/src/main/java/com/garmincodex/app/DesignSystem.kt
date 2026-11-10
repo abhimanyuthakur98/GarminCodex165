@@ -21,6 +21,21 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.text.font.FontWeight
 
+@Composable internal fun JournalAction(selected:Boolean,onClick:()->Unit) {
+    OutlinedButton(onClick=onClick,modifier=Modifier.heightIn(min=48.dp),shape=RoundedCornerShape(16.dp),
+        contentPadding=PaddingValues(horizontal=10.dp,vertical=8.dp),
+        border=BorderStroke(1.dp,Color(0xFF72E8BE).copy(alpha=if(selected) .6f else .22f)),
+        colors=ButtonDefaults.outlinedButtonColors(containerColor=Color(0xFF72E8BE).copy(alpha=if(selected) .16f else .07f),contentColor=Color(0xFF72E8BE))) {
+        Canvas(Modifier.size(16.dp)) {
+            val s=size.width;val stroke=1.3.dp.toPx()
+            drawRoundRect(Color(0xFF72E8BE),Offset(s*.15f,s*.08f),Size(s*.72f,s*.84f),androidx.compose.ui.geometry.CornerRadius(s*.1f),style=Stroke(stroke))
+            drawLine(Color(0xFF72E8BE),Offset(s*.33f,s*.08f),Offset(s*.33f,s*.92f),stroke)
+            repeat(2){i->drawLine(Color(0xFF72E8BE),Offset(s*.46f,s*(.38f+i*.22f)),Offset(s*.72f,s*(.38f+i*.22f)),stroke)}
+        }
+        Spacer(Modifier.width(6.dp));Text("Journal",fontSize=12.sp,fontWeight=FontWeight.SemiBold,maxLines=1)
+    }
+}
+
 @Composable internal fun PulseDock(page:Int,onPage:(Int)->Unit) {
     Surface(Modifier.navigationBarsPadding().padding(horizontal=12.dp,vertical=8.dp),shape=RoundedCornerShape(28.dp),color=Color(0xFF171F1D),border=androidx.compose.foundation.BorderStroke(1.dp,Color.White.copy(alpha=.08f)),shadowElevation=12.dp) {
         Row(Modifier.fillMaxWidth().padding(5.dp),horizontalArrangement=Arrangement.SpaceEvenly) {

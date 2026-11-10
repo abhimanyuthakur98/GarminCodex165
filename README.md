@@ -1,6 +1,6 @@
 # Pulse 165 — real Garmin daily dashboard
 
-Native Android / Kotlin / Compose companion for Garmin Forerunner 165. Version **0.3.0** adds interactive insights and personal activity goals on top of the working, on-device Health Connect import. The app name and pulse icon are unchanged.
+Native Android / Kotlin / Compose companion for Garmin Forerunner 165. Version **0.8.0** adds FIT running metrics, visual comparisons, a home-screen widget and clearer Journal navigation on top of on-device Health Connect import. The app name and pulse icon are unchanged.
 
 ## Install and connect (Android 14+, including Android 17)
 
@@ -25,7 +25,7 @@ The app reads only records attributed to Garmin Connect (`com.garmin.android.app
 | --- | --- |
 | Daily HR | Actual imported samples; min/mean/max and a chart positioned by time of day. Five-minute chart bins reduce rendering cost. Missing intervals remain gaps. |
 | Sleep | Main session, actual available stages and bedtime/wake time. Unknown stages stay unknown. Session duration alone is never asserted to be time asleep. Naps are excluded from the main sleep score. |
-| Steps/calories | Health Connect aggregation restricted to Garmin, for each local calendar day. Missing values are `—`, not fabricated zeros. Calories are **total**, not active calories. |
+| Steps/calories | Health Connect aggregation restricted to Garmin, for each local calendar day. Missing values are `—`, not fabricated zeros. Active, total and basal energy are shown separately when supplied; only active energy fills the active goal ring. |
 | Strain | Independent 0–21 HR-reserve estimate. Linear interval approximation between valid samples up to 5 minutes apart; longer gaps add no load. Coverage is displayed. Resting/max HR are editable. BLE strain stays separate to avoid double counting the same workout. |
 | Recovery | Explicit **estimate** from sleep duration (40%), sleep efficiency (20%) and overnight HR versus the prior 7 days (40%). Needs 3 previous baseline nights, current sleep stages, overnight HR and no more than 30 unknown sleep minutes. Missing inputs show calibration rather than a fake score. |
 | HRV/resting HR | Optional record reads; shown only if Garmin actually exports them. Garmin's published sharing list does not include these or Body Battery. Pulse does not synthesize them from normal HR. |
@@ -138,3 +138,15 @@ Tests additionally cover goal validation/persistence, interactive goal editing a
 - **Calendar:** month navigation, recovery-tier colours, journal dots and workout diamonds. Tap a non-future day to edit it. Grey means no recovery score, not poor recovery.
 - **Reminders:** off by default, optional notification permission on Android 13+, local HH:mm selection. WorkManager schedules the next local occurrence and then the following one; Android battery restrictions may delay delivery. No exact-alarm or health-background permission is required. Turn reminders off from Journal. Notifications contain no health values. Re-save the time after changing time zones to update an already scheduled reminder.
 - Journal data is stored locally in Room schema 5 with an automatic 4→5 migration. **Clear journal & custom habits** removes it separately; clearing watch imports preserves journal entries. Uninstall removes all local records. No analytics, uploads or remote AI are involved.
+
+## 0.8.0: visual insights, running details and home widget
+
+- **Journal** now has a notebook icon, rounded tinted surface, visible border and a 48dp touch target in the header.
+- **More visual summaries:** animated current/previous-week comparison bars; a tappable seven-night sleep chart with a goal line; 14-day import coverage tiles; elapsed/timer/moving-time bars; recorded lap-speed bars. Exact values remain visible, missing data is labelled, and bars within each comparison share a zero baseline. Lap detail text expands on demand.
+- **Workouts → Kilometres / Miles** saves your distance preference. Reimport older FIT files to populate distance, speed, recorded laps, timer time and moving time. The identical file retains its identity and check-ins. Absent fields remain unavailable. These additions currently come from FIT, not the Health Connect exercise records.
+- Tap or slide through the animated pace chart to see pace and the nearest HR within 60 seconds. Speed samples are averaged in time bins for display; gaps longer than one minute remain disconnected and zero speed has no pace. Average pace uses distance / timer time. Elapsed time includes pauses; moving time is shown only when explicitly supplied. Recorded laps can be partial or manual: selecting miles converts units, not lap boundaries.
+- Previous-session comparisons require the same source and activity type and, when distance exists, a distance within 10%. No comparable session means an explicit empty state. Comparisons describe records, not proof of fitness improvement.
+- **Home-screen widget:** long-press your Android home screen → Widgets → **Pulse Daily**, then add it. It displays today's imported steps/recovery, last import time, and a Journal shortcut. Tap the body to open Today. Updates follow successful imports/clearing and Android's approximately 30-minute widget refresh schedule; battery/launcher restrictions may delay updates. It reads the local cache and does not initiate a watch sync. Health values are visible on your home screen while the widget is installed. Remove it using your launcher to hide them.
+- **Connect → Data status** shows 14 calendar days of data presence. Expanded diagnostics record the most recent successful import's sample/day counts and newest HR timestamp, separately from permissions. Filled coverage tiles mean some data exists, not full-day coverage. Missing categories require checking Garmin sharing and Pulse permissions; a recent import timestamp alone does not mean fresh watch data.
+- Room schema 6 adds nullable FIT metrics and empty speed/lap histories via automatic 5→6 migration, preserving existing workouts, check-ins and journal entries. No extra health permissions are requested.
+- Build: `./gradlew assembleDebug testDebugUnitTest lintDebug`. Install `app/build/outputs/apk/debug/app-debug.apk`. CI APK downloads remain under GitHub → Actions → Android build → Artifacts.

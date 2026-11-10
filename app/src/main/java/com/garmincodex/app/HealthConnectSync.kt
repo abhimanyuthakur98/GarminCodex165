@@ -20,10 +20,10 @@ import java.util.concurrent.TimeUnit
 import kotlin.reflect.KClass
 import kotlin.math.roundToInt
 
-data class SyncState(val busy: Boolean = false, val message: String = "Connect Garmin through Health Connect", val lastSync: Long = 0, val granted: Set<String> = emptySet(), val background: Boolean = false)
+data class SyncState(val busy: Boolean = false, val message: String = "Connect Garmin through Health Connect", val lastSync: Long = 0, val granted: Set<String> = emptySet(), val background: Boolean = false, val diagnostics: String = "")
 class HealthConnectSync(private val context: Context, private val dao: DailyDao) {
     private val prefs = context.getSharedPreferences("health_sync", Context.MODE_PRIVATE)
-    val status = MutableStateFlow(SyncState(lastSync = prefs.getLong("lastSync", 0)))
+    val status = MutableStateFlow(SyncState(lastSync = prefs.getLong("lastSync", 0), diagnostics = prefs.getString("diagnostics", "") ?: ""))
     val goals = MutableStateFlow(PersonalGoals(prefs.getInt("stepGoal", 8000), prefs.getInt("activeGoal", 500), prefs.getInt("age", 0).takeIf { it in 18..100 }, prefs.getInt("wakeMinute", 420)))
     fun saveGoals(value: PersonalGoals) {
         value.validate()
@@ -39,6 +39,8 @@ class HealthConnectSync(private val context: Context, private val dao: DailyDao)
         prefs.edit().putString("cardOrder", normalized.order.joinToString(",")).putString("hiddenCards", normalized.hidden.joinToString(",")).putInt("startPage", normalized.startPage).apply()
         dashboardPreferences.value = normalized
     }
+    val distanceMiles = MutableStateFlow(prefs.getBoolean("distanceMiles", false))
+    fun saveDistanceMiles(value:Boolean) { prefs.edit().putBoolean("distanceMiles",value).apply();distanceMiles.value=value }
     val sleepNeed get() = prefs.getInt("sleepNeed", 480)
     val maximumHr get() = prefs.getInt("maximumHr", 190)
     val restingHr get() = prefs.getInt("restingHr", 55)
@@ -69,7 +71,7 @@ class HealthConnectSync(private val context: Context, private val dao: DailyDao)
             if (availability() == HealthConnectClient.SDK_AVAILABLE) client().permissionController.revokeAllPermissions()
         } catch (e: CancellationException) { throw e }
         catch (_: Exception) { status.value = status.value.copy(message = "Could not revoke access. Open Health Connect settings to disconnect, then retry clearing."); return@withLock }
-        dao.clearAllImports(); prefs.edit().remove("lastSync").apply()
+        dao.clearAllImports(); prefs.edit().remove("lastSync").remove("diagnostics").apply(); PulseWidget.refresh(context)
         WorkManager.getInstance(context).cancelUniqueWork("garmin-health-sync")
         // Revocation prevents the next app-open sync from restoring a cache the user just deleted.
 
@@ -163,9 +165,11 @@ class HealthConnectSync(private val context: Context, private val dao: DailyDao)
             }
 
             dao.replaceHealthImport(first.toString(), start.toEpochMilli(), result, workouts.takeIf { HealthPermission.getReadPermission(ExerciseSessionRecord::class) in granted })
-            prefs.edit().putLong("lastSync", now.toEpochMilli()).apply()
+            val report = importReport(result, first.toString(), today.toString(), workouts.size)
+            prefs.edit().putLong("lastSync", now.toEpochMilli()).putString("diagnostics",report).apply()
+            PulseWidget.refresh(context)
             val hrCount = result.sumOf { it.hrCount }; val sleepCount = result.count { it.sleepStart != null }
-            status.value = status.value.copy(busy = false, lastSync = now.toEpochMilli(), message = if (hrCount == 0 && sleepCount == 0 && workouts.isEmpty() && result.none { it.steps != null })
+            status.value = status.value.copy(busy = false, diagnostics = report, lastSync = now.toEpochMilli(), message = if (hrCount == 0 && sleepCount == 0 && workouts.isEmpty() && result.none { it.steps != null })
                 "No Garmin records found. Enable Garmin Connect’s write permissions in Health Connect, sync your watch in Garmin Connect, then retry. Earlier data may not be backfilled by Garmin."
                 else "Imported $hrCount HR samples, $sleepCount nights and ${workouts.size} workouts from Garmin Connect. ${granted.intersect(READ_PERMISSIONS).size}/${READ_PERMISSIONS.size} read permissions granted.")
             true

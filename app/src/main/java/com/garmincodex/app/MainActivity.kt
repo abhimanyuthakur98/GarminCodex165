@@ -66,6 +66,7 @@ class MainActivity : ComponentActivity() {
             val importingFit by vm.importingFit.collectAsStateWithLifecycle()
             val journal by vm.journal.collectAsStateWithLifecycle()
             val habits by vm.habits.collectAsStateWithLifecycle()
+            val miles by vm.sync.distanceMiles.collectAsStateWithLifecycle()
             val goals by vm.sync.goals.collectAsStateWithLifecycle()
             val days by vm.connected.collectAsStateWithLifecycle()
             val sync by vm.syncStatus.collectAsStateWithLifecycle()
@@ -81,7 +82,7 @@ class MainActivity : ComponentActivity() {
                     onProfile = { n, m, r -> vm.sync.saveProfile(n, m, r); vm.refresh() }, onClear = { vm.clearImported() },
                     onLive = { stopService(Intent(this, TrackingService::class.java)); blePermissions.launch(if (Build.VERSION.SDK_INT >= 31) arrayOf(Manifest.permission.BLUETOOTH_SCAN, Manifest.permission.BLUETOOTH_CONNECT) else arrayOf(Manifest.permission.ACCESS_FINE_LOCATION)) },
                     onStop = { vm.stop(); stopService(Intent(this, TrackingService::class.java)) },
-                    goals = goals, onGoals = { vm.sync.saveGoals(it) }, preferences = if(intent.getBooleanExtra("openJournal",false)) dashboardPreferences.copy(startPage=5) else dashboardPreferences, onPreferences = { vm.sync.saveDashboard(it) }, workouts = workouts, checkIns = checkIns, onCheckIn = vm::saveCheckIn, onImportFit = { fitPicker.launch(arrayOf("*/*")) }, onRemoveWorkout = vm::removeWorkout, workoutMessage = workoutMessage, importingFit = importingFit, journal = journal, habits = habits, onJournal = vm::saveJournal, onHabit = vm::saveHabit, onDeleteJournal = vm::deleteJournal, onClearJournal = vm::clearJournal, reminder = reminderState.value, onReminder = ::setJournalReminder)
+                    goals = goals, onGoals = { vm.sync.saveGoals(it) }, preferences = if(intent.getBooleanExtra("openJournal",false)) dashboardPreferences.copy(startPage=5) else if(intent.getBooleanExtra("openToday",false)) dashboardPreferences.copy(startPage=0) else dashboardPreferences, onPreferences = { vm.sync.saveDashboard(it) }, workouts = workouts, checkIns = checkIns, onCheckIn = vm::saveCheckIn, onImportFit = { fitPicker.launch(arrayOf("*/*")) }, onRemoveWorkout = vm::removeWorkout, workoutMessage = workoutMessage, importingFit = importingFit, journal = journal, habits = habits, onJournal = vm::saveJournal, onHabit = vm::saveHabit, onDeleteJournal = vm::deleteJournal, onClearJournal = vm::clearJournal, reminder = reminderState.value, onReminder = ::setJournalReminder, miles = miles, onMiles = vm.sync::saveDistanceMiles)
                 if (choosing.value) WatchDialog(watches, connection, { choosing.value = false }, { vm.scan() }) {
                     vm.select(it); choosing.value = false
                     try { ContextCompat.startForegroundService(this, Intent(this, TrackingService::class.java)) }

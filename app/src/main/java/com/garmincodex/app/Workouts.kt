@@ -8,7 +8,9 @@ import java.util.Locale
 
 @Entity data class Workout(
     @PrimaryKey val id: String, val source: String, val type: String, val title: String,
-    val start: Long, val end: Long, val chart: String, val calories: Double? = null
+    val start: Long, val end: Long, val chart: String, val calories: Double? = null,
+    val distanceMeters: Double? = null, val timerSeconds: Double? = null, val movingSeconds: Double? = null,
+    @ColumnInfo(defaultValue = "''") val paceChart: String = "", @ColumnInfo(defaultValue = "''") val laps: String = ""
 )
 @Entity data class WorkoutCheckIn(@PrimaryKey val workoutId: String, val effort: Int, val soreness: Int)
 object WorkoutAnalysis {
@@ -23,10 +25,19 @@ object FitWorkoutReader {
         val decoder=Decode()
         require(decoder.checkFileIntegrity(ByteArrayInputStream(bytes))) { "FIT file is incomplete or corrupt." }
         val sessions=mutableListOf<SessionMesg>(); val points=mutableListOf<HrPoint>()
+        val speeds=mutableListOf<PaceSample>(); val laps=mutableListOf<RunLap>(); var records=0
         val broadcaster=MesgBroadcaster(decoder)
         broadcaster.addListener(SessionMesgListener { session -> require(sessions.size < 100); sessions.add(session) })
+        broadcaster.addListener(LapMesgListener { lap ->
+            require(laps.size<10000) { "Too many laps." }
+            val start=lap.startTime?.date?.time;val end=lap.timestamp?.date?.time
+            if(start!=null && end!=null && end>start) laps.add(RunLap(start,end,RunningMetrics.valid(lap.totalDistance?.toDouble()),RunningMetrics.valid(lap.totalTimerTime?.toDouble())))
+        })
         broadcaster.addListener(RecordMesgListener { record ->
+            require(++records<=200000) { "Too many activity records." }
             val time=record.timestamp?.date?.time; val hr=record.heartRate?.toInt()
+            val speed=RunningMetrics.valid((record.enhancedSpeed ?: record.speed)?.toDouble())?.takeIf{it<=100}
+            if(time!=null && speed!=null) speeds.add(PaceSample(time,speed))
             if(time != null && hr != null && hr in 25..240) { require(points.size < 200000) { "Too many HR samples." }; points.add(HrPoint(time,hr)) }
         })
         decoder.read(ByteArrayInputStream(bytes),broadcaster,broadcaster)
@@ -37,7 +48,10 @@ object FitWorkoutReader {
             if(end <= start) return@mapIndexedNotNull null
             val type=s.sport?.toString() ?: "OTHER"
             Workout("FIT:$hash:$index","FIT",type,WorkoutAnalysis.title(type),start,end,
-                points.filter { it.time >= start && it.time < end }.distinctBy { it.time }.sortedBy { it.time }.joinToString(";") { "${it.time},${it.bpm}" }, s.totalCalories?.toDouble())
+                points.filter { it.time >= start && it.time < end }.distinctBy { it.time }.sortedBy { it.time }.joinToString(";") { "${it.time},${it.bpm}" }, s.totalCalories?.toDouble(), RunningMetrics.valid(s.totalDistance?.toDouble()),
+                RunningMetrics.valid(s.totalTimerTime?.toDouble())?.takeIf{it<=(end-start)/1000.0+1}, RunningMetrics.valid(s.totalMovingTime?.toDouble())?.takeIf{it<=(end-start)/1000.0+1},
+                speeds.filter{it.time>=start && it.time<end}.distinctBy{it.time}.sortedBy{it.time}.joinToString(";"){it.encode()},
+                laps.filter{it.start>=start && it.end<=end}.joinToString(";"){it.encode()})
         }.also { require(it.isNotEmpty()) { "No complete activity sessions in this FIT file." } }
     }
 }

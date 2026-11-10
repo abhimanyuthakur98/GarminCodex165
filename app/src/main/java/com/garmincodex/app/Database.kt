@@ -45,14 +45,15 @@ interface DailyDao {
     @Query("SELECT * FROM DailyRecord ORDER BY date DESC, source LIMIT 28") fun observe(): Flow<List<DailyRecord>>
     @Query("SELECT * FROM DailyRecord WHERE date = :date AND source = :source") suspend fun get(date: String, source: String): DailyRecord?
     @Upsert suspend fun put(record: DailyRecord)
+    @Query("SELECT * FROM ConnectedDay WHERE date = :date") suspend fun day(date: String): ConnectedDay?
     @Query("SELECT * FROM ConnectedDay ORDER BY date DESC") fun connected(): Flow<List<ConnectedDay>>
     @Query("DELETE FROM ConnectedDay WHERE date >= :since") suspend fun deleteConnectedSince(since: String)
     @Query("DELETE FROM ConnectedDay") suspend fun clearConnected()
     @Upsert suspend fun putConnected(days: List<ConnectedDay>)
     @Transaction suspend fun replaceConnected(since: String, days: List<ConnectedDay>) { deleteConnectedSince(since); putConnected(days) }
 }
-@Database(entities = [DailyRecord::class, ConnectedDay::class, Workout::class, WorkoutCheckIn::class, JournalEntry::class, HabitTag::class], version = 5, exportSchema = true,
-    autoMigrations = [AutoMigration(from = 1, to = 2), AutoMigration(from = 2, to = 3), AutoMigration(from = 3, to = 4), AutoMigration(from = 4, to = 5)])
+@Database(entities = [DailyRecord::class, ConnectedDay::class, Workout::class, WorkoutCheckIn::class, JournalEntry::class, HabitTag::class], version = 6, exportSchema = true,
+    autoMigrations = [AutoMigration(from = 1, to = 2), AutoMigration(from = 2, to = 3), AutoMigration(from = 3, to = 4), AutoMigration(from = 4, to = 5), AutoMigration(from = 5, to = 6)])
 abstract class PulseDatabase : RoomDatabase() { abstract fun days(): DailyDao }
 
 interface GarminSyncGateway { suspend fun fetchDays(): List<DailyRecord> }

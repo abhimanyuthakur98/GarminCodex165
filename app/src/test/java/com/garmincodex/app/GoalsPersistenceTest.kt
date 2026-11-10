@@ -20,6 +20,8 @@ class GoalsPersistenceTest {
         val dashboard = DashboardPreferences(hidden=setOf("sleep"), startPage=1).move("heart", -1)
         HealthConnectSync(context,db.days()).saveDashboard(dashboard)
         assertEquals(dashboard,HealthConnectSync(context,db.days()).dashboardPreferences.value)
+        HealthConnectSync(context,db.days()).saveDistanceMiles(true)
+        assertTrue(HealthConnectSync(context,db.days()).distanceMiles.value)
         db.close()
     }
 }

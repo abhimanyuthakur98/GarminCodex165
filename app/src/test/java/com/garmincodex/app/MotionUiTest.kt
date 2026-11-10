@@ -7,6 +7,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.github.takahirom.roborazzi.captureRoboImage
 import org.junit.Assert.*
 import org.junit.Rule
@@ -45,6 +46,18 @@ class MotionUiTest {
             compose.runOnIdle { assertEquals(i,selected) }
         }
         compose.onRoot().captureRoboImage("build/screenshots/dock-320dp.png")
+    }
+    @Test fun journalHeaderFitsAndResponds() {
+        System.setProperty("roborazzi.test.record","true")
+        var opened=false
+        compose.setContent { PulseTheme { Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween) {
+            androidx.compose.material3.Text("PULSE / 165",fontSize=16.sp)
+            JournalAction(false){opened=true}
+            androidx.compose.material3.TextButton({}){androidx.compose.material3.Text("SYNC")}
+        } } }
+        compose.onNodeWithText("Journal").assertIsDisplayed().performClick()
+        compose.runOnIdle{assertTrue(opened)}
+        compose.onRoot().captureRoboImage("build/screenshots/journal-header-320dp.png")
     }
     @Test fun entranceAdvancesThenSettles() {
         compose.mainClock.autoAdvance = false

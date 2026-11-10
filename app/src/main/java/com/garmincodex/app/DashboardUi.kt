@@ -40,7 +40,7 @@ private fun clock(t: Long?) = t?.let { Instant.ofEpochMilli(it).atZone(ZoneId.sy
 
 @Composable fun PulseDashboard(days: List<ConnectedDay>, sync: SyncState, live: DashboardState, connection: String, message: String?, sleepNeed: Int, maximumHr: Int, restingHr: Int,
     onConnect: () -> Unit, onSync: () -> Unit, onHealthSettings: () -> Unit, onGarmin: () -> Unit, onBackground: () -> Unit,
-    onProfile: (Int, Int, Int) -> Unit, onClear: () -> Unit, onLive: () -> Unit, onStop: () -> Unit, goals: PersonalGoals = PersonalGoals(), onGoals: (PersonalGoals) -> Unit = {}, preferences: DashboardPreferences = DashboardPreferences(), onPreferences: (DashboardPreferences) -> Unit = {}, workouts: List<Workout> = emptyList(), checkIns: List<WorkoutCheckIn> = emptyList(), onCheckIn: (WorkoutCheckIn) -> Unit = {}, onImportFit: () -> Unit = {}, onRemoveWorkout: (String) -> Unit = {}, workoutMessage: String? = null, importingFit: Boolean = false, journal: List<JournalEntry> = emptyList(), habits: List<HabitTag> = emptyList(), onJournal: (JournalEntry) -> Unit = {}, onHabit: (HabitTag) -> Unit = {}, onDeleteJournal: (String) -> Unit = {}, onClearJournal: () -> Unit = {}, reminder: JournalReminder = JournalReminder(), onReminder: (JournalReminder) -> Unit = {}) {
+    onProfile: (Int, Int, Int) -> Unit, onClear: () -> Unit, onLive: () -> Unit, onStop: () -> Unit, goals: PersonalGoals = PersonalGoals(), onGoals: (PersonalGoals) -> Unit = {}, preferences: DashboardPreferences = DashboardPreferences(), onPreferences: (DashboardPreferences) -> Unit = {}, workouts: List<Workout> = emptyList(), checkIns: List<WorkoutCheckIn> = emptyList(), onCheckIn: (WorkoutCheckIn) -> Unit = {}, onImportFit: () -> Unit = {}, onRemoveWorkout: (String) -> Unit = {}, workoutMessage: String? = null, importingFit: Boolean = false, journal: List<JournalEntry> = emptyList(), habits: List<HabitTag> = emptyList(), onJournal: (JournalEntry) -> Unit = {}, onHabit: (HabitTag) -> Unit = {}, onDeleteJournal: (String) -> Unit = {}, onClearJournal: () -> Unit = {}, reminder: JournalReminder = JournalReminder(), onReminder: (JournalReminder) -> Unit = {}, miles: Boolean = false, onMiles: (Boolean) -> Unit = {}) {
     var detail by rememberSaveable { mutableStateOf<String?>(null) }
     var goalEditor by rememberSaveable { mutableStateOf<String?>(null) }
     var page by rememberSaveable { mutableIntStateOf(preferences.startPage.coerceIn(0, 5)) }; var metric by rememberSaveable { mutableIntStateOf(0) }
@@ -55,7 +55,7 @@ private fun clock(t: Long?) = t?.let { Instant.ofEpochMilli(it).atZone(ZoneId.sy
         Column(Modifier.padding(padding).fillMaxSize().verticalScroll(remember(page) { ScrollState(0) }).padding(horizontal = 18.dp, vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                 Text("PULSE / 165", fontSize = 16.sp, fontWeight = FontWeight.Black, letterSpacing = 2.sp)
-                TextButton(onClick = { page = 5 }) { Text("Journal", color = Green, fontSize = 12.sp) }
+                JournalAction(page == 5) { page = 5 }
                 TextButton(onClick = onSync, enabled = !sync.busy) { Text(if (sync.busy) "SYNCING…" else "↻ SYNC", color = Blue, fontSize = 11.sp) }
             }
             if (preview) Row(Modifier.fillMaxWidth().background(Color(0xFF483F21), RoundedCornerShape(8.dp)).padding(12.dp), horizontalArrangement = Arrangement.SpaceBetween) { Text("PREVIEW • synthetic data", fontSize = 11.sp); Text("Exit", Modifier.clickable { preview = false }, color = Blue) }
@@ -100,11 +100,11 @@ private fun clock(t: Long?) = t?.let { Instant.ofEpochMilli(it).atZone(ZoneId.sy
                 1 -> { BaselineCard(days); WeeklyReport(days, needState); TrendsPage(days, needState) { selected = it; page = 0 } }
                 2 -> FitnessAgePage(if (preview) (1L..10L).map { previewDay(LocalDate.now().minusDays(it).toString()) } else days, goals) { goalEditor = "age" }
                 5 -> JournalPage(journal, habits, days, workouts, onJournal, onHabit, onDeleteJournal, onClearJournal, reminder, onReminder)
-                4 -> WorkoutLibrary(workouts, checkIns, restState, maxState, onCheckIn, onImportFit, onConnect, onRemoveWorkout, workoutMessage, importingFit)
+                4 -> WorkoutLibrary(workouts, checkIns, restState, maxState, onCheckIn, onImportFit, onConnect, onRemoveWorkout, workoutMessage, importingFit, miles, onMiles)
                 3 -> {
                     Text("Your watch.\nYour daily picture.", fontSize = 30.sp, lineHeight = 34.sp, fontWeight = FontWeight.Bold)
                     DashboardEditor(preferences, onPreferences)
-                    DataStatusCard(day, sync, onConnect, onHealthSettings)
+                    DataStatusCard(day, sync, onConnect, onHealthSettings, days)
                     SetupCard(onConnect, onGarmin, onHealthSettings)
                     Panel {
                         Label("CONNECTION STATUS", Blue); Text(sync.message, fontSize = 14.sp)
