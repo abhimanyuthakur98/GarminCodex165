@@ -91,9 +91,9 @@ private val Lavender = Color(0xFFA9B6FF)
     var expanded by remember { mutableStateOf(false) }
     val prefs=preferences.normalized()
     ExploreCard("MAKE PULSE YOURS") {
-        TextButton(onClick={expanded=!expanded}) { Text(if(expanded) "Close dashboard editor" else "Customise dashboard") }
+        TextButton(onClick={expanded=!expanded}) { Text(if(expanded) "Close detail editor" else "Customise detailed view") }
         if(expanded) {
-            Text("Overview cards",fontWeight=FontWeight.Bold)
+            Text("Cards inside Today → All details",fontWeight=FontWeight.Bold)
             prefs.order.forEachIndexed { index,id ->
                 Row(Modifier.fillMaxWidth(),verticalAlignment=androidx.compose.ui.Alignment.CenterVertically) {
                     Checkbox(id !in prefs.hidden,{visible->onChange(prefs.copy(hidden=if(visible)prefs.hidden-id else prefs.hidden+id))},modifier=Modifier.semantics { contentDescription="Show ${DashboardPreferences.name(id)}" })

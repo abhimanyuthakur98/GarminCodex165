@@ -1,6 +1,6 @@
 # Pulse 165 — real Garmin daily dashboard
 
-Native Android / Kotlin / Compose companion for Garmin Forerunner 165. Version **0.8.0** adds FIT running metrics, visual comparisons, a home-screen widget and clearer Journal navigation on top of on-device Health Connect import. The app name and pulse icon are unchanged.
+Native Android / Kotlin / Compose companion for Garmin Forerunner 165. Version **0.9.0** introduces a compact Today snapshot with progressive disclosure, date-aware Journal access and an icon-based header. The app name and pulse icon are unchanged.
 
 ## Install and connect (Android 14+, including Android 17)
 
@@ -150,3 +150,11 @@ Tests additionally cover goal validation/persistence, interactive goal editing a
 - **Connect → Data status** shows 14 calendar days of data presence. Expanded diagnostics record the most recent successful import's sample/day counts and newest HR timestamp, separately from permissions. Filled coverage tiles mean some data exists, not full-day coverage. Missing categories require checking Garmin sharing and Pulse permissions; a recent import timestamp alone does not mean fresh watch data.
 - Room schema 6 adds nullable FIT metrics and empty speed/lap histories via automatic 5→6 migration, preserving existing workouts, check-ins and journal entries. No extra health permissions are requested.
 - Build: `./gradlew assembleDebug testDebugUnitTest lintDebug`. Install `app/build/outputs/apk/debug/app-debug.apk`. CI APK downloads remain under GitHub → Actions → Android build → Artifacts.
+
+## 0.9.0: a calmer Today
+
+- Today opens with a compact snapshot: one recovery summary, sleep and recorded strain, two activity-goal bars, and a recent HR chart average with its timestamp. No repeated briefing, timeline, setup instructions or Fitness Age promotion in the default feed. Missing metrics remain missing; an empty day gets one connection prompt.
+- Tap any summary to open its existing chart/details. Steps and active calories still offer editable goals in their detail screens. **All details** opens the previous configurable feed, sleep planner and live-HR controls; **Back to snapshot** returns to the compact view. Dashboard visibility/order settings now apply to this detailed view, not the fixed snapshot.
+- The existing Pulse icon replaces the text wordmark. The refresh icon has an accessible Sync health data label, disables during import and displays a progress indicator. The header retains a dated last-import indicator: imported data is not a live watch stream.
+- **Journal** sits beside the date and opens the day currently being reviewed. Tap the date to reveal previous/next/today controls. Future dates remain disabled. Journal reminders and the home widget still open today's entry on a fresh launch.
+- No new permissions, database changes or score changes. Existing imports, preferences, goals and journal entries remain intact.

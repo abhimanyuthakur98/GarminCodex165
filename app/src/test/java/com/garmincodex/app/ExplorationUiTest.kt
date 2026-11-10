@@ -38,7 +38,7 @@ class ExplorationUiTest {
         compose.onRoot().captureRoboImage("build/screenshots/timeline.png")
         compose.onNodeWithContentDescription("Select Sleep duration date").performScrollTo().performSemanticsAction(androidx.compose.ui.semantics.SemanticsActions.SetProgress){it(3f)}
         compose.onRoot().captureRoboImage("build/screenshots/baselines.png")
-        compose.onNodeWithText("Customise dashboard").performScrollTo().performClick()
+        compose.onNodeWithText("Customise detailed view").performScrollTo().performClick()
         compose.onNodeWithContentDescription("Show Sleep").performScrollTo().performClick()
         compose.onNodeWithContentDescription("Move Heart rate up").performScrollTo().performClick()
         compose.runOnIdle {assertTrue("sleep" in prefs.hidden);assertTrue(prefs.order.indexOf("heart")<prefs.order.indexOf("sleep"))}

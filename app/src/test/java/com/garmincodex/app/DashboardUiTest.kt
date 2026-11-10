@@ -25,6 +25,7 @@ class DashboardUiTest {
         compose.onRoot().captureRoboImage("build/screenshots/home-refresh.png")
         compose.onNodeWithText("Ready for your day").performScrollTo().assertIsDisplayed()
         compose.onRoot().captureRoboImage("build/screenshots/dashboard.png")
+        compose.onNodeWithText("All details").performScrollTo().performClick()
         compose.onNodeWithText("Sleep").performScrollTo().performClick()
         compose.onNodeWithText("WAKE CONSISTENCY").performScrollTo().assertIsDisplayed()
         compose.onRoot().captureRoboImage("build/screenshots/sleep.png")
@@ -68,7 +69,7 @@ class DashboardUiTest {
         compose.onNodeWithText("EXPERIMENTAL FITNESS AGE").assertIsDisplayed()
         compose.onRoot().captureRoboImage("build/screenshots/fitness-age.png")
         compose.onNodeWithText("Today").performClick()
-        compose.onNodeWithText("HEART RATE • DAILY").performScrollTo().performClick()
+        compose.onNodeWithText("Recent heart rate").performScrollTo().performClick()
         compose.onNodeWithText("Every heartbeat.").assertIsDisplayed()
         compose.onNodeWithContentDescription("Select heart-rate sample").performScrollTo().performSemanticsAction(androidx.compose.ui.semantics.SemanticsActions.SetProgress) { it(12f) }
         compose.onNode(isDialog()).captureRoboImage("build/screenshots/heart-detail.png")
@@ -77,7 +78,8 @@ class DashboardUiTest {
         var goals by mutableStateOf(PersonalGoals())
         compose.setContent { PulseTheme { PulseDashboard(listOf(previewDay(today.toString())), SyncState(lastSync=1), DashboardState(), "", null, 480,190,55, {},{},{},{},{},{_,_,_->},{},{},{}, goals=goals, onGoals={ goals=it }) } }
         compose.onNodeWithTag("goal-Calories").performScrollTo()
-        compose.onAllNodesWithText("Edit")[1].performClick()
+        compose.onNodeWithText("All details").performScrollTo().performClick()
+        compose.onAllNodesWithText("Edit")[1].performScrollTo().performClick()
         compose.onNodeWithTag("goal-input").performTextReplacement("600")
         compose.onNodeWithText("Save goal").performClick()
         compose.runOnIdle { org.junit.Assert.assertEquals(600,goals.activeCalories) }

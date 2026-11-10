@@ -41,6 +41,8 @@ private fun clock(t: Long?) = t?.let { Instant.ofEpochMilli(it).atZone(ZoneId.sy
 @Composable fun PulseDashboard(days: List<ConnectedDay>, sync: SyncState, live: DashboardState, connection: String, message: String?, sleepNeed: Int, maximumHr: Int, restingHr: Int,
     onConnect: () -> Unit, onSync: () -> Unit, onHealthSettings: () -> Unit, onGarmin: () -> Unit, onBackground: () -> Unit,
     onProfile: (Int, Int, Int) -> Unit, onClear: () -> Unit, onLive: () -> Unit, onStop: () -> Unit, goals: PersonalGoals = PersonalGoals(), onGoals: (PersonalGoals) -> Unit = {}, preferences: DashboardPreferences = DashboardPreferences(), onPreferences: (DashboardPreferences) -> Unit = {}, workouts: List<Workout> = emptyList(), checkIns: List<WorkoutCheckIn> = emptyList(), onCheckIn: (WorkoutCheckIn) -> Unit = {}, onImportFit: () -> Unit = {}, onRemoveWorkout: (String) -> Unit = {}, workoutMessage: String? = null, importingFit: Boolean = false, journal: List<JournalEntry> = emptyList(), habits: List<HabitTag> = emptyList(), onJournal: (JournalEntry) -> Unit = {}, onHabit: (HabitTag) -> Unit = {}, onDeleteJournal: (String) -> Unit = {}, onClearJournal: () -> Unit = {}, reminder: JournalReminder = JournalReminder(), onReminder: (JournalReminder) -> Unit = {}, miles: Boolean = false, onMiles: (Boolean) -> Unit = {}) {
+    var expandedToday by rememberSaveable { mutableStateOf(false) }
+    var journalDate by rememberSaveable { mutableStateOf(LocalDate.now().toString()) }
     var detail by rememberSaveable { mutableStateOf<String?>(null) }
     var goalEditor by rememberSaveable { mutableStateOf<String?>(null) }
     var page by rememberSaveable { mutableIntStateOf(preferences.startPage.coerceIn(0, 5)) }; var metric by rememberSaveable { mutableIntStateOf(0) }
@@ -52,17 +54,18 @@ private fun clock(t: Long?) = t?.let { Instant.ofEpochMilli(it).atZone(ZoneId.sy
     Scaffold(containerColor = Ink, bottomBar = {
         PulseDock(page) { page = it }
     }) { padding ->
-        Column(Modifier.padding(padding).fillMaxSize().verticalScroll(remember(page) { ScrollState(0) }).padding(horizontal = 18.dp, vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                Text("PULSE / 165", fontSize = 16.sp, fontWeight = FontWeight.Black, letterSpacing = 2.sp)
-                JournalAction(page == 5) { page = 5 }
-                TextButton(onClick = onSync, enabled = !sync.busy) { Text(if (sync.busy) "SYNCING…" else "↻ SYNC", color = Blue, fontSize = 11.sp) }
-            }
+        Column(Modifier.padding(padding).fillMaxSize().verticalScroll(remember(page) { ScrollState(0) }).padding(horizontal = 18.dp, vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(if(page==0 && !expandedToday) 10.dp else 14.dp)) {
+            PulseHeader(sync.busy,onSync,sync.lastSync)
             if (preview) Row(Modifier.fillMaxWidth().background(Color(0xFF483F21), RoundedCornerShape(8.dp)).padding(12.dp), horizontalArrangement = Arrangement.SpaceBetween) { Text("PREVIEW • synthetic data", fontSize = 11.sp); Text("Exit", Modifier.clickable { preview = false }, color = Blue) }
             if (message != null) Text(message, color = Color(0xFFF4CA58), fontSize = 12.sp)
             when (page) {
                 0 -> {
-                    DateSelector(selected) { selected = it }
+                    TodayDate(selected, { selected = it }, { journalDate=selected;page=5 })
+                    if(!expandedToday) {
+                        TodaySnapshot(day,sync,goals,needState,{detail=it},{page=3})
+                        OutlinedButton(onClick={expandedToday=true},modifier=Modifier.fillMaxWidth()){Text("All details")}
+                    } else {
+                    TextButton(onClick={expandedToday=false}) { Text("‹ Back to snapshot") }
                     WeekStrip(selected) { selected = it }
                     if (!preview && (sync.busy || sync.lastSync == 0L || day?.hrCount == 0)) Text(sync.message, color = Muted, fontSize = 12.sp)
                     if (!preview && sync.lastSync == 0L) SetupCard(onConnect, onGarmin, onHealthSettings)
@@ -89,7 +92,7 @@ private fun clock(t: Long?) = t?.let { Instant.ofEpochMilli(it).atZone(ZoneId.sy
                                     "fitness" -> Panel { Label("FITNESS AGE • PULSE LAB", Green); Text("Your habits, in perspective.", fontSize = 23.sp, fontWeight = FontWeight.Bold); TextButton(onClick = { page = 2 }) { Text("Explore Fitness Age ↗") } }
                                 }
                             } }
-                            TextButton(onClick = { page = 3 }) { Text("Customise this dashboard") }
+                            TextButton(onClick = { page = 3 }) { Text("Customise detailed view") }
                         }
                         1 -> { Box(Modifier.clickable(onClickLabel = "Sleep stage details") { detail = "sleep" }) { SleepPanel(day, needState, false) }; SleepPlanner(days, goals, needState, onGoals) }
                         2 -> { Box(Modifier.clickable(onClickLabel = "Strain details") { detail = "strain" }) { StrainPanel(day, maxState, restState) }; Box(Modifier.clickable(onClickLabel = "Heart rate details") { detail = "hr" }) { HeartPanel(day) }; LivePanel(live, connection, onLive, onStop) }
@@ -97,9 +100,10 @@ private fun clock(t: Long?) = t?.let { Instant.ofEpochMilli(it).atZone(ZoneId.sy
                     if (!preview && (day == null || day.hrCount == 0 && day.sleepStart == null)) Panel { Text("No Garmin measurements for this day", fontWeight = FontWeight.Bold); Text("Sync your watch in Garmin Connect first. If sharing was just enabled, Garmin may only send new data; check after your next night of sleep.", color = Muted, fontSize = 13.sp); TextButton(onClick = { page = 3 }) { Text("Check connection & permissions") } }
                     Text("${if (preview) "Synthetic preview" else "Garmin → Health Connect → Pulse"} • Independent estimates, not Garmin or WHOOP scores.", color = Muted, fontSize = 10.sp)
                 }
+                }
                 1 -> { BaselineCard(days); WeeklyReport(days, needState); TrendsPage(days, needState) { selected = it; page = 0 } }
                 2 -> FitnessAgePage(if (preview) (1L..10L).map { previewDay(LocalDate.now().minusDays(it).toString()) } else days, goals) { goalEditor = "age" }
-                5 -> JournalPage(journal, habits, days, workouts, onJournal, onHabit, onDeleteJournal, onClearJournal, reminder, onReminder)
+                5 -> JournalPage(journal, habits, days, workouts, onJournal, onHabit, onDeleteJournal, onClearJournal, reminder, onReminder, journalDate)
                 4 -> WorkoutLibrary(workouts, checkIns, restState, maxState, onCheckIn, onImportFit, onConnect, onRemoveWorkout, workoutMessage, importingFit, miles, onMiles)
                 3 -> {
                     Text("Your watch.\nYour daily picture.", fontSize = 30.sp, lineHeight = 34.sp, fontWeight = FontWeight.Bold)

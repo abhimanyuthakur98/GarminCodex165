@@ -17,10 +17,10 @@ import java.time.*
 import java.util.UUID
 
 private val JournalMuted=Color(0xFFA4B2AB)
-@Composable internal fun JournalPage(entries:List<JournalEntry>,tags:List<HabitTag>,days:List<ConnectedDay>,workouts:List<Workout>,onSave:(JournalEntry)->Unit,onTag:(HabitTag)->Unit,onDelete:(String)->Unit,onClear:()->Unit,reminder:JournalReminder,onReminder:(JournalReminder)->Unit) {
-    var date by rememberSaveable {mutableStateOf(LocalDate.now().toString())}
+@Composable internal fun JournalPage(entries:List<JournalEntry>,tags:List<HabitTag>,days:List<ConnectedDay>,workouts:List<Workout>,onSave:(JournalEntry)->Unit,onTag:(HabitTag)->Unit,onDelete:(String)->Unit,onClear:()->Unit,reminder:JournalReminder,onReminder:(JournalReminder)->Unit,initialDate:String=LocalDate.now().toString()) {
+    var date by rememberSaveable(initialDate) {mutableStateOf(initialDate)}
     var tab by rememberSaveable {mutableIntStateOf(0)}
-    var month by rememberSaveable {mutableStateOf(YearMonth.now().toString())}
+    var month by rememberSaveable(initialDate) {mutableStateOf(YearMonth.from(LocalDate.parse(initialDate)).toString())}
     var clear by remember {mutableStateOf(false)}
     Text("Small habits.\nYour bigger picture.",fontSize=32.sp,lineHeight=35.sp,fontWeight=FontWeight.Bold)
     Text("A moment to notice what matters.",color=JournalMuted,fontSize=14.sp)
