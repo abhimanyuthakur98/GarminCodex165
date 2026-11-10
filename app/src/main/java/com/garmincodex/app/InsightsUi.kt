@@ -88,12 +88,12 @@ private fun time(t: Long) = Instant.ofEpochMilli(t).atZone(ZoneId.systemDefault(
         }
     }
 }
-@Composable internal fun MetricDetails(kind: String, d: ConnectedDay?, goals: PersonalGoals, need: Int, maximum: Int, resting: Int, onGoals: (PersonalGoals) -> Unit, onClose: () -> Unit) {
+@Composable internal fun MetricDetails(kind: String, d: ConnectedDay?, goals: PersonalGoals, need: Int, maximum: Int, resting: Int, onGoals: (PersonalGoals) -> Unit, sync:SyncState=SyncState(), onPermissions:()->Unit={}, onSettings:()->Unit={}, onGarmin:()->Unit={}, onSync:()->Unit={}, onClose: () -> Unit) {
     var edit by remember { mutableStateOf(false) }
 
     Dialog(onDismissRequest = onClose, properties = DialogProperties(usePlatformDefaultWidth = false)) {
         Surface(Modifier.fillMaxSize(), color = Color(0xFF090D0C)) {
-            Column(Modifier.safeDrawingPadding().verticalScroll(rememberScrollState()).padding(20.dp), verticalArrangement = Arrangement.spacedBy(20.dp)) {
+            Column(Modifier.then(pageMotion(kind)).safeDrawingPadding().verticalScroll(rememberScrollState()).padding(20.dp), verticalArrangement = Arrangement.spacedBy(20.dp)) {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) { TextButton(onClick = onClose) { Text("‹ Back") }; Caption(d?.date ?: "No imported day"); if (kind == "steps" || kind == "calories") TextButton(onClick = { edit = true }) { Text("Edit goal") } }
                 if (edit) InlineGoalForm(kind, goals, onGoals) { edit = false }
                 Text(when (kind) { "hr" -> "Every heartbeat."; "steps" -> "Keep moving."; "calories" -> "Energy, unpacked."; "sleep" -> "Inside your night."; "recovery" -> "Your recovery."; else -> "Your effort." }, fontSize = 34.sp, fontWeight = FontWeight.Bold, lineHeight = 38.sp)
@@ -103,6 +103,7 @@ private fun time(t: Long) = Instant.ofEpochMilli(t).atZone(ZoneId.systemDefault(
                         val showTotal = !steps && d?.activeCalories == null && d?.calories != null
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.Bottom) { Text((if (steps) d?.steps?.toDouble() else if (showTotal) d?.calories else d?.activeCalories)?.roundToInt()?.let { String.format(Locale.US, "%,d", it) } ?: "—", fontSize = 58.sp, fontWeight = FontWeight.Bold, color = color); Text(if (steps) "steps" else if (showTotal) "total kcal" else "active kcal", color = Fog, modifier = Modifier.padding(bottom = 12.dp)) }
                         Text("Daily goal ${if (steps) goals.steps else goals.activeCalories} · tap Edit goal to change", color = Fog, fontSize = 12.sp)
+                        if (!steps && d?.activeCalories==null) CalorieRepair(d,sync,onPermissions,onSettings,onGarmin,onSync)
                         if (!steps) CalorieBreakdown(d)
                         InsightPanel {
                             Caption("Hourly ${if (steps) "steps" else if (showTotal) "total energy" else "active energy"}")
@@ -194,7 +195,7 @@ private fun time(t: Long) = Instant.ofEpochMilli(t).atZone(ZoneId.systemDefault(
 /** One-shot animations use Compose's duration scale, including the system's disabled animations. */
 @Composable internal fun chartEntrance(): Float {
     val progress = remember { Animatable(0f) }
-    LaunchedEffect(Unit) { progress.animateTo(1f, tween(1100, easing = FastOutSlowInEasing)) }
+    LaunchedEffect(Unit) { progress.animateTo(1f, tween(650, easing = FastOutSlowInEasing)) }
     return progress.value
 }
 

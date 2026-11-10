@@ -33,7 +33,7 @@ class DashboardUiTest {
         compose.onNodeWithText("CARDIOVASCULAR LOAD").assertIsDisplayed()
         compose.onRoot().captureRoboImage("build/screenshots/strain.png")
         compose.onNodeWithText("Trends").performClick()
-        compose.onNodeWithText("Your rhythm").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithContentDescription("Select trend date").performScrollTo().assertIsDisplayed()
         compose.onRoot().captureRoboImage("build/screenshots/trends.png")
         compose.onNodeWithText("Connect").performClick()
         compose.onNodeWithText("Connect Health Connect").performScrollTo().assertIsDisplayed()

@@ -104,8 +104,13 @@ private val Lavender=Color(0xFFB6B9FF)
         listOf(Triple("Steps",day?.steps?.toDouble(),goals.steps),Triple("Active calories",day?.activeCalories,goals.activeCalories)).forEachIndexed{index,(label,value,goal)->
             val color=if(index==0)Lime else Orange
             Column(Modifier.fillMaxWidth().testTag(if(index==0)"goal-Steps" else "goal-Calories").clickable(role=Role.Button,onClickLabel="$label details and goal"){onDetail(if(index==0)"steps" else "calories")},verticalArrangement=Arrangement.spacedBy(6.dp)) {
-                Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween){Text(label,fontSize=12.sp,color=Soft);Text(value?.let{String.format(Locale.getDefault(),"%,d",it.roundToInt())+" / $goal"} ?: "Not shared",fontSize=13.sp,color=color)}
-                LinearProgressIndicator(progress={((value ?: 0.0)/goal.coerceAtLeast(1)).coerceIn(0.0,1.0).toFloat()*reveal},modifier=Modifier.fillMaxWidth(),color=color,trackColor=Color.White.copy(alpha=.07f))
+                if(index==1 && value==null) {
+                    Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween) { Text(if(day?.calories!=null) "Total calories" else label,fontSize=12.sp,color=Soft);Text(day?.calories?.let{"${it.roundToInt()} kcal"} ?: "No record",fontSize=13.sp,color=color) }
+                    Text(if(activeCaloriesAllowed(sync)) "Active goal unavailable · Fix ›" else "Allow active calories · Fix ›",fontSize=11.sp,color=Orange)
+                } else {
+                    Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween){Text(label,fontSize=12.sp,color=Soft);Text(value?.let{String.format(Locale.getDefault(),"%,d",it.roundToInt())+" / $goal"} ?: "No record",fontSize=13.sp,color=color)}
+                    LinearProgressIndicator(progress={((value ?: 0.0)/goal.coerceAtLeast(1)).coerceIn(0.0,1.0).toFloat()*reveal},modifier=Modifier.fillMaxWidth(),color=color,trackColor=Color.White.copy(alpha=.07f))
+                }
             }
         }
     }

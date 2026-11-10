@@ -58,6 +58,7 @@ private fun clock(t: Long?) = t?.let { Instant.ofEpochMilli(it).atZone(ZoneId.sy
             PulseHeader(sync.busy,onSync,sync.lastSync)
             if (preview) Row(Modifier.fillMaxWidth().background(Color(0xFF483F21), RoundedCornerShape(8.dp)).padding(12.dp), horizontalArrangement = Arrangement.SpaceBetween) { Text("PREVIEW • synthetic data", fontSize = 11.sp); Text("Exit", Modifier.clickable { preview = false }, color = Blue) }
             if (message != null) Text(message, color = Color(0xFFF4CA58), fontSize = 12.sp)
+            Column(pageMotion(page),verticalArrangement=Arrangement.spacedBy(if(page==0 && !expandedToday) 10.dp else 14.dp)) {
             when (page) {
                 0 -> {
                     TodayDate(selected, { selected = it }, { journalDate=selected;page=5 })
@@ -101,7 +102,7 @@ private fun clock(t: Long?) = t?.let { Instant.ofEpochMilli(it).atZone(ZoneId.sy
                     Text("${if (preview) "Synthetic preview" else "Garmin → Health Connect → Pulse"} • Independent estimates, not Garmin or WHOOP scores.", color = Muted, fontSize = 10.sp)
                 }
                 }
-                1 -> { BaselineCard(days); WeeklyReport(days, needState); TrendsPage(days, needState) { selected = it; page = 0 } }
+                1 -> TrendsExplorer(days) { selected=it;expandedToday=false;page=0 }
                 2 -> FitnessAgePage(if (preview) (1L..10L).map { previewDay(LocalDate.now().minusDays(it).toString()) } else days, goals) { goalEditor = "age" }
                 5 -> JournalPage(journal, habits, days, workouts, onJournal, onHabit, onDeleteJournal, onClearJournal, reminder, onReminder, journalDate)
                 4 -> WorkoutLibrary(workouts, checkIns, restState, maxState, onCheckIn, onImportFit, onConnect, onRemoveWorkout, workoutMessage, importingFit, miles, onMiles)
@@ -141,7 +142,8 @@ private fun clock(t: Long?) = t?.let { Instant.ofEpochMilli(it).atZone(ZoneId.sy
             }
         }
     }
-    detail?.let { MetricDetails(it, day, goals, needState, maxState, restState, onGoals) { detail = null } }
+    }
+    detail?.let { MetricDetails(it, day, goals, needState, maxState, restState, onGoals, sync, onConnect, onHealthSettings, onGarmin, onSync) { detail = null } }
     goalEditor?.let { GoalEditor(it, goals, { goalEditor = null }, onGoals) }
     if (profile) ProfileDialog(needState, maxState, restState, { profile = false }) { n, m, r -> needState = n; maxState = m; restState = r; onProfile(n, m, r); profile = false }
     if (clear) AlertDialog(onDismissRequest = { clear = false }, title = { Text("Clear imported data?") }, text = { Text("Removes imported history and revokes Pulse’s Health Connect access. Garmin originals and separate BLE recordings are unchanged.") }, confirmButton = { TextButton(onClick = { onClear(); clear = false }) { Text("Clear & disconnect") } }, dismissButton = { TextButton(onClick = { clear = false }) { Text("Cancel") } })

@@ -1,6 +1,6 @@
 # Pulse 165 — real Garmin daily dashboard
 
-Native Android / Kotlin / Compose companion for Garmin Forerunner 165. Version **0.9.0** introduces a compact Today snapshot with progressive disclosure, date-aware Journal access and an icon-based header. The app name and pulse icon are unchanged.
+Native Android / Kotlin / Compose companion for Garmin Forerunner 165. Version **0.10.0** adds focused Trends views, a calorie-sharing repair flow and shorter app transitions. The app name and pulse icon are unchanged.
 
 ## Install and connect (Android 14+, including Android 17)
 
@@ -158,3 +158,11 @@ Tests additionally cover goal validation/persistence, interactive goal editing a
 - The existing Pulse icon replaces the text wordmark. The refresh icon has an accessible Sync health data label, disables during import and displays a progress indicator. The header retains a dated last-import indicator: imported data is not a live watch stream.
 - **Journal** sits beside the date and opens the day currently being reviewed. Tap the date to reveal previous/next/today controls. Future dates remain disabled. Journal reminders and the home widget still open today's entry on a fresh launch.
 - No new permissions, database changes or score changes. Existing imports, preferences, goals and journal entries remain intact.
+
+## 0.10.0: focused Trends and calorie access
+
+- **Trends:** choose one metric (sleep, recovery, strain, steps, active calories or overnight HR), then **History**, **Usual range**, or **Weekly**. History/range offer 7/14/30 calendar days with a tappable chart and accessible date slider. Open a selected day directly in Today. Only local records appear; requesting 30 days does not create or backfill unavailable data. Missing days stay gaps and today is labelled incomplete.
+- Usual-range shading retains the preceding-14-day middle-50% calculation with seven prior values required. Weekly compares the last seven complete calendar days against the preceding seven, showing record counts rather than claiming incomplete weeks are equivalent. The old stacked reports no longer make Trends a long feed.
+- **Calories → Fix:** separates missing Pulse read permission from a missing Garmin record. Buttons open Pulse permissions, Health Connect settings, Garmin Connect and a new Pulse import. Enable Garmin's **write** permission for **Active calories burned**, then sync the watch in Garmin Connect before importing in Pulse. If the category is absent, update Garmin Connect. The app cannot force Garmin to backfill historical records.
+- [Garmin's Health Connect guide](https://support.garmin.com/en-US/?faq=JToBEy0jfe6pIygark2Ui5) lists active and total calories as supported. When only total energy arrives, Today labels it **Total calories**, hides the unavailable active-goal progress, and offers repair. Total calories never masquerade as active energy. This is better diagnosis and UI, not a guarantee that Garmin supplied your phone's missing records.
+- Main tabs, metric views and detail screens use short 240ms fade/slide entrances; charts reveal over 650ms. Compose honours system animation duration scaling. No additional permissions or database migration.
