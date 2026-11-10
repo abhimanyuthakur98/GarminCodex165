@@ -107,7 +107,7 @@ private val Lavender = Color(0xFFA9B6FF)
                 }
             }
             Text("Open Pulse on",fontWeight=FontWeight.Bold)
-            listOf("Today","Trends","Fitness Age","Connect").forEachIndexed { index,name->
+            listOf("Today","Trends","Fitness Age","Connect","Workouts").forEachIndexed { index,name->
                 Row(verticalAlignment=androidx.compose.ui.Alignment.CenterVertically) { RadioButton(prefs.startPage==index,{onChange(prefs.copy(startPage=index))}); Text(name) }
             }
             Text("Changes save immediately. Start screen applies on a fresh launch; your current tab stays open.",color=Soft,fontSize=11.sp)

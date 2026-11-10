@@ -27,6 +27,15 @@ class MainActivity : ComponentActivity() {
         if (result.values.all { it }) { choosing.value = true; vm.scan() }
         else uiMessage.value = "Allow Nearby devices for optional live HR. Daily sync does not need Bluetooth permissions."
     }
+    private val fitPicker = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        if(uri != null) vm.importFit {
+            contentResolver.openInputStream(uri)?.use { input ->
+                val output=java.io.ByteArrayOutputStream(); val buffer=ByteArray(8192)
+                while(true) { val n=input.read(buffer); if(n<0) break; require(output.size()+n<=FitWorkoutReader.MAX_BYTES) { "File exceeds 10 MB." }; output.write(buffer,0,n) }
+                output.toByteArray()
+            } ?: error("File cannot be opened.")
+        }
+    }
     private fun open(intent: Intent) { try { startActivity(intent) } catch (_: Exception) { uiMessage.value = "This app or settings screen is unavailable on your phone." } }
     private fun connectHealth() {
         if (vm.sync.availability() == HealthConnectClient.SDK_AVAILABLE) healthPermissions.launch(HealthConnectSync.READ_PERMISSIONS)
@@ -40,6 +49,10 @@ class MainActivity : ComponentActivity() {
         })[DashboardViewModel::class.java]
         setContent {
             val dashboardPreferences by vm.sync.dashboardPreferences.collectAsStateWithLifecycle()
+            val workouts by vm.workouts.collectAsStateWithLifecycle()
+            val checkIns by vm.checkIns.collectAsStateWithLifecycle()
+            val workoutMessage by vm.workoutMessage.collectAsStateWithLifecycle()
+            val importingFit by vm.importingFit.collectAsStateWithLifecycle()
             val goals by vm.sync.goals.collectAsStateWithLifecycle()
             val days by vm.connected.collectAsStateWithLifecycle()
             val sync by vm.syncStatus.collectAsStateWithLifecycle()
@@ -55,7 +68,7 @@ class MainActivity : ComponentActivity() {
                     onProfile = { n, m, r -> vm.sync.saveProfile(n, m, r); vm.refresh() }, onClear = { vm.clearImported() },
                     onLive = { stopService(Intent(this, TrackingService::class.java)); blePermissions.launch(if (Build.VERSION.SDK_INT >= 31) arrayOf(Manifest.permission.BLUETOOTH_SCAN, Manifest.permission.BLUETOOTH_CONNECT) else arrayOf(Manifest.permission.ACCESS_FINE_LOCATION)) },
                     onStop = { vm.stop(); stopService(Intent(this, TrackingService::class.java)) },
-                    goals = goals, onGoals = { vm.sync.saveGoals(it) }, preferences = dashboardPreferences, onPreferences = { vm.sync.saveDashboard(it) })
+                    goals = goals, onGoals = { vm.sync.saveGoals(it) }, preferences = dashboardPreferences, onPreferences = { vm.sync.saveDashboard(it) }, workouts = workouts, checkIns = checkIns, onCheckIn = vm::saveCheckIn, onImportFit = { fitPicker.launch(arrayOf("*/*")) }, onRemoveWorkout = vm::removeWorkout, workoutMessage = workoutMessage, importingFit = importingFit)
                 if (choosing.value) WatchDialog(watches, connection, { choosing.value = false }, { vm.scan() }) {
                     vm.select(it); choosing.value = false
                     try { ContextCompat.startForegroundService(this, Intent(this, TrackingService::class.java)) }

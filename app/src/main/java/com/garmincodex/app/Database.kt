@@ -22,6 +22,18 @@ data class ConnectedDay(
 )
 @Dao
 interface DailyDao {
+    @Query("SELECT * FROM Workout ORDER BY start DESC") fun workouts(): Flow<List<Workout>>
+    @Query("SELECT * FROM WorkoutCheckIn") fun checkIns(): Flow<List<WorkoutCheckIn>>
+    @Upsert suspend fun putWorkouts(workouts: List<Workout>)
+    @Upsert suspend fun putCheckIn(checkIn: WorkoutCheckIn)
+    @Query("DELETE FROM Workout WHERE source = 'HEALTH_CONNECT' AND start >= :since") suspend fun deleteRecentWorkouts(since: Long)
+    @Query("DELETE FROM Workout WHERE id = :id") suspend fun deleteWorkout(id: String)
+    @Query("DELETE FROM WorkoutCheckIn WHERE workoutId NOT IN (SELECT id FROM Workout)") suspend fun clearOrphanCheckIns()
+    @Query("DELETE FROM Workout") suspend fun clearWorkouts()
+    @Transaction suspend fun replaceWorkouts(since: Long, workouts: List<Workout>) { deleteRecentWorkouts(since); putWorkouts(workouts); clearOrphanCheckIns() }
+    @Transaction suspend fun removeWorkout(id: String) { deleteWorkout(id); clearOrphanCheckIns() }
+    @Transaction suspend fun replaceHealthImport(since: String, sinceTime: Long, days: List<ConnectedDay>, workouts: List<Workout>?) { replaceConnected(since, days); if(workouts != null) replaceWorkouts(sinceTime, workouts) }
+    @Transaction suspend fun clearAllImports() { clearConnected(); clearWorkouts(); clearOrphanCheckIns() }
     @Query("SELECT * FROM DailyRecord ORDER BY date DESC, source LIMIT 28") fun observe(): Flow<List<DailyRecord>>
     @Query("SELECT * FROM DailyRecord WHERE date = :date AND source = :source") suspend fun get(date: String, source: String): DailyRecord?
     @Upsert suspend fun put(record: DailyRecord)
@@ -31,8 +43,8 @@ interface DailyDao {
     @Upsert suspend fun putConnected(days: List<ConnectedDay>)
     @Transaction suspend fun replaceConnected(since: String, days: List<ConnectedDay>) { deleteConnectedSince(since); putConnected(days) }
 }
-@Database(entities = [DailyRecord::class, ConnectedDay::class], version = 3, exportSchema = true,
-    autoMigrations = [AutoMigration(from = 1, to = 2), AutoMigration(from = 2, to = 3)])
+@Database(entities = [DailyRecord::class, ConnectedDay::class, Workout::class, WorkoutCheckIn::class], version = 4, exportSchema = true,
+    autoMigrations = [AutoMigration(from = 1, to = 2), AutoMigration(from = 2, to = 3), AutoMigration(from = 3, to = 4)])
 abstract class PulseDatabase : RoomDatabase() { abstract fun days(): DailyDao }
 
 interface GarminSyncGateway { suspend fun fetchDays(): List<DailyRecord> }

@@ -56,7 +56,25 @@ class HealthRepository(private val dao: DailyDao, val ble: BleFeed) {
     fun stop() { requestedMode = null; job?.cancel(); ble.stopScan() }
     fun stopLive() { if (requestedMode == "LIVE") stop() }
 }
-class DashboardViewModel(private val repo: HealthRepository, val sync: HealthConnectSync, dao: DailyDao) : ViewModel() {
+class DashboardViewModel(private val repo: HealthRepository, val sync: HealthConnectSync, private val dao: DailyDao) : ViewModel() {
+    val workouts = dao.workouts().stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+    val checkIns = dao.checkIns().stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+    val workoutMessage = MutableStateFlow<String?>(null)
+    val importingFit = MutableStateFlow(false)
+    fun saveCheckIn(value: WorkoutCheckIn) { require(value.effort in 1..10 && value.soreness in 0..10); viewModelScope.launch { dao.putCheckIn(value) } }
+    fun removeWorkout(id: String) { viewModelScope.launch { dao.removeWorkout(id) } }
+    fun importFit(readBytes: () -> ByteArray) {
+        if(importingFit.value) return
+        importingFit.value=true
+        viewModelScope.launch {
+            try {
+                val imported=sync.importFit(readBytes)
+                workoutMessage.value="Imported ${imported} FIT session(s). Exact file reimports update existing entries."
+            } catch(e: CancellationException) { throw e }
+            catch(e: Exception) { workoutMessage.value="Could not import FIT: ${e.message?.take(160) ?: "invalid file"}" }
+            finally { importingFit.value=false }
+        }
+    }
     val connected = dao.connected().stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
     val syncStatus = sync.status.asStateFlow()
     private var syncJob: Job? = null

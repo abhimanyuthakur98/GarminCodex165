@@ -60,12 +60,16 @@ class HealthConnectSync(private val context: Context, private val dao: DailyDao)
                 PeriodicWorkRequestBuilder<HealthSyncWorker>(1, TimeUnit.HOURS).build())
         } else WorkManager.getInstance(context).cancelUniqueWork("garmin-health-sync")
     }
+    suspend fun importFit(readBytes: () -> ByteArray): Int = lock.withLock {
+        val records = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) { FitWorkoutReader.read(readBytes()) }
+        dao.putWorkouts(records); records.size
+    }
     suspend fun clear() = lock.withLock {
         try {
             if (availability() == HealthConnectClient.SDK_AVAILABLE) client().permissionController.revokeAllPermissions()
         } catch (e: CancellationException) { throw e }
         catch (_: Exception) { status.value = status.value.copy(message = "Could not revoke access. Open Health Connect settings to disconnect, then retry clearing."); return@withLock }
-        dao.clearConnected(); prefs.edit().remove("lastSync").apply()
+        dao.clearAllImports(); prefs.edit().remove("lastSync").apply()
         WorkManager.getInstance(context).cancelUniqueWork("garmin-health-sync")
         // Revocation prevents the next app-open sync from restoring a cache the user just deleted.
 
@@ -90,6 +94,7 @@ class HealthConnectSync(private val context: Context, private val dao: DailyDao)
                 return records.distinctBy { it.metadata.id }
             }
             val hr = read(HeartRateRecord::class).flatMap { it.samples }.map { HrPoint(it.time.toEpochMilli(), it.beatsPerMinute.toInt()) }.filter { it.bpm in 25..240 }.groupBy { it.time }.map { (time, points) -> HrPoint(time, points.map { it.bpm }.average().roundToInt()) }
+            val exerciseRecords = read(ExerciseSessionRecord::class)
             val sleepRecords = read(SleepSessionRecord::class)
             val rests = read(RestingHeartRateRecord::class)
             val hrvs = read(HeartRateVariabilityRmssdRecord::class)
@@ -140,18 +145,35 @@ class HealthConnectSync(private val context: Context, private val dao: DailyDao)
                     aggregate?.get(BasalMetabolicRateRecord.BASAL_CALORIES_TOTAL)?.inKilocalories,
                     HourBucket.fill(dayStart.toEpochMilli(), dayEnd.toEpochMilli(), hourly).joinToString(";") { it.encode() })
             }
-            dao.replaceConnected(first.toString(), result)
+            val workouts = exerciseRecords.map { session ->
+                val begin=session.startTime.toEpochMilli(); val finish=session.endTime.toEpochMilli()
+                val type=when(session.exerciseType) {
+                    ExerciseSessionRecord.EXERCISE_TYPE_RUNNING -> "RUNNING"
+                    ExerciseSessionRecord.EXERCISE_TYPE_RUNNING_TREADMILL -> "TREADMILL"
+                    ExerciseSessionRecord.EXERCISE_TYPE_WALKING -> "WALKING"
+                    ExerciseSessionRecord.EXERCISE_TYPE_BIKING -> "CYCLING"
+                    ExerciseSessionRecord.EXERCISE_TYPE_SWIMMING_POOL -> "SWIMMING"
+                    ExerciseSessionRecord.EXERCISE_TYPE_STRENGTH_TRAINING -> "STRENGTH"
+                    else -> "EXERCISE_${session.exerciseType}"
+                }
+                val calories = if(HealthPermission.getReadPermission(ActiveCaloriesBurnedRecord::class) in granted)
+                    client.aggregate(AggregateRequest(setOf(ActiveCaloriesBurnedRecord.ACTIVE_CALORIES_TOTAL),TimeRangeFilter.between(session.startTime, session.endTime),dataOriginFilter=origin))[ActiveCaloriesBurnedRecord.ACTIVE_CALORIES_TOTAL]?.inKilocalories else null
+                Workout("HC:${session.metadata.id}","HEALTH_CONNECT",type,session.title ?: WorkoutAnalysis.title(type),begin,finish,
+                    hr.filter { it.time >= begin && it.time < finish }.sortedBy { it.time }.joinToString(";") { "${it.time},${it.bpm}" },calories)
+            }
+
+            dao.replaceHealthImport(first.toString(), start.toEpochMilli(), result, workouts.takeIf { HealthPermission.getReadPermission(ExerciseSessionRecord::class) in granted })
             prefs.edit().putLong("lastSync", now.toEpochMilli()).apply()
             val hrCount = result.sumOf { it.hrCount }; val sleepCount = result.count { it.sleepStart != null }
-            status.value = status.value.copy(busy = false, lastSync = now.toEpochMilli(), message = if (hrCount == 0 && sleepCount == 0 && result.none { it.steps != null })
+            status.value = status.value.copy(busy = false, lastSync = now.toEpochMilli(), message = if (hrCount == 0 && sleepCount == 0 && workouts.isEmpty() && result.none { it.steps != null })
                 "No Garmin records found. Enable Garmin Connect’s write permissions in Health Connect, sync your watch in Garmin Connect, then retry. Earlier data may not be backfilled by Garmin."
-                else "Imported $hrCount HR samples and $sleepCount nights from Garmin Connect. ${granted.intersect(READ_PERMISSIONS).size}/${READ_PERMISSIONS.size} read permissions granted.")
+                else "Imported $hrCount HR samples, $sleepCount nights and ${workouts.size} workouts from Garmin Connect. ${granted.intersect(READ_PERMISSIONS).size}/${READ_PERMISSIONS.size} read permissions granted.")
             true
         } catch (e: CancellationException) { status.value = status.value.copy(busy = false); throw e }
         catch (e: Exception) { status.value = status.value.copy(busy = false, message = if (e is SecurityException) "Health access changed. Grant permissions and sync again." else "Sync interrupted (${e.javaClass.simpleName}). Keep the app open and retry. Your previous import is retained."); false }
     }
     companion object {
-        val READ_PERMISSIONS = setOf(HeartRateRecord::class, SleepSessionRecord::class, StepsRecord::class, TotalCaloriesBurnedRecord::class, ActiveCaloriesBurnedRecord::class, BasalMetabolicRateRecord::class, RestingHeartRateRecord::class, HeartRateVariabilityRmssdRecord::class).map { HealthPermission.getReadPermission(it) }.toSet()
+        val READ_PERMISSIONS = setOf(ExerciseSessionRecord::class, HeartRateRecord::class, SleepSessionRecord::class, StepsRecord::class, TotalCaloriesBurnedRecord::class, ActiveCaloriesBurnedRecord::class, BasalMetabolicRateRecord::class, RestingHeartRateRecord::class, HeartRateVariabilityRmssdRecord::class).map { HealthPermission.getReadPermission(it) }.toSet()
     }
 }
 class HealthSyncWorker(context: Context, params: WorkerParameters) : CoroutineWorker(context, params), KoinComponent {

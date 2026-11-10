@@ -149,7 +149,7 @@ private fun time(t: Long) = Instant.ofEpochMilli(t).atZone(ZoneId.systemDefault(
         if (hours.size > 1) Slider(value = selected.coerceAtLeast(0).toFloat(), onValueChange = { selected = it.roundToInt() }, valueRange = 0f..hours.lastIndex.toFloat(), steps = (hours.size - 2).coerceAtLeast(0), modifier = Modifier.semantics { contentDescription = "Select activity hour" })
     }
 }
-@Composable private fun InteractiveHeart(d: ConnectedDay?) {
+@Composable internal fun InteractiveHeart(d: ConnectedDay?) {
     val points = remember(d?.chart) { d?.chart?.split(';')?.mapNotNull { val p = it.split(','); if (p.size == 2) runCatching { HrPoint(p[0].toLong(), p[1].toInt()) }.getOrNull() else null }?.sortedBy { it.time } ?: emptyList() }
     val entrance = chartEntrance()
     var selected by remember(points) { mutableIntStateOf(0) }

@@ -4,7 +4,7 @@ import java.time.*
 import kotlin.math.*
 
 data class DashboardPreferences(val order: List<String> = CARDS, val hidden: Set<String> = emptySet(), val startPage: Int = 0) {
-    fun normalized() = copy(order = (order.filter { it in CARDS } + CARDS).distinct(), hidden = hidden.intersect(CARDS.toSet()), startPage = startPage.coerceIn(0, 3))
+    fun normalized() = copy(order = (order.filter { it in CARDS } + CARDS).distinct(), hidden = hidden.intersect(CARDS.toSet()), startPage = startPage.coerceIn(0, 4))
     fun move(id: String, delta: Int): DashboardPreferences {
         val list = normalized().order.toMutableList(); val index = list.indexOf(id)
         if (index < 0 || index + delta !in list.indices) return this
