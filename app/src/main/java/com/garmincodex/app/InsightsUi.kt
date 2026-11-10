@@ -167,21 +167,6 @@ private fun time(t: Long) = Instant.ofEpochMilli(t).atZone(ZoneId.systemDefault(
     if (points.size > 1) Slider(value = selected.toFloat(), onValueChange = { selected = it.roundToInt() }, valueRange = 0f..points.lastIndex.toFloat(), modifier = Modifier.semantics { contentDescription = "Select heart-rate sample" })
 }
 
-@Composable internal fun FitnessAgePage(days: List<ConnectedDay>, goals: PersonalGoals, onAge: () -> Unit) {
-    val result = remember(days, goals.age) { FitnessAgeModel.calculate(days, goals.age) }
-    Caption("Fitness Age / Pulse Lab")
-    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) { Text("Your long-term\npicture.", fontSize = 34.sp, fontWeight = FontWeight.Bold, lineHeight = 37.sp); TextButton(onClick = onAge) { Text(if (goals.age == null) "Set age" else "Age ${goals.age}", color = Mint) } }
-    Box(Modifier.fillMaxWidth().aspectRatio(1f), contentAlignment = Alignment.Center) {
-        FitnessOrb(Modifier.fillMaxSize())
-        Canvas(Modifier.fillMaxSize()) { drawCircle(Brush.radialGradient(listOf(Color(0xFF090D0C).copy(alpha = .92f), Color.Transparent), radius = size.minDimension * .32f), radius = size.minDimension * .32f) }
-        Column(Modifier.fillMaxWidth(.82f), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) { Text(result.age?.let(::fmt) ?: "—", fontSize = 62.sp, fontWeight = FontWeight.Bold); Text("EXPERIMENTAL FITNESS AGE", color = Fog, fontSize = 10.sp, textAlign = androidx.compose.ui.text.style.TextAlign.Center); Text(result.age?.let { val delta = it - goals.age!!; "${fmt(abs(delta))} years ${if (delta <= 0) "below" else "above"} your age" } ?: "${result.days}/7 complete days", color = Mint, fontSize = 13.sp, textAlign = androidx.compose.ui.text.style.TextAlign.Center) }
-    }
-    InsightPanel { Caption("A wellness illustration, not biological age"); Text(result.reason, fontSize = 14.sp); Text("This is an unvalidated Pulse heuristic based on habits and recovery. It does not measure aging, predict lifespan or reproduce WHOOP Age. Chronological age is your input; the offset is illustrative.", color = Fog, fontSize = 12.sp) }
-    val entrance = chartEntrance()
-    result.factors.forEach { factor -> InsightPanel { Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) { Text(factor.name, fontWeight = FontWeight.Bold); Text("${factor.score.roundToInt()}/100", color = Mint) }; Text(factor.detail, color = Fog, fontSize = 12.sp); LinearProgressIndicator(progress = { (factor.score / 100).toFloat() * entrance }, modifier = Modifier.fillMaxWidth(), color = Mint, trackColor = Color.White.copy(alpha = .07f)) } }
-    InsightPanel { Caption("Transparent model"); Text("Movement, sleep, recovery and cardio contribute equally. Index 70 maps to your entered age. Each 6 index points adjusts the displayed age by 1 year, capped at ±5 years (minimum age 18). Fixed reference targets prevent goal changes from gaming the result.", color = Fog, fontSize = 12.sp) }
-}
-
 @Composable private fun InlineGoalForm(kind: String, goals: PersonalGoals, onSave: (PersonalGoals) -> Unit, onClose: () -> Unit) {
     var value by remember { mutableStateOf(if (kind == "steps") goals.steps.toString() else goals.activeCalories.toString()) }
     val parsed = value.toIntOrNull(); val valid = parsed != null && parsed in if (kind == "steps") 1000..100000 else 100..5000
@@ -197,33 +182,4 @@ private fun time(t: Long) = Instant.ofEpochMilli(t).atZone(ZoneId.systemDefault(
     val progress = remember { Animatable(0f) }
     LaunchedEffect(Unit) { progress.animateTo(1f, tween(650, easing = FastOutSlowInEasing)) }
     return progress.value
-}
-
-@Composable private fun FitnessOrb(modifier: Modifier) {
-    val transition = rememberInfiniteTransition(label = "orb")
-    val phase by transition.animateFloat(0f, (2 * PI).toFloat(), infiniteRepeatable(tween(18000, easing = LinearEasing)), label = "drift")
-    val entrance = chartEntrance()
-    val particles = remember { val random = Random(165); List(240) { floatArrayOf(random.nextFloat() * 6.283185f, random.nextFloat(), random.nextFloat(), random.nextFloat()) } }
-    Canvas(modifier) {
-        val radius = size.minDimension * .48f
-        val outline = Path()
-        for (i in 0..180) {
-            val angle = i * 2 * PI / 180
-            val r = radius * (1 + .018 * sin(angle * 3 + phase) + .012 * cos(angle * 5 - phase))
-            val x = center.x + (cos(angle) * r).toFloat(); val y = center.y + (sin(angle) * r).toFloat()
-            if (i == 0) outline.moveTo(x, y) else outline.lineTo(x, y)
-        }
-        outline.close()
-        drawPath(outline, Brush.radialGradient(listOf(Color.Transparent, Mint.copy(alpha = .025f * entrance), Mint.copy(alpha = .20f * entrance)), center, radius))
-        drawPath(outline, Mint.copy(alpha = .25f * entrance), style = Stroke(1.dp.toPx()))
-        clipPath(outline) {
-            particles.forEach { p ->
-                val travel = (p[1] + phase / (2 * PI.toFloat())) % 1f
-                val angle = p[0] + .06f * sin(phase + p[0])
-                val r = radius * (.08f + .92f * travel)
-                val position = center + Offset(cos(angle) * r, sin(angle) * r)
-                drawCircle(Mint.copy(alpha = (.18f + p[2] * .55f) * entrance * (travel * 5).coerceAtMost(1f) * ((1 - travel) * 8).coerceAtMost(1f)), (1f + p[3] * 1.8f).dp.toPx(), position)
-            }
-        }
-    }
 }

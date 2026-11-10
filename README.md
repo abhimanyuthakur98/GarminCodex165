@@ -1,6 +1,6 @@
 # Pulse 165 — real Garmin daily dashboard
 
-Native Android / Kotlin / Compose companion for Garmin Forerunner 165. Version **0.10.0** adds focused Trends views, a calorie-sharing repair flow and shorter app transitions. The app name and pulse icon are unchanged.
+Native Android / Kotlin / Compose companion for Garmin Forerunner 165. Version **0.11.0** brings a compact Fitness Age overview, interactive factor/history charts and habit suggestions. The app name and pulse icon are unchanged.
 
 ## Install and connect (Android 14+, including Android 17)
 
@@ -166,3 +166,12 @@ Tests additionally cover goal validation/persistence, interactive goal editing a
 - **Calories → Fix:** separates missing Pulse read permission from a missing Garmin record. Buttons open Pulse permissions, Health Connect settings, Garmin Connect and a new Pulse import. Enable Garmin's **write** permission for **Active calories burned**, then sync the watch in Garmin Connect before importing in Pulse. If the category is absent, update Garmin Connect. The app cannot force Garmin to backfill historical records.
 - [Garmin's Health Connect guide](https://support.garmin.com/en-US/?faq=JToBEy0jfe6pIygark2Ui5) lists active and total calories as supported. When only total energy arrives, Today labels it **Total calories**, hides the unavailable active-goal progress, and offers repair. Total calories never masquerade as active energy. This is better diagnosis and UI, not a guarantee that Garmin supplied your phone's missing records.
 - Main tabs, metric views and detail screens use short 240ms fade/slide entrances; charts reveal over 650ms. Compose honours system animation duration scaling. No additional permissions or database migration.
+
+## 0.11.0: visual Fitness Age and habit suggestions
+
+- **Overview / Progress / Actions** replaces the long Fitness Age feed. Overview contains a fluid mint/ice-blue orb, a centred estimate, four tappable factor bars (0–100), and a suggested focus. Tap a factor to inspect its recorded average and one practical habit suggestion.
+- The orb uses a softly morphing outline, luminous rim, outward-moving particles and a dark centre for readable text. **Pause motion** freezes the decorative drawing; animation never represents a hidden measurement. Tab/chart entrances follow the app's short motion style and system animation scaling.
+- **Progress** shows 14 recomputed daily estimates with tap/slider selection. Each point uses only qualifying records before that date; missing history leaves gaps. Historical values use the currently entered chronological age, so editing it changes the chart. These are reconstructed estimates, not separately stored measurements.
+- **Actions** chooses the weakest model component, except low current/average recovery takes priority. Suggestions focus on sustainable movement, regular sleep, comfortable activity and gradual progression. Low recovery never triggers advice to chase higher strain. No personalised suggestions appear until the age and required data are available.
+- General habit guidance links to [CDC sleep guidance](https://www.cdc.gov/sleep/about/) and [NIDDK getting started with activity](https://www.niddk.nih.gov/health-information/weight-management/tips-get-active/tips-starting-physical-activity). These sources support general habits, not Pulse's illustrative age formula. Suggestions do not promise a reduction in age or reversal of aging.
+- Existing formula, calibration gates and local records are unchanged. Fitness Age remains an unvalidated wellness illustration, not biological age, a lifespan prediction or Garmin/WHOOP's proprietary score. Model details remain expandable in Progress and Actions.
