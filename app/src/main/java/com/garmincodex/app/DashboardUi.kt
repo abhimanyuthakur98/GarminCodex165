@@ -6,6 +6,9 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.saveable.rememberSaveableStateHolder
+import androidx.activity.compose.BackHandler
+import kotlinx.coroutines.launch
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -40,8 +43,9 @@ private fun clock(t: Long?) = t?.let { Instant.ofEpochMilli(it).atZone(ZoneId.sy
 
 @Composable fun PulseDashboard(days: List<ConnectedDay>, sync: SyncState, live: DashboardState, connection: String, message: String?, sleepNeed: Int, maximumHr: Int, restingHr: Int,
     onConnect: () -> Unit, onSync: () -> Unit, onHealthSettings: () -> Unit, onGarmin: () -> Unit, onBackground: () -> Unit,
-    onProfile: (Int, Int, Int) -> Unit, onClear: () -> Unit, onLive: () -> Unit, onStop: () -> Unit, goals: PersonalGoals = PersonalGoals(), onGoals: (PersonalGoals) -> Unit = {}, preferences: DashboardPreferences = DashboardPreferences(), onPreferences: (DashboardPreferences) -> Unit = {}, workouts: List<Workout> = emptyList(), checkIns: List<WorkoutCheckIn> = emptyList(), onCheckIn: (WorkoutCheckIn) -> Unit = {}, onImportFit: () -> Unit = {}, onRemoveWorkout: (String) -> Unit = {}, workoutMessage: String? = null, importingFit: Boolean = false, journal: List<JournalEntry> = emptyList(), habits: List<HabitTag> = emptyList(), onJournal: (JournalEntry) -> Unit = {}, onHabit: (HabitTag) -> Unit = {}, onDeleteJournal: (String) -> Unit = {}, onClearJournal: () -> Unit = {}, reminder: JournalReminder = JournalReminder(), onReminder: (JournalReminder) -> Unit = {}, miles: Boolean = false, onMiles: (Boolean) -> Unit = {}) {
+    onProfile: (Int, Int, Int) -> Unit, onClear: () -> Unit, onLive: () -> Unit, onStop: () -> Unit, goals: PersonalGoals = PersonalGoals(), onGoals: (PersonalGoals) -> Unit = {}, preferences: DashboardPreferences = DashboardPreferences(), onPreferences: (DashboardPreferences) -> Unit = {}, workouts: List<Workout> = emptyList(), checkIns: List<WorkoutCheckIn> = emptyList(), onCheckIn: (WorkoutCheckIn) -> Unit = {}, onImportFit: () -> Unit = {}, onRemoveWorkout: (String) -> Unit = {}, workoutMessage: String? = null, importingFit: Boolean = false, journal: List<JournalEntry> = emptyList(), habits: List<HabitTag> = emptyList(), onJournal: (JournalEntry) -> Unit = {}, onHabit: (HabitTag) -> Unit = {}, onDeleteJournal: (String) -> Unit = {}, onClearJournal: () -> Unit = {}, reminder: JournalReminder = JournalReminder(), onReminder: (JournalReminder) -> Unit = {}, miles: Boolean = false, onMiles: (Boolean) -> Unit = {}, onDismissMessage: () -> Unit = {}) {
     var expandedToday by rememberSaveable { mutableStateOf(false) }
+    var journalRequest by rememberSaveable { mutableIntStateOf(0) }
     var journalDate by rememberSaveable { mutableStateOf(LocalDate.now().toString()) }
     var detail by rememberSaveable { mutableStateOf<String?>(null) }
     var goalEditor by rememberSaveable { mutableStateOf<String?>(null) }
@@ -51,17 +55,29 @@ private fun clock(t: Long?) = t?.let { Instant.ofEpochMilli(it).atZone(ZoneId.sy
     val day = if (preview) previewDay(selected) else days.firstOrNull { it.date == selected }
     var profile by remember { mutableStateOf(false) }; var clear by remember { mutableStateOf(false) }
     var needState by remember(sleepNeed) { mutableIntStateOf(sleepNeed) }; var maxState by remember(maximumHr) { mutableIntStateOf(maximumHr) }; var restState by remember(restingHr) { mutableIntStateOf(restingHr) }
-    Scaffold(containerColor = Ink, bottomBar = {
-        PulseDock(page) { page = it }
+    val tabState=rememberSaveableStateHolder()
+    val scrolls=listOf(rememberScrollState(),rememberScrollState(),rememberScrollState(),rememberScrollState(),rememberScrollState(),rememberScrollState())
+    val scope=rememberCoroutineScope()
+    val focusManager=androidx.compose.ui.platform.LocalFocusManager.current
+    val notices=remember{SnackbarHostState()}
+    LaunchedEffect(message){if(message!=null){notices.showSnackbar(message,withDismissAction=true,duration=SnackbarDuration.Long);onDismissMessage()}}
+    BackHandler(enabled=page!=0 || expandedToday || preview) {
+        if(page!=0) {page=0;expandedToday=false}
+        else if(expandedToday) expandedToday=false
+        else preview=false
+        scope.launch{scrolls[0].scrollTo(0)}
+    }
+    Scaffold(containerColor = Ink, snackbarHost={SnackbarHost(notices)}, bottomBar = {
+        PulseDock(page) { target -> focusManager.clearFocus();if(page==target) { if(target==0){selected=LocalDate.now().toString();expandedToday=false};scope.launch{scrolls[target].animateScrollTo(0)} } else page=target }
     }) { padding ->
-        Column(Modifier.padding(padding).fillMaxSize().verticalScroll(remember(page) { ScrollState(0) }).padding(horizontal = 18.dp, vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(if(page==0 && !expandedToday) 10.dp else 14.dp)) {
+        Column(Modifier.padding(padding).fillMaxSize().verticalScroll(scrolls[page]).padding(horizontal = 18.dp, vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(if(page==0 && !expandedToday) 10.dp else 14.dp)) {
             PulseHeader(sync.busy,onSync,sync.lastSync)
             if (preview) Row(Modifier.fillMaxWidth().background(Color(0xFF483F21), RoundedCornerShape(8.dp)).padding(12.dp), horizontalArrangement = Arrangement.SpaceBetween) { Text("PREVIEW • synthetic data", fontSize = 11.sp); Text("Exit", Modifier.clickable { preview = false }, color = Blue) }
-            if (message != null) Text(message, color = Color(0xFFF4CA58), fontSize = 12.sp)
+            tabState.SaveableStateProvider(page) {
             Column(pageMotion(page),verticalArrangement=Arrangement.spacedBy(if(page==0 && !expandedToday) 10.dp else 14.dp)) {
             when (page) {
                 0 -> {
-                    TodayDate(selected, { selected = it }, { journalDate=selected;page=5 })
+                    TodayDate(selected, { selected = it }, { journalDate=selected;journalRequest++;page=5 })
                     if(!expandedToday) {
                         TodaySnapshot(day,sync,goals,needState,{detail=it},{page=3})
                         OutlinedButton(onClick={expandedToday=true},modifier=Modifier.fillMaxWidth()){Text("All details")}
@@ -104,7 +120,7 @@ private fun clock(t: Long?) = t?.let { Instant.ofEpochMilli(it).atZone(ZoneId.sy
                 }
                 1 -> TrendsExplorer(days) { selected=it;expandedToday=false;page=0 }
                 2 -> FitnessAgePage(if (preview) (1L..10L).map { previewDay(LocalDate.now().minusDays(it).toString()) } else days, goals) { goalEditor = "age" }
-                5 -> JournalPage(journal, habits, days, workouts, onJournal, onHabit, onDeleteJournal, onClearJournal, reminder, onReminder, journalDate)
+                5 -> JournalPage(journal, habits, days, workouts, onJournal, onHabit, onDeleteJournal, onClearJournal, reminder, onReminder, journalDate, journalRequest)
                 4 -> WorkoutLibrary(workouts, checkIns, restState, maxState, onCheckIn, onImportFit, onConnect, onRemoveWorkout, workoutMessage, importingFit, miles, onMiles)
                 3 -> {
                     Text("Your watch.\nYour daily picture.", fontSize = 30.sp, lineHeight = 34.sp, fontWeight = FontWeight.Bold)
@@ -141,6 +157,7 @@ private fun clock(t: Long?) = t?.let { Instant.ofEpochMilli(it).atZone(ZoneId.sy
                 }
             }
         }
+    }
     }
     }
     detail?.let { MetricDetails(it, day, goals, needState, maxState, restState, onGoals, sync, onConnect, onHealthSettings, onGarmin, onSync) { detail = null } }

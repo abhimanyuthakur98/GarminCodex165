@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Brush
@@ -24,8 +25,8 @@ private fun decimal(value:Double)=String.format(java.util.Locale.US,"%.1f",value
 @Composable private fun WorkoutCard(content:@Composable ColumnScope.()->Unit) { Column(Modifier.fillMaxWidth().background(Brush.linearGradient(listOf(Color(0xFF29221D),Color(0xFF171D1A))),RoundedCornerShape(26.dp)).border(1.dp,Orange.copy(alpha=.09f),RoundedCornerShape(26.dp)).padding(20.dp),verticalArrangement=Arrangement.spacedBy(12.dp),content=content) }
 @Composable internal fun WorkoutLibrary(workouts:List<Workout>, checkIns:List<WorkoutCheckIn>, resting:Int, maximum:Int, onCheckIn:(WorkoutCheckIn)->Unit,onImport:()->Unit,onPermissions:()->Unit,onRemove:(String)->Unit,message:String?,busy:Boolean,miles:Boolean=false,onMiles:(Boolean)->Unit={}) {
     var selectedId by remember { mutableStateOf<String?>(null) }
-    var filter by remember { mutableStateOf("All") }
-    var window by remember { mutableIntStateOf(0) }
+    var filter by rememberSaveable { mutableStateOf("All") }
+    var window by rememberSaveable { mutableIntStateOf(0) }
     Text("Your training story.",fontSize=32.sp,fontWeight=FontWeight.Bold)
     Text("Recorded sessions, not inferred workouts.",color=Color.Gray,fontSize=13.sp)
     Row { Button(onClick=onImport,enabled=!busy) { Text(if(busy) "Importing…" else "Import FIT") }; TextButton(onClick=onPermissions) { Text("Allow exercise") } }
@@ -36,6 +37,7 @@ private fun decimal(value:Double)=String.format(java.util.Locale.US,"%.1f",value
     val cutoff=if(window==0) Long.MIN_VALUE else LocalDate.now().minusDays((window-1).toLong()).atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli()
     val filtered=workouts.filter { (filter=="All" || it.type==filter) && it.start>=cutoff }.sortedByDescending {it.start}
     if(filtered.isEmpty()) WorkoutCard { Text("No workouts in this view",fontWeight=FontWeight.Bold); Text("Allow Pulse to read Exercise in Health Connect, then sync Garmin. If Garmin does not share sessions, export an original .fit activity file from Garmin Connect and use Import FIT. Unzip downloaded archives first.",fontSize=13.sp,color=Color.Gray) }
+    if(filtered.isEmpty() && (filter!="All" || window!=0)) TextButton(onClick={filter="All";window=0}){Text("Reset workout filters")}
     filtered.forEach { w -> Box(Modifier.clickable(onClickLabel="Open ${w.title}"){selectedId=w.id}) { WorkoutCard {
         Text(w.title,fontSize=22.sp,fontWeight=FontWeight.Bold)
         Text(workoutTime(w.start),color=Lime,fontSize=12.sp)

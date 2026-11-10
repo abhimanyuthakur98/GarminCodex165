@@ -17,11 +17,13 @@ import java.time.*
 import java.util.UUID
 
 private val JournalMuted=Color(0xFFA4B2AB)
-@Composable internal fun JournalPage(entries:List<JournalEntry>,tags:List<HabitTag>,days:List<ConnectedDay>,workouts:List<Workout>,onSave:(JournalEntry)->Unit,onTag:(HabitTag)->Unit,onDelete:(String)->Unit,onClear:()->Unit,reminder:JournalReminder,onReminder:(JournalReminder)->Unit,initialDate:String=LocalDate.now().toString()) {
+@Composable internal fun JournalPage(entries:List<JournalEntry>,tags:List<HabitTag>,days:List<ConnectedDay>,workouts:List<Workout>,onSave:(JournalEntry)->Unit,onTag:(HabitTag)->Unit,onDelete:(String)->Unit,onClear:()->Unit,reminder:JournalReminder,onReminder:(JournalReminder)->Unit,initialDate:String=LocalDate.now().toString(),openRequest:Int=0) {
     var date by rememberSaveable(initialDate) {mutableStateOf(initialDate)}
     var tab by rememberSaveable {mutableIntStateOf(0)}
     var month by rememberSaveable(initialDate) {mutableStateOf(YearMonth.from(LocalDate.parse(initialDate)).toString())}
     var clear by remember {mutableStateOf(false)}
+    var lastRequest by rememberSaveable{mutableIntStateOf(openRequest)}
+    LaunchedEffect(openRequest){if(lastRequest!=openRequest){date=initialDate;tab=0;month=YearMonth.from(LocalDate.parse(initialDate)).toString();lastRequest=openRequest}}
     Text("Small habits.\nYour bigger picture.",fontSize=32.sp,lineHeight=35.sp,fontWeight=FontWeight.Bold)
     Text("A moment to notice what matters.",color=JournalMuted,fontSize=14.sp)
     Row(horizontalArrangement=Arrangement.spacedBy(8.dp)) {listOf("Check-in","Patterns","Calendar").forEachIndexed {i,title->FilterChip(tab==i,{tab=i},label={Text(title)})}}

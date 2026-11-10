@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
@@ -71,10 +72,10 @@ private fun time(t: Long) = Instant.ofEpochMilli(t).atZone(ZoneId.systemDefault(
     }
 }
 @Composable internal fun GoalEditor(kind: String, goals: PersonalGoals, onClose: () -> Unit, onSave: (PersonalGoals) -> Unit) {
-    var text by remember { mutableStateOf(when (kind) { "steps" -> goals.steps.toString(); "calories" -> goals.activeCalories.toString(); else -> goals.age?.toString() ?: "" }) }
+    var text by rememberSaveable(kind) { mutableStateOf(when (kind) { "steps" -> goals.steps.toString(); "calories" -> goals.activeCalories.toString(); else -> goals.age?.toString() ?: "" }) }
     val value = text.toIntOrNull(); val range = when (kind) { "steps" -> 1000..100000; "calories" -> 100..5000; else -> 18..100 }
     Dialog(onDismissRequest = onClose, properties = DialogProperties(usePlatformDefaultWidth = false)) {
-        Surface(Modifier.fillMaxWidth().padding(24.dp), color = Slate, shape = RoundedCornerShape(24.dp)) {
+        Surface(Modifier.fillMaxWidth().imePadding().padding(24.dp), color = Slate, shape = RoundedCornerShape(24.dp)) {
             Column(Modifier.padding(22.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(16.dp)) {
                 Text(when (kind) { "steps" -> "Your daily step goal"; "calories" -> "Your active-calorie goal"; else -> "Your chronological age" }, fontSize = 24.sp, fontWeight = FontWeight.Bold)
                 Text(if (kind == "age") "Used for the experimental Fitness Age comparison. Stored on your phone." else "Your ring updates immediately. A personal target, not a medical recommendation.", color = Fog, fontSize = 13.sp)
@@ -93,7 +94,7 @@ private fun time(t: Long) = Instant.ofEpochMilli(t).atZone(ZoneId.systemDefault(
 
     Dialog(onDismissRequest = onClose, properties = DialogProperties(usePlatformDefaultWidth = false)) {
         Surface(Modifier.fillMaxSize(), color = Color(0xFF090D0C)) {
-            Column(Modifier.then(pageMotion(kind)).safeDrawingPadding().verticalScroll(rememberScrollState()).padding(20.dp), verticalArrangement = Arrangement.spacedBy(20.dp)) {
+            Column(Modifier.then(pageMotion(kind)).safeDrawingPadding().imePadding().verticalScroll(rememberScrollState()).padding(20.dp), verticalArrangement = Arrangement.spacedBy(20.dp)) {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) { TextButton(onClick = onClose) { Text("‹ Back") }; Caption(d?.date ?: "No imported day"); if (kind == "steps" || kind == "calories") TextButton(onClick = { edit = true }) { Text("Edit goal") } }
                 if (edit) InlineGoalForm(kind, goals, onGoals) { edit = false }
                 Text(when (kind) { "hr" -> "Every heartbeat."; "steps" -> "Keep moving."; "calories" -> "Energy, unpacked."; "sleep" -> "Inside your night."; "recovery" -> "Your recovery."; else -> "Your effort." }, fontSize = 34.sp, fontWeight = FontWeight.Bold, lineHeight = 38.sp)

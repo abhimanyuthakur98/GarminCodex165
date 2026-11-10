@@ -84,7 +84,7 @@ class DashboardViewModel(private val repo: HealthRepository, val sync: HealthCon
     val connected = dao.connected().stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
     val syncStatus = sync.status.asStateFlow()
     private var syncJob: Job? = null
-    fun refresh() { if (syncJob?.isActive == true) return; syncJob = viewModelScope.launch { sync.sync() } }
+    fun refresh(onFinished: ((Boolean) -> Unit)? = null) { if (syncJob?.isActive == true) return; syncJob = viewModelScope.launch { val success=sync.sync();onFinished?.invoke(success) } }
     fun clearImported() { viewModelScope.launch { sync.clear() } }
     val state = repo.state.asStateFlow()
     val history = repo.history.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())

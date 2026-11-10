@@ -1,6 +1,6 @@
 # Pulse 165 — real Garmin daily dashboard
 
-Native Android / Kotlin / Compose companion for Garmin Forerunner 165. Version **0.11.0** brings a compact Fitness Age overview, interactive factor/history charts and habit suggestions. The app name and pulse icon are unchanged.
+Native Android / Kotlin / Compose companion for Garmin Forerunner 165. Version **0.12.0** refines navigation, remembered tab state, refresh feedback and keyboard handling. The app name and pulse icon are unchanged.
 
 ## Install and connect (Android 14+, including Android 17)
 
@@ -175,3 +175,12 @@ Tests additionally cover goal validation/persistence, interactive goal editing a
 - **Actions** chooses the weakest model component, except low current/average recovery takes priority. Suggestions focus on sustainable movement, regular sleep, comfortable activity and gradual progression. Low recovery never triggers advice to chase higher strain. No personalised suggestions appear until the age and required data are available.
 - General habit guidance links to [CDC sleep guidance](https://www.cdc.gov/sleep/about/) and [NIDDK getting started with activity](https://www.niddk.nih.gov/health-information/weight-management/tips-get-active/tips-starting-physical-activity). These sources support general habits, not Pulse's illustrative age formula. Suggestions do not promise a reduction in age or reversal of aging.
 - Existing formula, calibration gates and local records are unchanged. Fitness Age remains an unvalidated wellness illustration, not biological age, a lifespan prediction or Garmin/WHOOP's proprietary score. Model details remain expandable in Progress and Actions.
+
+## 0.12.0: everyday refinements
+
+- System **Back** returns other tabs to the Today snapshot, closes the expanded Today feed, and exits preview before leaving the app. Dialogs retain their own dismissal behaviour; Back at the main Today snapshot still uses Android's normal exit behaviour.
+- Tabs keep their individual scroll positions and saveable view settings, including Trends metric/range, Fitness Age section, and workout filters. Tapping the active tab scrolls to the top; reselecting Today also returns to the current date and compact snapshot. Changing tabs clears text-field focus.
+- Explicitly opening **Journal** from Today always opens that selected date's check-in, even if the Journal tab previously showed another date or section. Journal entries still require Save; this update does not autosave unfinished journal answers.
+- Manual refresh reports completion or the current sync problem using a dismissible snackbar. Automatic resume/background imports do not produce completion popups. Earlier informational messages no longer stay permanently above the dashboard.
+- Goal input survives activity recreation and goal/detail forms account for the on-screen keyboard. Empty filtered workout lists offer **Reset workout filters**.
+- No database, permission, scoring or import-format changes. Existing records and targets remain intact.
