@@ -19,16 +19,14 @@ import java.time.*
 import java.time.format.DateTimeFormatter
 import kotlin.math.roundToInt
 
-@Composable private fun CoachCard(title: String, content: @Composable ColumnScope.() -> Unit) {
-    Column(Modifier.fillMaxWidth().background(Color(0xFF19231F), RoundedCornerShape(24.dp)).padding(20.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
-        Text(title, color = Lime, fontSize = 12.sp, letterSpacing = 1.sp, fontWeight = FontWeight.Bold)
-        content()
-    }
-}
+@Composable private fun CoachCard(title: String, content: @Composable ColumnScope.() -> Unit) { JournalCard(title, if(title.contains("SLEEP")) Color(0xFFA9B6FF) else if(title.contains("WEEK")) Color(0xFF62E9B5) else Lime, content) }
 @Composable internal fun MorningBriefing(day: ConnectedDay?, days: List<ConnectedDay>, date: String, need: Int) {
     CoachCard(if (date == LocalDate.now().toString()) "YOUR MORNING BRIEFING" else "DAY BRIEFING") {
         Text("Your day, explained.", fontSize = 24.sp, fontWeight = FontWeight.Bold)
-        Text(DailyCoach.briefing(day, days.firstOrNull { it.date == LocalDate.parse(date).minusDays(1).toString() }, need), fontSize = 14.sp, lineHeight = 22.sp)
+        var expanded by remember(date) { mutableStateOf(false) }
+        val briefing = DailyCoach.briefing(day, days.firstOrNull { it.date == LocalDate.parse(date).minusDays(1).toString() }, need)
+        Text(if(expanded) briefing else briefing.substringBefore("\n\n"), fontSize = 15.sp, lineHeight = 22.sp)
+        TextButton(onClick = { expanded = !expanded }) { Text(if(expanded) "Less detail" else "Read your briefing", color = Lime) }
         Text("Based on imported records. Missing coverage can affect comparisons.", color = Color.Gray, fontSize = 11.sp)
     }
 }

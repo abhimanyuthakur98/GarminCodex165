@@ -22,6 +22,14 @@ data class ConnectedDay(
 )
 @Dao
 interface DailyDao {
+    @Query("SELECT * FROM JournalEntry ORDER BY date DESC") fun journal(): Flow<List<JournalEntry>>
+    @Query("SELECT * FROM HabitTag ORDER BY name") fun habits(): Flow<List<HabitTag>>
+    @Upsert suspend fun putJournal(entry: JournalEntry)
+    @Upsert suspend fun putHabit(tag: HabitTag)
+    @Query("DELETE FROM JournalEntry WHERE date=:date") suspend fun deleteJournal(date: String)
+    @Query("DELETE FROM JournalEntry") suspend fun clearJournal()
+    @Query("DELETE FROM HabitTag") suspend fun clearHabits()
+    @Transaction suspend fun clearPersonalJournal() { clearJournal(); clearHabits() }
     @Query("SELECT * FROM Workout ORDER BY start DESC") fun workouts(): Flow<List<Workout>>
     @Query("SELECT * FROM WorkoutCheckIn") fun checkIns(): Flow<List<WorkoutCheckIn>>
     @Upsert suspend fun putWorkouts(workouts: List<Workout>)
@@ -43,8 +51,8 @@ interface DailyDao {
     @Upsert suspend fun putConnected(days: List<ConnectedDay>)
     @Transaction suspend fun replaceConnected(since: String, days: List<ConnectedDay>) { deleteConnectedSince(since); putConnected(days) }
 }
-@Database(entities = [DailyRecord::class, ConnectedDay::class, Workout::class, WorkoutCheckIn::class], version = 4, exportSchema = true,
-    autoMigrations = [AutoMigration(from = 1, to = 2), AutoMigration(from = 2, to = 3), AutoMigration(from = 3, to = 4)])
+@Database(entities = [DailyRecord::class, ConnectedDay::class, Workout::class, WorkoutCheckIn::class, JournalEntry::class, HabitTag::class], version = 5, exportSchema = true,
+    autoMigrations = [AutoMigration(from = 1, to = 2), AutoMigration(from = 2, to = 3), AutoMigration(from = 3, to = 4), AutoMigration(from = 4, to = 5)])
 abstract class PulseDatabase : RoomDatabase() { abstract fun days(): DailyDao }
 
 interface GarminSyncGateway { suspend fun fetchDays(): List<DailyRecord> }

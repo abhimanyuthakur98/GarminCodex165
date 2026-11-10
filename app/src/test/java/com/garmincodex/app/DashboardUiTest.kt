@@ -22,6 +22,7 @@ class DashboardUiTest {
         System.setProperty("roborazzi.test.record", "true")
         val day = previewDay(LocalDate.now().toString())
         compose.setContent { PulseTheme { PulseDashboard(listOf(day), SyncState(lastSync = System.currentTimeMillis()), DashboardState(), "", null, 480, 190, 55, {}, {}, {}, {}, {}, { _, _, _ -> }, {}, {}, {}) } }
+        compose.onRoot().captureRoboImage("build/screenshots/home-refresh.png")
         compose.onNodeWithText("Ready for your day").performScrollTo().assertIsDisplayed()
         compose.onRoot().captureRoboImage("build/screenshots/dashboard.png")
         compose.onNodeWithText("Sleep").performScrollTo().performClick()

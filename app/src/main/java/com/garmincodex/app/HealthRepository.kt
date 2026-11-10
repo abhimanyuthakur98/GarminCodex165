@@ -57,6 +57,12 @@ class HealthRepository(private val dao: DailyDao, val ble: BleFeed) {
     fun stopLive() { if (requestedMode == "LIVE") stop() }
 }
 class DashboardViewModel(private val repo: HealthRepository, val sync: HealthConnectSync, private val dao: DailyDao) : ViewModel() {
+    val journal = dao.journal().stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+    val habits = dao.habits().stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+    fun saveJournal(entry: JournalEntry) { JournalAnalysis.validate(entry); viewModelScope.launch { dao.putJournal(entry) } }
+    fun saveHabit(tag: HabitTag) { require(tag.name.isNotBlank() && tag.name.length<=30); viewModelScope.launch { dao.putHabit(tag) } }
+    fun deleteJournal(date:String) { viewModelScope.launch { dao.deleteJournal(date) } }
+    fun clearJournal() { viewModelScope.launch { dao.clearPersonalJournal() } }
     val workouts = dao.workouts().stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
     val checkIns = dao.checkIns().stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
     val workoutMessage = MutableStateFlow<String?>(null)

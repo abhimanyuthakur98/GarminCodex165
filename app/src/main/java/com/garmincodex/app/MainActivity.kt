@@ -36,6 +36,17 @@ class MainActivity : ComponentActivity() {
             } ?: error("File cannot be opened.")
         }
     }
+    private var pendingReminder = JournalReminder()
+    private var reminderState = mutableStateOf(JournalReminder())
+    private val notificationPermission = registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        if(granted) setJournalReminder(pendingReminder) else uiMessage.value="Reminder is off. Allow notifications in Android settings to enable it."
+    }
+    private fun setJournalReminder(value:JournalReminder) {
+        if(value.enabled && Build.VERSION.SDK_INT>=33 && ContextCompat.checkSelfPermission(this,Manifest.permission.POST_NOTIFICATIONS)!=android.content.pm.PackageManager.PERMISSION_GRANTED) {
+            pendingReminder=value; notificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS);return
+        }
+        JournalNotifications.save(this,value);reminderState.value=value
+    }
     private fun open(intent: Intent) { try { startActivity(intent) } catch (_: Exception) { uiMessage.value = "This app or settings screen is unavailable on your phone." } }
     private fun connectHealth() {
         if (vm.sync.availability() == HealthConnectClient.SDK_AVAILABLE) healthPermissions.launch(HealthConnectSync.READ_PERMISSIONS)
@@ -43,7 +54,7 @@ class MainActivity : ComponentActivity() {
     }
     override fun onResume() { super.onResume(); if (::vm.isInitialized) vm.refresh() }
     override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState); enableEdgeToEdge()
+        super.onCreate(savedInstanceState); enableEdgeToEdge(); reminderState.value=JournalNotifications.read(this)
         vm = ViewModelProvider(this, object : ViewModelProvider.Factory {
             @Suppress("UNCHECKED_CAST") override fun <T : androidx.lifecycle.ViewModel> create(modelClass: Class<T>): T = get<DashboardViewModel>() as T
         })[DashboardViewModel::class.java]
@@ -53,6 +64,8 @@ class MainActivity : ComponentActivity() {
             val checkIns by vm.checkIns.collectAsStateWithLifecycle()
             val workoutMessage by vm.workoutMessage.collectAsStateWithLifecycle()
             val importingFit by vm.importingFit.collectAsStateWithLifecycle()
+            val journal by vm.journal.collectAsStateWithLifecycle()
+            val habits by vm.habits.collectAsStateWithLifecycle()
             val goals by vm.sync.goals.collectAsStateWithLifecycle()
             val days by vm.connected.collectAsStateWithLifecycle()
             val sync by vm.syncStatus.collectAsStateWithLifecycle()
@@ -68,7 +81,7 @@ class MainActivity : ComponentActivity() {
                     onProfile = { n, m, r -> vm.sync.saveProfile(n, m, r); vm.refresh() }, onClear = { vm.clearImported() },
                     onLive = { stopService(Intent(this, TrackingService::class.java)); blePermissions.launch(if (Build.VERSION.SDK_INT >= 31) arrayOf(Manifest.permission.BLUETOOTH_SCAN, Manifest.permission.BLUETOOTH_CONNECT) else arrayOf(Manifest.permission.ACCESS_FINE_LOCATION)) },
                     onStop = { vm.stop(); stopService(Intent(this, TrackingService::class.java)) },
-                    goals = goals, onGoals = { vm.sync.saveGoals(it) }, preferences = dashboardPreferences, onPreferences = { vm.sync.saveDashboard(it) }, workouts = workouts, checkIns = checkIns, onCheckIn = vm::saveCheckIn, onImportFit = { fitPicker.launch(arrayOf("*/*")) }, onRemoveWorkout = vm::removeWorkout, workoutMessage = workoutMessage, importingFit = importingFit)
+                    goals = goals, onGoals = { vm.sync.saveGoals(it) }, preferences = if(intent.getBooleanExtra("openJournal",false)) dashboardPreferences.copy(startPage=5) else dashboardPreferences, onPreferences = { vm.sync.saveDashboard(it) }, workouts = workouts, checkIns = checkIns, onCheckIn = vm::saveCheckIn, onImportFit = { fitPicker.launch(arrayOf("*/*")) }, onRemoveWorkout = vm::removeWorkout, workoutMessage = workoutMessage, importingFit = importingFit, journal = journal, habits = habits, onJournal = vm::saveJournal, onHabit = vm::saveHabit, onDeleteJournal = vm::deleteJournal, onClearJournal = vm::clearJournal, reminder = reminderState.value, onReminder = ::setJournalReminder)
                 if (choosing.value) WatchDialog(watches, connection, { choosing.value = false }, { vm.scan() }) {
                     vm.select(it); choosing.value = false
                     try { ContextCompat.startForegroundService(this, Intent(this, TrackingService::class.java)) }

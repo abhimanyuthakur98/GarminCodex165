@@ -32,7 +32,7 @@ class ExplorationTest {
         assertEquals(DashboardPreferences.CARDS.size,prefs.order.size)
         assertEquals("heart",prefs.order.first())
         assertEquals(setOf("sleep"),prefs.hidden)
-        assertEquals(4,prefs.startPage)
+        assertEquals(5,prefs.startPage)
         assertEquals(prefs,prefs.move("heart",-1))
         assertEquals("heart",prefs.move("heart",1).order[1])
     }

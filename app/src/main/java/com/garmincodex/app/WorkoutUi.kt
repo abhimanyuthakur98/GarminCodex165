@@ -7,6 +7,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.text.font.FontWeight
@@ -20,7 +21,7 @@ import kotlin.math.roundToInt
 private fun workoutTime(time:Long)=Instant.ofEpochMilli(time).atZone(ZoneId.systemDefault()).format(DateTimeFormatter.ofPattern("d MMM yyyy · HH:mm"))
 private fun minutes(w:Workout)=(w.end-w.start)/60000.0
 private fun decimal(value:Double)=String.format(java.util.Locale.US,"%.1f",value)
-@Composable private fun WorkoutCard(content:@Composable ColumnScope.()->Unit) { Column(Modifier.fillMaxWidth().background(Color(0xFF19211F),RoundedCornerShape(24.dp)).padding(20.dp),verticalArrangement=Arrangement.spacedBy(12.dp),content=content) }
+@Composable private fun WorkoutCard(content:@Composable ColumnScope.()->Unit) { Column(Modifier.fillMaxWidth().background(Brush.linearGradient(listOf(Color(0xFF29221D),Color(0xFF171D1A))),RoundedCornerShape(26.dp)).border(1.dp,Orange.copy(alpha=.09f),RoundedCornerShape(26.dp)).padding(20.dp),verticalArrangement=Arrangement.spacedBy(12.dp),content=content) }
 @Composable internal fun WorkoutLibrary(workouts:List<Workout>, checkIns:List<WorkoutCheckIn>, resting:Int, maximum:Int, onCheckIn:(WorkoutCheckIn)->Unit,onImport:()->Unit,onPermissions:()->Unit,onRemove:(String)->Unit,message:String?,busy:Boolean) {
     var selectedId by remember { mutableStateOf<String?>(null) }
     var filter by remember { mutableStateOf("All") }

@@ -36,6 +36,16 @@ class MotionUiTest {
         compose.runOnIdle { assertTrue(requested) }
         compose.onRoot().captureRoboImage("build/screenshots/narrow-rings.png")
     }
+    @Test fun dockLabelsFitAndAllDestinationsRespond() {
+        System.setProperty("roborazzi.test.record", "true")
+        var selected by mutableIntStateOf(0)
+        compose.setContent { PulseTheme { PulseDock(selected) { selected=it } } }
+        listOf("Today","Trends","Fitness Age","Connect","Workouts").forEachIndexed { i,label ->
+            compose.onNodeWithText(label).assertIsDisplayed().performClick()
+            compose.runOnIdle { assertEquals(i,selected) }
+        }
+        compose.onRoot().captureRoboImage("build/screenshots/dock-320dp.png")
+    }
     @Test fun entranceAdvancesThenSettles() {
         compose.mainClock.autoAdvance = false
         var progress = -1f

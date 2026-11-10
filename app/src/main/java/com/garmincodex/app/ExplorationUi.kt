@@ -21,11 +21,7 @@ import kotlin.math.roundToInt
 
 private val Soft = Color(0xFFA4A9A4)
 private val Lavender = Color(0xFFA9B6FF)
-@Composable private fun ExploreCard(title: String, content: @Composable ColumnScope.() -> Unit) {
-    Column(Modifier.fillMaxWidth().background(Color(0xFF19211F), RoundedCornerShape(24.dp)).padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        Text(title, color=Lime, fontSize=12.sp, letterSpacing=1.sp, fontWeight=FontWeight.Bold); content()
-    }
-}
+@Composable private fun ExploreCard(title: String, content: @Composable ColumnScope.() -> Unit) { JournalCard(title, if(title.contains("TIMELINE")) Orange else Color(0xFF62E9B5), content) }
 @Composable internal fun TimelineCard(day: ConnectedDay?, onSleep: () -> Unit) {
     val hours = remember(day) { day?.let { ActivityTimeline.hours(it) } ?: emptyList() }
     var selected by remember(day?.date) { mutableIntStateOf(0) }
@@ -107,7 +103,7 @@ private val Lavender = Color(0xFFA9B6FF)
                 }
             }
             Text("Open Pulse on",fontWeight=FontWeight.Bold)
-            listOf("Today","Trends","Fitness Age","Connect","Workouts").forEachIndexed { index,name->
+            listOf("Today","Trends","Fitness Age","Connect","Workouts","Journal").forEachIndexed { index,name->
                 Row(verticalAlignment=androidx.compose.ui.Alignment.CenterVertically) { RadioButton(prefs.startPage==index,{onChange(prefs.copy(startPage=index))}); Text(name) }
             }
             Text("Changes save immediately. Start screen applies on a fresh launch; your current tab stays open.",color=Soft,fontSize=11.sp)
