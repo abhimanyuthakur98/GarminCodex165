@@ -42,22 +42,22 @@ import androidx.compose.ui.text.font.FontWeight
     val palette = LocalPulseStyle.current
     val Lime = palette.primary
 
-    Surface(Modifier.navigationBarsPadding().padding(horizontal=12.dp,vertical=8.dp),shape=RoundedCornerShape(28.dp),color=palette.surface,border=androidx.compose.foundation.BorderStroke(1.dp,Color.White.copy(alpha=.08f)),shadowElevation=4.dp) {
+    Surface(Modifier.navigationBarsPadding().padding(horizontal=18.dp,vertical=8.dp),shape=RoundedCornerShape(24.dp),color=palette.surface,border=androidx.compose.foundation.BorderStroke(1.dp,Color.White.copy(alpha=.08f)),shadowElevation=4.dp) {
         Row(Modifier.fillMaxWidth().padding(5.dp),horizontalArrangement=Arrangement.SpaceEvenly) {
-            listOf("Today","Trends","Fitness Age","Settings","Workouts").forEachIndexed { index,label ->
+            listOf(0 to "Today",1 to "Trends",2 to "Fitness Age",4 to "Workouts").forEach { (index,label) ->
                 val selectedBackground by animateColorAsState(if(page==index) Lime.copy(alpha=.15f) else Color.Transparent,label="dock-selection")
                 val tint by animateColorAsState(if(page==index) Lime else palette.muted,label="dock-tint")
                 Column(Modifier.weight(1f).background(selectedBackground,RoundedCornerShape(22.dp)).selectable(page==index,role=Role.Tab,onClick={onPage(index)}).padding(vertical=10.dp),horizontalAlignment=Alignment.CenterHorizontally,verticalArrangement=Arrangement.spacedBy(5.dp)) {
                     DockIcon(index,tint)
-                    BasicText(label,modifier=Modifier.fillMaxWidth(),maxLines=1,autoSize=TextAutoSize.StepBased(8.sp,10.sp),style=TextStyle(color=tint,textAlign=androidx.compose.ui.text.style.TextAlign.Center,fontWeight=if(page==index) FontWeight.Bold else FontWeight.Medium))
+                    BasicText(label,modifier=Modifier.fillMaxWidth(),maxLines=1,autoSize=TextAutoSize.StepBased(10.sp,12.sp),style=TextStyle(color=tint,textAlign=androidx.compose.ui.text.style.TextAlign.Center,fontWeight=if(page==index) FontWeight.Bold else FontWeight.Medium))
                     Box(Modifier.size(width=14.dp,height=2.dp).background(if(page==index)Lime else Color.Transparent,RoundedCornerShape(2.dp)))
                 }
             }
         }
     }
 }
-@Composable private fun DockIcon(index:Int,color:Color) {
-    Canvas(Modifier.size(22.dp)) {
+@Composable internal fun DockIcon(index:Int,color:Color) {
+    Canvas(Modifier.size(24.dp)) {
         val s=size.width; val stroke=1.6.dp.toPx()
         fun line(x:Float,y:Float,xx:Float,yy:Float)=drawLine(color,Offset(x*s,y*s),Offset(xx*s,yy*s),stroke,StrokeCap.Round)
         when(index) {

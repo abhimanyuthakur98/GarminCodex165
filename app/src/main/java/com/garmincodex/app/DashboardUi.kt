@@ -64,6 +64,7 @@ private fun clock(t: Long?) = t?.let { Instant.ofEpochMilli(it).atZone(ZoneId.sy
     var detail by rememberSaveable { mutableStateOf<String?>(null) }
     var goalEditor by rememberSaveable { mutableStateOf<String?>(null) }
     var page by rememberSaveable { mutableIntStateOf(preferences.startPage.coerceIn(0, 5)) }; var metric by rememberSaveable { mutableIntStateOf(0) }
+    var settingsReturnPage by rememberSaveable { mutableIntStateOf(0) }
     var selected by rememberSaveable { mutableStateOf(LocalDate.now().toString()) }
     var preview by rememberSaveable { mutableStateOf(false) }
     val day = if (preview) previewDay(selected) else days.firstOrNull { it.date == selected }
@@ -77,16 +78,20 @@ private fun clock(t: Long?) = t?.let { Instant.ofEpochMilli(it).atZone(ZoneId.sy
     LaunchedEffect(message){if(message!=null){notices.showSnackbar(message,withDismissAction=true,duration=SnackbarDuration.Long);onDismissMessage()}}
     BackHandler(enabled=page!=0 || expandedToday || preview) {
         if(page==6) page=3
+        else if(page==3) page=settingsReturnPage
         else if(page!=0) {page=0;expandedToday=false}
         else if(expandedToday) expandedToday=false
         else preview=false
         scope.launch{scrolls[0].scrollTo(0)}
     }
-    Scaffold(containerColor = Ink, snackbarHost={SnackbarHost(notices)}, bottomBar = {
-        PulseDock(if(page==6)3 else page) { target -> focusManager.clearFocus();if(page==target) { if(target==0){selected=LocalDate.now().toString();expandedToday=false};scope.launch{scrolls[target].animateScrollTo(0)} } else page=target }
+    Scaffold(containerColor = Ink, topBar = {
+        Column(Modifier.statusBarsPadding().padding(horizontal=18.dp,vertical=4.dp)) {
+            PulseHeader(sync.busy,onSync,sync.lastSync,onSettings={if(page!=3 && page!=6){settingsReturnPage=page;page=3}},onBack=if(page==3 || page==6) ({page=if(page==6)3 else settingsReturnPage}) else null)
+        }
+    }, snackbarHost={SnackbarHost(notices)}, bottomBar = {
+        if(page!=3 && page!=6) PulseDock(page) { target -> focusManager.clearFocus();if(page==target) { if(target==0){selected=LocalDate.now().toString();expandedToday=false};scope.launch{scrolls[target].animateScrollTo(0)} } else page=target }
     }) { padding ->
-        Column(Modifier.padding(padding).fillMaxSize().verticalScroll(scrolls[page]).padding(horizontal = 18.dp, vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(if(page==0 && !expandedToday) 10.dp else 14.dp)) {
-            PulseHeader(sync.busy,onSync,sync.lastSync)
+        Column(Modifier.padding(padding).fillMaxSize().verticalScroll(scrolls[page]).padding(horizontal = 18.dp, vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(if(page==0 && !expandedToday) 14.dp else 16.dp)) {
             androidx.compose.animation.AnimatedVisibility(sync.busy) { Column(Modifier.fillMaxWidth().padding(vertical=4.dp),verticalArrangement=Arrangement.spacedBy(6.dp)) { LinearProgressIndicator(modifier=Modifier.fillMaxWidth(),color=Blue,trackColor=Card); Text("Refreshing your health data",fontSize=11.sp,color=Muted) } }
             if (preview) Row(Modifier.fillMaxWidth().background(Color(0xFF483F21), RoundedCornerShape(8.dp)).padding(12.dp), horizontalArrangement = Arrangement.SpaceBetween) { Text("PREVIEW • synthetic data", fontSize = 11.sp); Text("Exit", Modifier.clickable { preview = false }, color = Blue) }
             tabState.SaveableStateProvider(page) {
@@ -139,7 +144,8 @@ private fun clock(t: Long?) = t?.let { Instant.ofEpochMilli(it).atZone(ZoneId.sy
                 5 -> JournalPage(journal, habits, days, workouts, onJournal, onHabit, onDeleteJournal, onClearJournal, reminder, onReminder, journalDate, journalRequest)
                 4 -> WorkoutLibrary(workouts, checkIns, restState, maxState, onCheckIn, onImportFit, onConnect, onRemoveWorkout, workoutMessage, importingFit, miles, onMiles)
                 3 -> {
-                    Text("Settings",fontSize=30.sp,fontWeight=FontWeight.Bold)
+                    Text("Settings",fontSize=34.sp,fontWeight=FontWeight.Bold)
+                    Text("Your Pulse, your way.",color=Muted,fontSize=14.sp)
                     AppearancePicker(appearance,onAppearance)
                     JournalCard("HEALTH & DEVICES") {
                         Text("Connect your health data",fontSize=22.sp)

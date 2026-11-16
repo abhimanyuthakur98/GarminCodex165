@@ -29,7 +29,10 @@ class AppearanceUiTest {
             PulseDashboard(emptyList(),SyncState(),DashboardState(),"",null,480,190,55,{},{},{},{},{},{_,_,_->},{},{},{},appearance=style,onAppearance={style=it})
         } }
         compose.onNodeWithText("Connect").assertDoesNotExist()
-        compose.onNodeWithText("Settings").performClick()
+        compose.onNodeWithText("Settings").assertDoesNotExist()
+        compose.onNodeWithText("Trends").performClick()
+        compose.onNodeWithContentDescription("Open Settings").performClick()
+        compose.onNodeWithText("Workouts").assertDoesNotExist()
         for(choice in PulseStyle.entries) {
             compose.onNodeWithText(choice.title).performScrollTo().performClick()
             compose.runOnIdle { assertEquals(choice.primary,observed) }
@@ -40,6 +43,9 @@ class AppearanceUiTest {
         compose.onNodeWithText("‹ Settings").performScrollTo().performClick()
         compose.onNodeWithText("Neon Cyan").assertExists()
         compose.runOnIdle { assertEquals(PulseStyle.MIDNIGHT,style) }
+        compose.onNodeWithContentDescription("Back to previous screen").performClick()
+        compose.onNodeWithText("History").assertExists()
+        compose.onNodeWithContentDescription("Open Settings").assertIsDisplayed()
     }
     @Test fun unknownPreferenceFallsBackWithoutCrashing() {
         assertEquals(PulseStyle.NEON_CYAN,PulseStyle.fromId("obsolete"))

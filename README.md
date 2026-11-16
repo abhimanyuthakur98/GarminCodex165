@@ -1,3 +1,10 @@
+## 0.16.0 — daily dashboard redesign
+
+- Fixed top app bar with Settings at the upper right; four primary bottom destinations. Settings returns to the screen you opened it from.
+- New activity hero, compact recovery summary, health-card grid and clearer typography. All four palettes remain available.
+- Same package and signing certificate as 0.14.1/0.15.0; install as an update.
+- Design references: Samsung Health tracker cards (https://www.samsung.com/us/support/answer/ANS10001351/) and upper-right settings/profile navigation (https://www.samsung.com/ca/support/apps-services/manage-your-samsung-health-profile/).
+
 ## 0.15.0: personal themes and Settings
 
 - Settings replaces Connect in the bottom dock. Connections & imports is a nested screen; Back returns to Settings. Existing connection shortcuts open that screen directly.
