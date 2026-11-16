@@ -124,7 +124,15 @@ private val Lavender=Color(0xFFC0AFF5)
             Text("Goal ${goals.activeCalories} ›",color=Soft,fontSize=12.sp)
         }
         if(day?.activeCalories!=null) LinearProgressIndicator(progress={(day.activeCalories/goals.activeCalories.coerceAtLeast(1)).toFloat().coerceIn(0f,1f)*reveal},modifier=Modifier.fillMaxWidth().height(5.dp),color=Orange,trackColor=Orange.copy(alpha=.12f))
-        else Text(if(activeCaloriesAllowed(sync)) "Active goal unavailable · Fix ›" else "Allow active calories · Fix ›",fontSize=11.sp,color=Orange)
+        else {
+            day?.calories?.let { total ->
+                Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween) {
+                    Text("Total calories",color=Soft,fontSize=12.sp)
+                    Text("${total.roundToInt()} kcal",color=Soft,fontSize=12.sp)
+                }
+            }
+            Text(if(activeCaloriesAllowed(sync)) "Active goal unavailable · Fix ›" else "Allow active calories · Fix ›",fontSize=11.sp,color=Orange)
+        }
     }
     val last=remember(day?.chart){ day?.chart?.split(';')?.mapNotNull{row->val p=row.split(',');if(p.size==2)p[0].toLongOrNull()?.let{t->p[1].toIntOrNull()?.let{t to it}} else null}?.maxByOrNull{it.first} }
     SnapshotCard(onClick={onDetail("hr")}) {
