@@ -7,7 +7,8 @@ android {
     namespace = "com.garmincodex.app"
     compileSdk = 36
     defaultConfig { applicationId = "com.garmincodex.app"; minSdk = 26; targetSdk = 36; versionCode = 16; versionName = "0.14.1"; manifestPlaceholders["appLabel"] = "Pulse 165" }
-    buildTypes { getByName("debug") { applicationIdSuffix = ".testing"; manifestPlaceholders["appLabel"] = "Pulse" } }
+    signingConfigs { getByName("debug") { storeFile = rootProject.file(".signing/pulse-test.jks") } }
+    buildTypes { getByName("debug") { applicationIdSuffix = ".testing2"; manifestPlaceholders["appLabel"] = "Pulse" } }
     buildFeatures { compose = true }
     testOptions { unitTests.isIncludeAndroidResources = true }
     compileOptions { sourceCompatibility = JavaVersion.VERSION_17; targetCompatibility = JavaVersion.VERSION_17 }

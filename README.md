@@ -1,3 +1,9 @@
+## 0.14.1: import compatibility hotfix
+
+- Read requests end at the current time; hourly aggregates use one metric and one calendar day per request. Daily step totals retain full-day bounds.
+- Provider argument/unsupported-feature errors are isolated by category, with prior values retained when available. Permission, I/O and cancellation errors still abort the import transaction. Partial imports explicitly list unavailable categories; a completely rejected first import does not report success.
+- Signing now uses an explicit .signing/pulse-test.jks path, cached by CI and verified using apksigner. The earlier default-path cache was empty, so the previous testing key cannot be recovered. This hotfix uses com.garmincodex.app.testing2 to install alongside 0.14.0 without deleting its data. It is a testing identity; a durable private release key is still needed before production distribution.
+
 ## 0.14.0: step totals and refreshed interface
 
 - Step counts use local calendar-day bounds, including the end of today, so cumulative full-day source records are not prorated at the current time. No hourly cap is applied. Hourly steps are withheld when the selected source supplies intervals longer than an hour; daily totals remain visible.
