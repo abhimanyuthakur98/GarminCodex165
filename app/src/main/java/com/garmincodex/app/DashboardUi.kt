@@ -132,7 +132,7 @@ private fun clock(t: Long?) = t?.let { Instant.ofEpochMilli(it).atZone(ZoneId.sy
                     Panel {
                         Label("CONNECTION STATUS", Blue); Text(sync.message, fontSize = 14.sp)
                         Text("${sync.granted.intersect(HealthConnectSync.READ_PERMISSIONS).size}/${HealthConnectSync.READ_PERMISSIONS.size} health permissions • last import ${if (sync.lastSync > 0) clock(sync.lastSync) else "never"}", color = Muted, fontSize = 12.sp)
-                        Button(onClick = onSync, enabled = !sync.busy, modifier = Modifier.fillMaxWidth()) { Text(if (sync.busy) "Importing…" else "Import last 14 days") }
+                        Button(onClick = onSync, enabled = !sync.busy, modifier = Modifier.fillMaxWidth()) { Text(if (sync.busy) "Importing…" else "Import last 28 days") }
                         OutlinedButton(onClick = onConnect, modifier = Modifier.fillMaxWidth()) { Text("Review read permissions") }
                         Text("Background refresh: ${if (sync.background) "enabled, about hourly" else "off; refreshes when Pulse opens"}", color = Muted, fontSize = 12.sp)
                         if (!sync.background) TextButton(onClick = onBackground) { Text("Enable background refresh") }
