@@ -18,7 +18,7 @@ import java.time.format.DateTimeFormatter
 /** Comparable quantities share a zero-based scale. Missing readings never become zero. */
 @Composable internal fun MetricBars(rows:List<Triple<String,Double?,String>>,tint:Color=Lime,scale:Double?=null) {
     val ceiling=(scale ?: rows.mapNotNull{it.second?.takeIf{v->v.isFinite() && v>=0}}.maxOrNull() ?: 1.0).coerceAtLeast(1.0)
-    val reveal=chartEntrance()
+    val reveal=chartEntrance(rows)
     rows.forEachIndexed { index,(label,value,display) ->
         Column(Modifier.fillMaxWidth().semantics(mergeDescendants=true){contentDescription="$label: $display"},verticalArrangement=Arrangement.spacedBy(5.dp)) {
             Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween) { Text(label,fontSize=12.sp,modifier=Modifier.weight(1f));Text(display,fontSize=12.sp,color=if(value==null) Color.Gray else tint) }

@@ -36,11 +36,11 @@ import java.util.Locale
 import kotlin.math.*
 import kotlin.random.Random
 
-internal val Lime = Color(0xFFC6F65B)
-internal val Orange = Color(0xFFFF834D)
-private val Fog = Color(0xFFA4A9A4)
-private val Slate = Color(0xFF171C1B)
-private val Mint = Color(0xFF62E9B5)
+internal val Lime = Color(0xFF88B5FF)
+internal val Orange = Color(0xFFFFB28D)
+private val Fog = Color(0xFFA9B5CA)
+private val Slate = Color(0xFF171E2B)
+private val Mint = Color(0xFF8FD8CE)
 private fun fmt(n: Double) = String.format(Locale.US, "%.1f", n)
 private fun time(t: Long) = Instant.ofEpochMilli(t).atZone(ZoneId.systemDefault()).format(DateTimeFormatter.ofPattern("HH:mm"))
 @Composable private fun InsightPanel(content: @Composable ColumnScope.() -> Unit) { Column(Modifier.fillMaxWidth().background(Brush.linearGradient(listOf(Color(0xFF202724), Slate)), RoundedCornerShape(24.dp)).border(1.dp, Color.White.copy(alpha = .06f), RoundedCornerShape(24.dp)).padding(20.dp), verticalArrangement = Arrangement.spacedBy(14.dp), content = content) }
@@ -93,7 +93,7 @@ private fun time(t: Long) = Instant.ofEpochMilli(t).atZone(ZoneId.systemDefault(
     var edit by remember { mutableStateOf(false) }
 
     Dialog(onDismissRequest = onClose, properties = DialogProperties(usePlatformDefaultWidth = false)) {
-        Surface(Modifier.fillMaxSize(), color = Color(0xFF090D0C)) {
+        Surface(Modifier.fillMaxSize(), color = Color(0xFF0C1018)) {
             Column(Modifier.then(pageMotion(kind)).safeDrawingPadding().imePadding().verticalScroll(rememberScrollState()).padding(20.dp), verticalArrangement = Arrangement.spacedBy(20.dp)) {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) { TextButton(onClick = onClose) { Text("‹ Back") }; Caption(d?.date ?: "No imported day"); if (kind == "steps" || kind == "calories") TextButton(onClick = { edit = true }) { Text("Edit goal") } }
                 if (edit) InlineGoalForm(kind, goals, onGoals) { edit = false }
@@ -106,10 +106,11 @@ private fun time(t: Long) = Instant.ofEpochMilli(t).atZone(ZoneId.systemDefault(
                         Text("Daily goal ${if (steps) goals.steps else goals.activeCalories} · tap Edit goal to change", color = Fog, fontSize = 12.sp)
                         if (!steps && d?.activeCalories==null) CalorieRepair(d,sync,onPermissions,onSettings,onSourceApp,onSync)
                         if (!steps) CalorieBreakdown(d)
+                        if (steps) Text("No hourly step limit. Daily totals use the full calendar day to avoid prorating cumulative watch records. For source comparisons and selection, open Connect → Step source.",color=Fog,fontSize=12.sp)
                         InsightPanel {
                             Caption("Hourly ${if (steps) "steps" else if (showTotal) "total energy" else "active energy"}")
                             HourlyChart(HourBucket.decode(d?.hourly ?: ""), steps, color, showTotal)
-                            Text("Tap a bar to inspect its hour. Empty intervals mean no record, not zero. Health Connect may distribute a source interval across hourly buckets.", color = Fog, fontSize = 11.sp)
+                            Text("Tap a bar to inspect its hour. Empty intervals mean no timed record, not zero. Step intervals longer than one hour are omitted here: distributing a cumulative daily total would invent an hourly pattern. The full daily count is still shown above.", color = Fog, fontSize = 11.sp)
                         }
                     }
                     "hr" -> { InsightPanel { Caption("Heart rate • tap or scrub"); InteractiveHeart(d) }; HeartPanel(d); Text("Chart values are five-minute averages; daily low/high use original imported samples. Long gaps are not interpolated.", color = Fog, fontSize = 12.sp) }
@@ -179,8 +180,8 @@ private fun time(t: Long) = Instant.ofEpochMilli(t).atZone(ZoneId.systemDefault(
 }
 
 /** One-shot animations use Compose's duration scale, including the system's disabled animations. */
-@Composable internal fun chartEntrance(): Float {
-    val progress = remember { Animatable(0f) }
-    LaunchedEffect(Unit) { progress.animateTo(1f, tween(650, easing = FastOutSlowInEasing)) }
+@Composable internal fun chartEntrance(identity:Any=Unit): Float {
+    val progress = remember(identity) { Animatable(0f) }
+    LaunchedEffect(identity) { progress.animateTo(1f, tween(900, delayMillis=60, easing = CubicBezierEasing(.22f, .8f, .25f, 1f))) }
     return progress.value
 }

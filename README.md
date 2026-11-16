@@ -1,3 +1,10 @@
+## 0.14.0: step totals and refreshed interface
+
+- Step counts use local calendar-day bounds, including the end of today, so cumulative full-day source records are not prorated at the current time. No hourly cap is applied. Hourly steps are withheld when the selected source supplies intervals longer than an hour; daily totals remain visible.
+- Connect now compares today’s per-app step totals and lets you choose one source or Health Connect priority. Counts are never summed across providers. Pulse refreshes every two minutes while foregrounded, in addition to manual refresh and resume. Device apps must still write their latest records to Health Connect.
+- Refreshed navy, blue, violet and peach palette, softer cards, larger movement values, animated navigation selection, eased page/graph entrances and a sync progress rail. Fitness Age motion is automatic; no Play/Pause control. System reduced-motion settings are respected.
+- The testing package is now com.garmincodex.app.testing, named Pulse, to preserve the previous Preview installation despite its unavailable signing key. CI caches the new testing identity for subsequent updates; keep the old app if it contains journal data.
+
 ## 0.13.0 test build: Fitness Age v2 and device-independent imports
 
 - Fitness Age v2 uses all qualifying days from a rolling 28-day window (14 minimum, at least 4 in the last week). Today is excluded. Missing/invalid records do not become zero scores. Each day needs nonnegative steps, known sleep (no more than 30 unknown minutes) and at least eight hours of HR coverage with valid zone totals.

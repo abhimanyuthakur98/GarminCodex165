@@ -5,6 +5,7 @@ import androidx.health.connect.client.HealthConnectClient
 import androidx.health.connect.client.HealthConnectFeatures
 import androidx.health.connect.client.permission.HealthPermission
 import androidx.health.connect.client.records.*
+import androidx.health.connect.client.records.metadata.DataOrigin
 import androidx.health.connect.client.request.*
 import androidx.health.connect.client.time.TimeRangeFilter
 import androidx.work.*
@@ -19,10 +20,11 @@ import java.util.concurrent.TimeUnit
 import kotlin.reflect.KClass
 import kotlin.math.roundToInt
 
-data class SyncState(val busy: Boolean = false, val message: String = "Connect your device through Health Connect", val lastSync: Long = 0, val granted: Set<String> = emptySet(), val background: Boolean = false, val diagnostics: String = "", val sources: List<String> = emptyList())
+data class SyncState(val busy: Boolean = false, val message: String = "Connect your device through Health Connect", val lastSync: Long = 0, val granted: Set<String> = emptySet(), val background: Boolean = false, val diagnostics: String = "", val sources: List<String> = emptyList(), val stepSource:String="", val stepComparisons:Map<String,Long> = emptyMap())
 class HealthConnectSync(private val context: Context, private val dao: DailyDao) {
     private val prefs = context.getSharedPreferences("health_sync", Context.MODE_PRIVATE)
-    val status = MutableStateFlow(SyncState(lastSync = prefs.getLong("lastSync", 0), diagnostics = prefs.getString("diagnostics", "") ?: "", sources = prefs.getStringSet("sources", emptySet())!!.sorted()))
+    val status = MutableStateFlow(SyncState(lastSync = prefs.getLong("lastSync", 0), diagnostics = prefs.getString("diagnostics", "") ?: "", sources = prefs.getStringSet("sources", emptySet())!!.sorted(), stepSource=prefs.getString("stepSource", "") ?: ""))
+    fun saveStepSource(pkg:String) { prefs.edit().putString("stepSource",pkg).apply();status.value=status.value.copy(stepSource=pkg) }
     val goals = MutableStateFlow(PersonalGoals(prefs.getInt("stepGoal", 8000), prefs.getInt("activeGoal", 500), prefs.getInt("age", 0).takeIf { it in 18..100 }, prefs.getInt("wakeMinute", 420)))
     fun saveGoals(value: PersonalGoals) {
         value.validate()
@@ -83,17 +85,29 @@ class HealthConnectSync(private val context: Context, private val dao: DailyDao)
             status.value = status.value.copy(busy = true, message = "Reading Health Connect history…")
             val client = client(); val now = Instant.now(); val zone = ZoneId.systemDefault()
             val today = LocalDate.now(zone); val first = today.minusDays(28)
+            val selectedStepSource = status.value.stepSource
+            val stepOrigins = selectedStepSource.takeIf { it.isNotEmpty() }?.let { setOf(DataOrigin(it)) } ?: emptySet()
             val start = first.minusDays(1).atStartOfDay(zone).toInstant()
             suspend fun <T : Record> read(type: KClass<T>): List<T> {
                 if (HealthPermission.getReadPermission(type) !in granted) return emptyList()
                 val records = mutableListOf<T>(); var token: String? = null
                 do {
-                    val response = client.readRecords(ReadRecordsRequest(type, TimeRangeFilter.between(start, now), pageSize = 1000, pageToken = token))
+                    val response = client.readRecords(ReadRecordsRequest(type, TimeRangeFilter.between(start, if(type==StepsRecord::class) StepWindows.bounds(today,zone).second else now), pageSize = 1000, pageToken = token))
                     records += response.records; token = response.pageToken
                 } while (!token.isNullOrEmpty())
                 return records.distinctBy { it.metadata.id }
             }
-            val sourcePackages = sortedSetOf<String>()
+            val stepRecords = read(StepsRecord::class)
+            val stepPackages = stepRecords.map { it.metadata.dataOrigin.packageName }.distinct().sorted()
+            val stepComparisons = mutableMapOf<String,Long>()
+            if(HealthPermission.getReadPermission(StepsRecord::class) in granted) {
+                val bounds = StepWindows.bounds(today,zone)
+                for(pkg in stepPackages) {
+                    val value = client.aggregate(AggregateRequest(setOf(StepsRecord.COUNT_TOTAL),TimeRangeFilter.between(bounds.first,bounds.second),dataOriginFilter=setOf(DataOrigin(pkg))))[StepsRecord.COUNT_TOTAL]
+                    if(value!=null) stepComparisons[pkg]=value
+                }
+            }
+            val sourcePackages = sortedSetOf<String>().apply { addAll(stepPackages) }
             val hrRecords = read(HeartRateRecord::class)
             sourcePackages += hrRecords.map { it.metadata.dataOrigin.packageName }
             val hr = hrRecords.flatMap { record -> record.samples.map { record.metadata.dataOrigin.packageName to it } }
@@ -118,19 +132,23 @@ class HealthConnectSync(private val context: Context, private val dao: DailyDao)
             }
             val overnight = nights.mapValues { (_, night) -> DailyAnalysis.overnightHr(hr, night) }
             val hourlyMetrics = buildSet {
-                if (HealthPermission.getReadPermission(StepsRecord::class) in granted) add(StepsRecord.COUNT_TOTAL)
+                
                 if (HealthPermission.getReadPermission(ActiveCaloriesBurnedRecord::class) in granted) add(ActiveCaloriesBurnedRecord.ACTIVE_CALORIES_TOTAL)
                 if (HealthPermission.getReadPermission(TotalCaloriesBurnedRecord::class) in granted) add(TotalCaloriesBurnedRecord.ENERGY_TOTAL)
             }
             val hourly = if (hourlyMetrics.isEmpty()) emptyList() else client.aggregateGroupByDuration(
                 AggregateGroupByDurationRequest(hourlyMetrics, TimeRangeFilter.between(first.atStartOfDay(zone).toInstant(), now), Duration.ofHours(1))
             ).map { bucket -> HourBucket(bucket.startTime.toEpochMilli(), bucket.endTime.toEpochMilli(), bucket.result[StepsRecord.COUNT_TOTAL], bucket.result[ActiveCaloriesBurnedRecord.ACTIVE_CALORIES_TOTAL]?.inKilocalories, bucket.result[TotalCaloriesBurnedRecord.ENERGY_TOTAL]?.inKilocalories) }
+            val stepHourly = if(HealthPermission.getReadPermission(StepsRecord::class) !in granted) emptyMap<Long,Long?>() else client.aggregateGroupByDuration(AggregateGroupByDurationRequest(setOf(StepsRecord.COUNT_TOTAL),TimeRangeFilter.between(first.atStartOfDay(zone).toInstant(),StepWindows.bounds(today,zone).second),Duration.ofHours(1),dataOriginFilter=stepOrigins))
+                .associate { it.startTime.toEpochMilli() to it.result[StepsRecord.COUNT_TOTAL] }
             val result = (0L..28L).map { offset ->
                 val date = first.plusDays(offset); val dayStart = date.atStartOfDay(zone).toInstant(); val dayEnd = minOf(date.plusDays(1).atStartOfDay(zone).toInstant(), now)
+                val stepBounds = StepWindows.bounds(date,zone)
+                val dailySteps = if(HealthPermission.getReadPermission(StepsRecord::class) !in granted) null else client.aggregate(AggregateRequest(setOf(StepsRecord.COUNT_TOTAL),TimeRangeFilter.between(stepBounds.first,stepBounds.second),dataOriginFilter=stepOrigins))[StepsRecord.COUNT_TOTAL]
+                val coarseSteps = stepRecords.any { (selectedStepSource.isEmpty() || it.metadata.dataOrigin.packageName==selectedStepSource) && it.startTime < stepBounds.second && it.endTime > stepBounds.first && StepWindows.coarse(it.startTime,it.endTime) }
                 val points = hr.filter { it.time >= dayStart.toEpochMilli() && it.time < dayEnd.toEpochMilli() }
                 val load = DailyAnalysis.load(points, restingHr, maximumHr)
                 val metrics = buildSet {
-                    if (HealthPermission.getReadPermission(StepsRecord::class) in granted) add(StepsRecord.COUNT_TOTAL)
                     if (HealthPermission.getReadPermission(TotalCaloriesBurnedRecord::class) in granted) add(TotalCaloriesBurnedRecord.ENERGY_TOTAL)
                 }
                 val extendedMetrics = metrics.toMutableSet().apply {
@@ -150,14 +168,14 @@ class HealthConnectSync(private val context: Context, private val dao: DailyDao)
                 ConnectedDay(date.toString(), load.load, load.coveredMinutes, load.points.size,
                     load.points.minOfOrNull { it.bpm }, load.points.maxOfOrNull { it.bpm }, load.points.map { it.bpm }.average().takeIf { it.isFinite() }?.roundToInt(),
                     chart.joinToString(";") { "${it.time},${it.bpm}" }, load.zoneMinutes.joinToString(","),
-                    aggregate?.get(StepsRecord.COUNT_TOTAL), aggregate?.get(TotalCaloriesBurnedRecord.ENERGY_TOTAL)?.inKilocalories,
+                    dailySteps, aggregate?.get(TotalCaloriesBurnedRecord.ENERGY_TOTAL)?.inKilocalories,
                     night?.start, night?.end, night?.asleep, night?.deep ?: 0, night?.light ?: 0, night?.rem ?: 0, night?.awake ?: 0, night?.unknown ?: 0,
                     night?.stages?.joinToString(";") { "${it.start},${it.end},${it.stage}" } ?: "",
                     overnight[date], rest, hrv, DailyAnalysis.recovery(night, overnight[date], baseline, sleepNeed), baseline.size,
                     DailyAnalysis.consistency(wakeTimes, zone), now.toEpochMilli(), load.points.lastOrNull()?.time,
                     aggregate?.get(ActiveCaloriesBurnedRecord.ACTIVE_CALORIES_TOTAL)?.inKilocalories,
                     aggregate?.get(BasalMetabolicRateRecord.BASAL_CALORIES_TOTAL)?.inKilocalories,
-                    HourBucket.fill(dayStart.toEpochMilli(), dayEnd.toEpochMilli(), hourly).joinToString(";") { it.encode() })
+                    HourBucket.fill(dayStart.toEpochMilli(), dayEnd.toEpochMilli(), hourly).map { it.copy(steps=if(coarseSteps) null else stepHourly[it.start]) }.joinToString(";") { it.encode() })
             }
             val workouts = exerciseRecords.map { session ->
                 val begin=session.startTime.toEpochMilli(); val finish=session.endTime.toEpochMilli()
@@ -181,7 +199,7 @@ class HealthConnectSync(private val context: Context, private val dao: DailyDao)
             prefs.edit().putLong("lastSync", now.toEpochMilli()).putString("diagnostics",report).putStringSet("sources",sourcePackages).apply()
             PulseWidget.refresh(context)
             val hrCount = result.sumOf { it.hrCount }; val sleepCount = result.count { it.sleepStart != null }
-            status.value = status.value.copy(busy = false, sources = sourcePackages.toList(), diagnostics = report, lastSync = now.toEpochMilli(), message = if (hrCount == 0 && sleepCount == 0 && workouts.isEmpty() && result.none { it.steps != null })
+            status.value = status.value.copy(busy = false, stepComparisons=stepComparisons, sources = sourcePackages.toList(), diagnostics = report, lastSync = now.toEpochMilli(), message = if (hrCount == 0 && sleepCount == 0 && workouts.isEmpty() && result.none { it.steps != null })
                 "No shared records found. Enable your device app’s write permissions in Health Connect, sync your device in that app, then retry. Some apps only share new data."
                 else "Imported $hrCount HR samples, $sleepCount nights and ${workouts.size} workouts from Health Connect. ${granted.intersect(READ_PERMISSIONS).size}/${READ_PERMISSIONS.size} read permissions granted.")
             true

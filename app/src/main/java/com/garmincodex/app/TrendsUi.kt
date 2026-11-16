@@ -66,7 +66,7 @@ internal enum class TrendMetric(val title:String,val unit:String) {
     val range=known+bands.filterNotNull().flatMap{listOf(it.lower,it.upper)}
     val max=(range.maxOrNull() ?: 1.0).coerceAtLeast(1.0)*1.1
     val reveal=chartEntrance()
-    Column(Modifier.fillMaxWidth().background(Color(0xFF15211C),androidx.compose.foundation.shape.RoundedCornerShape(24.dp)).padding(16.dp),verticalArrangement=Arrangement.spacedBy(8.dp)) {
+    Column(Modifier.fillMaxWidth().background(Color(0xFF192232),androidx.compose.foundation.shape.RoundedCornerShape(24.dp)).padding(16.dp),verticalArrangement=Arrangement.spacedBy(8.dp)) {
         Text(metric.format(values[selected]),fontSize=32.sp,fontWeight=FontWeight.Bold,color=Lime)
         Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween){Text(date.format(DateTimeFormatter.ofPattern("d MMM"))+if(date==today) " · so far" else "",fontSize=12.sp,color=Color.Gray,modifier=Modifier.padding(top=16.dp));TextButton(onClick={onDay(date.toString())},enabled=byDate[date.toString()]!=null){Text("Open day ›")}}
         Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween){Text(metric.unit,fontSize=10.sp,color=Color.Gray);Text("Scale 0–${max.roundToInt()} ${metric.unit}",fontSize=10.sp,color=Color.Gray)}

@@ -19,9 +19,9 @@ import java.time.*
 import java.time.format.DateTimeFormatter
 import kotlin.math.roundToInt
 
-private val Soft = Color(0xFFA4A9A4)
+private val Soft = Color(0xFFA9B5CA)
 private val Lavender = Color(0xFFA9B6FF)
-@Composable private fun ExploreCard(title: String, content: @Composable ColumnScope.() -> Unit) { JournalCard(title, if(title.contains("TIMELINE")) Orange else Color(0xFF62E9B5), content) }
+@Composable private fun ExploreCard(title: String, content: @Composable ColumnScope.() -> Unit) { JournalCard(title, if(title.contains("TIMELINE")) Orange else Color(0xFF8FD8CE), content) }
 @Composable internal fun TimelineCard(day: ConnectedDay?, onSleep: () -> Unit) {
     val hours = remember(day) { day?.let { ActivityTimeline.hours(it) } ?: emptyList() }
     var selected by remember(day?.date) { mutableIntStateOf(0) }

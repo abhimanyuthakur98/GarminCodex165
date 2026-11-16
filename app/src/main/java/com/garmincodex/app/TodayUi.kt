@@ -22,9 +22,9 @@ import java.time.format.DateTimeFormatter
 import java.util.Locale
 import kotlin.math.roundToInt
 
-private val Soft=Color(0xFF9BAEA5)
-private val Mint=Color(0xFF72E8BE)
-private val Lavender=Color(0xFFB6B9FF)
+private val Soft=Color(0xFFA9B5CA)
+private val Mint=Color(0xFF83B4FF)
+private val Lavender=Color(0xFFC0AFF5)
 @Composable internal fun PulseHeader(busy:Boolean,onSync:()->Unit,lastSync:Long=0) {
     Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.SpaceBetween) {
         Image(painterResource(R.drawable.ic_pulse),contentDescription="Pulse 165",modifier=Modifier.size(42.dp).clip(RoundedCornerShape(12.dp)))
@@ -45,7 +45,7 @@ private val Lavender=Color(0xFFB6B9FF)
     var calendar by remember{mutableStateOf(false)}
     Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically) {
         Column(Modifier.weight(1f).clickable(role=Role.Button,onClickLabel="Show date navigation"){calendar=!calendar}.padding(vertical=6.dp)) {
-            Text(if(d==LocalDate.now()) "Today" else d.format(DateTimeFormatter.ofPattern("EEEE")),fontSize=27.sp,fontWeight=FontWeight.Bold)
+            Text(if(d==LocalDate.now()) "Today" else d.format(DateTimeFormatter.ofPattern("EEEE")),fontSize=34.sp,fontWeight=FontWeight.Bold)
             Text(d.format(DateTimeFormatter.ofPattern("d MMM yyyy"))+"  ▾",fontSize=12.sp,color=Soft)
         }
         JournalAction(false,onJournal)
@@ -57,7 +57,7 @@ private val Lavender=Color(0xFFB6B9FF)
     }
 }
 @Composable private fun SnapshotCard(modifier:Modifier=Modifier,onClick:()->Unit,content:@Composable ColumnScope.()->Unit) {
-    Column(modifier.fillMaxWidth().background(Color(0xFF15211C),RoundedCornerShape(22.dp)).clickable(role=Role.Button,onClick=onClick).padding(16.dp),verticalArrangement=Arrangement.spacedBy(8.dp),content=content)
+    Column(modifier.fillMaxWidth().background(Color(0xFF192232),RoundedCornerShape(28.dp)).clickable(role=Role.Button,onClick=onClick).padding(16.dp),verticalArrangement=Arrangement.spacedBy(8.dp),content=content)
 }
 @Composable internal fun TodaySnapshot(day:ConnectedDay?,sync:SyncState,goals:PersonalGoals,sleepNeed:Int,onDetail:(String)->Unit,onConnection:()->Unit) {
     val needsAttention=listOf("Sync interrupted", "Health access changed", "Health Connect is unavailable", "Allow Pulse", "Could not revoke").any{sync.message.startsWith(it)}
@@ -70,10 +70,10 @@ private val Lavender=Color(0xFFB6B9FF)
         }
         return
     }
-    val reveal=chartEntrance()
+    val reveal=chartEntrance(day?.updatedAt ?: 0L)
     val recovery=day?.recovery
     val tint=when{recovery==null->Soft;recovery<34->Color(0xFFFF8791);recovery<67->Color(0xFFF4CA58);else->Mint}
-    Row(Modifier.fillMaxWidth().background(Brush.linearGradient(listOf(Color(0xFF203A2D),Color(0xFF13211B))),RoundedCornerShape(26.dp)).clickable(role=Role.Button,onClickLabel="Recovery details"){onDetail("recovery")}.padding(18.dp),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(18.dp)) {
+    Row(Modifier.fillMaxWidth().background(Brush.linearGradient(listOf(Color(0xFF223A5B),Color(0xFF172438))),RoundedCornerShape(26.dp)).clickable(role=Role.Button,onClickLabel="Recovery details"){onDetail("recovery")}.padding(18.dp),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(18.dp)) {
         Box(Modifier.size(88.dp),contentAlignment=Alignment.Center) {
             Canvas(Modifier.fillMaxSize().padding(4.dp)){drawArc(Color.White.copy(alpha=.09f),-90f,360f,false,style=Stroke(5.dp.toPx()));drawArc(tint,-90f,(recovery ?: 0)*3.6f*reveal,false,style=Stroke(5.dp.toPx(),cap=StrokeCap.Round))}
             Text(recovery?.let{"$it%"} ?: "—",fontSize=27.sp,fontWeight=FontWeight.Bold,color=tint)
@@ -99,8 +99,8 @@ private val Lavender=Color(0xFFB6B9FF)
             Text("Of 21 · details ›",fontSize=11.sp,color=Soft)
         }
     }
-    Column(Modifier.fillMaxWidth().background(Color(0xFF15211C),RoundedCornerShape(22.dp)).padding(16.dp),verticalArrangement=Arrangement.spacedBy(14.dp)) {
-        Text("Your movement",fontWeight=FontWeight.SemiBold,fontSize=16.sp)
+    Column(Modifier.fillMaxWidth().background(Color(0xFF192232),RoundedCornerShape(22.dp)).padding(16.dp),verticalArrangement=Arrangement.spacedBy(14.dp)) {
+        Text("Your movement",fontWeight=FontWeight.SemiBold,fontSize=20.sp)
         listOf(Triple("Steps",day?.steps?.toDouble(),goals.steps),Triple("Active calories",day?.activeCalories,goals.activeCalories)).forEachIndexed{index,(label,value,goal)->
             val color=if(index==0)Lime else Orange
             Column(Modifier.fillMaxWidth().testTag(if(index==0)"goal-Steps" else "goal-Calories").clickable(role=Role.Button,onClickLabel="$label details and goal"){onDetail(if(index==0)"steps" else "calories")},verticalArrangement=Arrangement.spacedBy(6.dp)) {
@@ -108,7 +108,7 @@ private val Lavender=Color(0xFFB6B9FF)
                     Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween) { Text(if(day?.calories!=null) "Total calories" else label,fontSize=12.sp,color=Soft);Text(day?.calories?.let{"${it.roundToInt()} kcal"} ?: "No record",fontSize=13.sp,color=color) }
                     Text(if(activeCaloriesAllowed(sync)) "Active goal unavailable · Fix ›" else "Allow active calories · Fix ›",fontSize=11.sp,color=Orange)
                 } else {
-                    Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween){Text(label,fontSize=12.sp,color=Soft);Text(value?.let{String.format(Locale.getDefault(),"%,d",it.roundToInt())+" / $goal"} ?: "No record",fontSize=13.sp,color=color)}
+                    Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween){Text(label,fontSize=12.sp,color=Soft);Text(value?.let{String.format(Locale.getDefault(),"%,d",it.roundToInt())+" / $goal"} ?: "No record",fontSize=18.sp,fontWeight=FontWeight.SemiBold,color=color)}
                     LinearProgressIndicator(progress={((value ?: 0.0)/goal.coerceAtLeast(1)).coerceIn(0.0,1.0).toFloat()*reveal},modifier=Modifier.fillMaxWidth(),color=color,trackColor=Color.White.copy(alpha=.07f))
                 }
             }

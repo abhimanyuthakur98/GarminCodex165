@@ -25,7 +25,7 @@ class FitnessAgeUiTest {
   System.setProperty("roborazzi.test.record","true")
   val days=(0L..27L).map{previewDay(LocalDate.now().minusDays(it).toString()).copy(recovery=if(it==0L)20 else 80)}
   compose.setContent{PulseTheme{Surface{Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(18.dp),verticalArrangement=Arrangement.spacedBy(10.dp)){FitnessAgePage(days,PersonalGoals(age=30)) {}}}}}
-  compose.onNodeWithText("Pause motion").performScrollTo().performClick();compose.onNodeWithText("Play motion").assertExists()
+  compose.onNodeWithText("Pause motion").assertDoesNotExist();compose.onNodeWithText("Play motion").assertDoesNotExist()
   compose.onRoot().captureRoboImage("build/screenshots/fitness-overview.png")
   compose.onNodeWithText("Focus: Sleep duration ›").performScrollTo().performClick()
   compose.onNodeWithText("Protect your sleep window").assertIsDisplayed()

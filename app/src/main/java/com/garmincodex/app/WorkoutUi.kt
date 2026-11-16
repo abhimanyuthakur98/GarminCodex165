@@ -56,7 +56,7 @@ private fun decimal(value:Double)=String.format(java.util.Locale.US,"%.1f",value
     var soreness by remember(w.id,checkIn){mutableIntStateOf(checkIn?.soreness ?: 0)}
     val saved = checkIn?.effort == effort && checkIn.soreness == soreness
     var deleting by remember {mutableStateOf(false)}
-    Dialog(onDismissRequest=onClose,properties=DialogProperties(usePlatformDefaultWidth=false)) { Surface(Modifier.fillMaxSize(),color=Color(0xFF090D0C)) { Column(Modifier.safeDrawingPadding().verticalScroll(rememberScrollState()).padding(20.dp),verticalArrangement=Arrangement.spacedBy(16.dp)) {
+    Dialog(onDismissRequest=onClose,properties=DialogProperties(usePlatformDefaultWidth=false)) { Surface(Modifier.fillMaxSize(),color=Color(0xFF0C1018)) { Column(Modifier.safeDrawingPadding().verticalScroll(rememberScrollState()).padding(20.dp),verticalArrangement=Arrangement.spacedBy(16.dp)) {
         TextButton(onClick=onClose){Text("‹ Workouts")}
         Text(w.title,fontSize=32.sp,fontWeight=FontWeight.Bold)
         Text(workoutTime(w.start),color=Lime)

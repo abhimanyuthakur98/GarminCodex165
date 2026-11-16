@@ -19,7 +19,7 @@ import java.time.*
 import java.time.format.DateTimeFormatter
 import kotlin.math.roundToInt
 
-@Composable private fun CoachCard(title: String, content: @Composable ColumnScope.() -> Unit) { JournalCard(title, if(title.contains("SLEEP")) Color(0xFFA9B6FF) else if(title.contains("WEEK")) Color(0xFF62E9B5) else Lime, content) }
+@Composable private fun CoachCard(title: String, content: @Composable ColumnScope.() -> Unit) { JournalCard(title, if(title.contains("SLEEP")) Color(0xFFA9B6FF) else if(title.contains("WEEK")) Color(0xFF8FD8CE) else Lime, content) }
 @Composable internal fun MorningBriefing(day: ConnectedDay?, days: List<ConnectedDay>, date: String, need: Int) {
     CoachCard(if (date == LocalDate.now().toString()) "YOUR MORNING BRIEFING" else "DAY BRIEFING") {
         Text("Your day, explained.", fontSize = 24.sp, fontWeight = FontWeight.Bold)

@@ -15,6 +15,11 @@ import androidx.health.connect.client.HealthConnectClient
 import androidx.health.connect.client.PermissionController
 import androidx.health.connect.client.permission.HealthPermission
 import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
+import androidx.lifecycle.Lifecycle
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.delay
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import org.koin.android.ext.android.get
 
@@ -66,6 +71,7 @@ class MainActivity : ComponentActivity() {
         vm = ViewModelProvider(this, object : ViewModelProvider.Factory {
             @Suppress("UNCHECKED_CAST") override fun <T : androidx.lifecycle.ViewModel> create(modelClass: Class<T>): T = get<DashboardViewModel>() as T
         })[DashboardViewModel::class.java]
+        lifecycleScope.launch { repeatOnLifecycle(Lifecycle.State.RESUMED) { while(true) { delay(120000); vm.refresh() } } }
         setContent {
             val dashboardPreferences by vm.sync.dashboardPreferences.collectAsStateWithLifecycle()
             val workouts by vm.workouts.collectAsStateWithLifecycle()
@@ -90,7 +96,7 @@ class MainActivity : ComponentActivity() {
                     onProfile = { n, m, r -> vm.sync.saveProfile(n, m, r); vm.refresh() }, onClear = { vm.clearImported() },
                     onLive = { stopService(Intent(this, TrackingService::class.java)); blePermissions.launch(if (Build.VERSION.SDK_INT >= 31) arrayOf(Manifest.permission.BLUETOOTH_SCAN, Manifest.permission.BLUETOOTH_CONNECT) else arrayOf(Manifest.permission.ACCESS_FINE_LOCATION)) },
                     onStop = { vm.stop(); stopService(Intent(this, TrackingService::class.java)) },
-                    goals = goals, onGoals = { vm.sync.saveGoals(it) }, preferences = if(intent.getBooleanExtra("openJournal",false)) dashboardPreferences.copy(startPage=5) else if(intent.getBooleanExtra("openToday",false)) dashboardPreferences.copy(startPage=0) else dashboardPreferences, onPreferences = { vm.sync.saveDashboard(it) }, workouts = workouts, checkIns = checkIns, onCheckIn = vm::saveCheckIn, onImportFit = { fitPicker.launch(arrayOf("*/*")) }, onRemoveWorkout = vm::removeWorkout, workoutMessage = workoutMessage, importingFit = importingFit, journal = journal, habits = habits, onJournal = vm::saveJournal, onHabit = vm::saveHabit, onDeleteJournal = vm::deleteJournal, onClearJournal = vm::clearJournal, reminder = reminderState.value, onReminder = ::setJournalReminder, miles = miles, onMiles = vm.sync::saveDistanceMiles, onDismissMessage = {uiMessage.value=null})
+                    goals = goals, onGoals = { vm.sync.saveGoals(it) }, preferences = if(intent.getBooleanExtra("openJournal",false)) dashboardPreferences.copy(startPage=5) else if(intent.getBooleanExtra("openToday",false)) dashboardPreferences.copy(startPage=0) else dashboardPreferences, onPreferences = { vm.sync.saveDashboard(it) }, workouts = workouts, checkIns = checkIns, onCheckIn = vm::saveCheckIn, onImportFit = { fitPicker.launch(arrayOf("*/*")) }, onRemoveWorkout = vm::removeWorkout, workoutMessage = workoutMessage, importingFit = importingFit, journal = journal, habits = habits, onJournal = vm::saveJournal, onHabit = vm::saveHabit, onDeleteJournal = vm::deleteJournal, onClearJournal = vm::clearJournal, reminder = reminderState.value, onReminder = ::setJournalReminder, miles = miles, onMiles = vm.sync::saveDistanceMiles, onDismissMessage = {uiMessage.value=null}, onStepSource = { vm.sync.saveStepSource(it); vm.refresh() })
                 if (choosing.value) WatchDialog(watches, connection, { choosing.value = false }, { vm.scan() }) {
                     vm.select(it); choosing.value = false
                     try { ContextCompat.startForegroundService(this, Intent(this, TrackingService::class.java)) }

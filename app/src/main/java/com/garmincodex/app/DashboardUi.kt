@@ -26,24 +26,24 @@ import java.time.format.DateTimeFormatter
 import java.util.Locale
 import kotlin.math.*
 
-private val Ink = Color(0xFF090D0C)
-private val Card = Color(0xFF171C1B)
-private val Muted = Color(0xFF9BA4AB)
-private val Blue = Color(0xFFC6F65B)
-private val Green = Color(0xFF62E9B5)
+private val Ink = Color(0xFF0C1018)
+private val Card = Color(0xFF171E2B)
+private val Muted = Color(0xFFA9B5CA)
+private val Blue = Color(0xFF88B5FF)
+private val Green = Color(0xFF8FD8CE)
 private val Purple = Color(0xFFA9B6FF)
-private val Line = Color(0xFF30383F)
+private val Line = Color(0xFF303D53)
 private fun recoveryColor(score: Int?) = when { score == null -> Muted; score < 34 -> Color(0xFFFF6675); score < 67 -> Color(0xFFF4CA58); else -> Green }
 private fun number(v: Double) = String.format(Locale.US, "%.1f", v)
 private fun duration(m: Int?) = m?.let { "${it / 60}h ${it % 60}m" } ?: "—"
 private fun clock(t: Long?) = t?.let { Instant.ofEpochMilli(it).atZone(ZoneId.systemDefault()).format(DateTimeFormatter.ofPattern("HH:mm")) } ?: "—"
-@Composable fun PulseTheme(content: @Composable () -> Unit) { MaterialTheme(colorScheme = darkColorScheme(primary = Blue, onPrimary = Ink, secondary = Blue, secondaryContainer = Color(0xFF2E3B20), onSecondaryContainer = Blue, background = Ink, surface = Card, onSurface = Color.White), content = content) }
+@Composable fun PulseTheme(content: @Composable () -> Unit) { MaterialTheme(colorScheme = darkColorScheme(primary = Blue, onPrimary = Ink, secondary = Blue, secondaryContainer = Color(0xFF253956), onSecondaryContainer = Blue, background = Ink, surface = Card, onSurface = Color.White), content = content) }
 @Composable private fun Label(text: String, color: Color = Muted) { Text(text, fontSize = 10.sp, fontWeight = FontWeight.SemiBold, letterSpacing = 1.5.sp, color = color) }
-@Composable private fun Panel(content: @Composable ColumnScope.() -> Unit) { Column(Modifier.fillMaxWidth().background(Brush.linearGradient(listOf(Color(0xFF212825), Card)), RoundedCornerShape(24.dp)).border(1.dp, Color.White.copy(alpha = .06f), RoundedCornerShape(24.dp)).padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp), content = content) }
+@Composable private fun Panel(content: @Composable ColumnScope.() -> Unit) { Column(Modifier.fillMaxWidth().background(Brush.linearGradient(listOf(Color(0xFF1B2535), Card)), RoundedCornerShape(24.dp)).border(1.dp, Color.White.copy(alpha = .06f), RoundedCornerShape(24.dp)).padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp), content = content) }
 
 @Composable fun PulseDashboard(days: List<ConnectedDay>, sync: SyncState, live: DashboardState, connection: String, message: String?, sleepNeed: Int, maximumHr: Int, restingHr: Int,
     onConnect: () -> Unit, onSync: () -> Unit, onHealthSettings: () -> Unit, onSourceApp: () -> Unit, onBackground: () -> Unit,
-    onProfile: (Int, Int, Int) -> Unit, onClear: () -> Unit, onLive: () -> Unit, onStop: () -> Unit, goals: PersonalGoals = PersonalGoals(), onGoals: (PersonalGoals) -> Unit = {}, preferences: DashboardPreferences = DashboardPreferences(), onPreferences: (DashboardPreferences) -> Unit = {}, workouts: List<Workout> = emptyList(), checkIns: List<WorkoutCheckIn> = emptyList(), onCheckIn: (WorkoutCheckIn) -> Unit = {}, onImportFit: () -> Unit = {}, onRemoveWorkout: (String) -> Unit = {}, workoutMessage: String? = null, importingFit: Boolean = false, journal: List<JournalEntry> = emptyList(), habits: List<HabitTag> = emptyList(), onJournal: (JournalEntry) -> Unit = {}, onHabit: (HabitTag) -> Unit = {}, onDeleteJournal: (String) -> Unit = {}, onClearJournal: () -> Unit = {}, reminder: JournalReminder = JournalReminder(), onReminder: (JournalReminder) -> Unit = {}, miles: Boolean = false, onMiles: (Boolean) -> Unit = {}, onDismissMessage: () -> Unit = {}) {
+    onProfile: (Int, Int, Int) -> Unit, onClear: () -> Unit, onLive: () -> Unit, onStop: () -> Unit, goals: PersonalGoals = PersonalGoals(), onGoals: (PersonalGoals) -> Unit = {}, preferences: DashboardPreferences = DashboardPreferences(), onPreferences: (DashboardPreferences) -> Unit = {}, workouts: List<Workout> = emptyList(), checkIns: List<WorkoutCheckIn> = emptyList(), onCheckIn: (WorkoutCheckIn) -> Unit = {}, onImportFit: () -> Unit = {}, onRemoveWorkout: (String) -> Unit = {}, workoutMessage: String? = null, importingFit: Boolean = false, journal: List<JournalEntry> = emptyList(), habits: List<HabitTag> = emptyList(), onJournal: (JournalEntry) -> Unit = {}, onHabit: (HabitTag) -> Unit = {}, onDeleteJournal: (String) -> Unit = {}, onClearJournal: () -> Unit = {}, reminder: JournalReminder = JournalReminder(), onReminder: (JournalReminder) -> Unit = {}, miles: Boolean = false, onMiles: (Boolean) -> Unit = {}, onDismissMessage: () -> Unit = {}, onStepSource:(String)->Unit = {}) {
     var expandedToday by rememberSaveable { mutableStateOf(false) }
     var journalRequest by rememberSaveable { mutableIntStateOf(0) }
     var journalDate by rememberSaveable { mutableStateOf(LocalDate.now().toString()) }
@@ -72,6 +72,7 @@ private fun clock(t: Long?) = t?.let { Instant.ofEpochMilli(it).atZone(ZoneId.sy
     }) { padding ->
         Column(Modifier.padding(padding).fillMaxSize().verticalScroll(scrolls[page]).padding(horizontal = 18.dp, vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(if(page==0 && !expandedToday) 10.dp else 14.dp)) {
             PulseHeader(sync.busy,onSync,sync.lastSync)
+            androidx.compose.animation.AnimatedVisibility(sync.busy) { Column(Modifier.fillMaxWidth().padding(vertical=4.dp),verticalArrangement=Arrangement.spacedBy(6.dp)) { LinearProgressIndicator(modifier=Modifier.fillMaxWidth(),color=Blue,trackColor=Card); Text("Refreshing your health data",fontSize=11.sp,color=Muted) } }
             if (preview) Row(Modifier.fillMaxWidth().background(Color(0xFF483F21), RoundedCornerShape(8.dp)).padding(12.dp), horizontalArrangement = Arrangement.SpaceBetween) { Text("PREVIEW • synthetic data", fontSize = 11.sp); Text("Exit", Modifier.clickable { preview = false }, color = Blue) }
             tabState.SaveableStateProvider(page) {
             Column(pageMotion(page),verticalArrangement=Arrangement.spacedBy(if(page==0 && !expandedToday) 10.dp else 14.dp)) {
@@ -91,7 +92,7 @@ private fun clock(t: Long?) = t?.let { Instant.ofEpochMilli(it).atZone(ZoneId.sy
                         RingMetric("RECOVERY", day?.recovery?.let { "$it%" } ?: "—", (day?.recovery ?: 0) / 100f, recoveryColor(day?.recovery), Modifier.weight(1f)) { detail = "recovery" }
                         RingMetric("STRAIN", day?.takeIf { it.coveredMinutes > 0 }?.let { number(Scores.strain(it.load)) } ?: "—", (Scores.strain(day?.load ?: 0.0) / 21).toFloat(), Orange, Modifier.weight(1f)) { detail = "strain" }
                     }
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) { Label(if (preview) "DEMO DATA" else "GARMIN CONNECT"); Text(if (sync.busy) "Importing…" else if (sync.lastSync > 0) "Imported ${clock(sync.lastSync)}" else "Not connected", color = Muted, fontSize = 11.sp) }
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) { Label(if (preview) "DEMO DATA" else "HEALTH CONNECT"); Text(if (sync.busy) "Importing…" else if (sync.lastSync > 0) "Imported ${clock(sync.lastSync)}" else "Not connected", color = Muted, fontSize = 11.sp) }
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) { listOf("Overview", "Sleep", "Strain").forEachIndexed { i, title -> FilterChip(selected = metric == i, onClick = { metric = i }, label = { Text(title) }) } }
                     when (metric) {
                         0 -> {
@@ -119,7 +120,7 @@ private fun clock(t: Long?) = t?.let { Instant.ofEpochMilli(it).atZone(ZoneId.sy
                 }
                 }
                 1 -> TrendsExplorer(days) { selected=it;expandedToday=false;page=0 }
-                2 -> FitnessAgePage(if (preview) (1L..10L).map { previewDay(LocalDate.now().minusDays(it).toString()) } else days, goals) { goalEditor = "age" }
+                2 -> FitnessAgePage(if (preview) (1L..28L).map { previewDay(LocalDate.now().minusDays(it).toString()) } else days, goals) { goalEditor = "age" }
                 5 -> JournalPage(journal, habits, days, workouts, onJournal, onHabit, onDeleteJournal, onClearJournal, reminder, onReminder, journalDate, journalRequest)
                 4 -> WorkoutLibrary(workouts, checkIns, restState, maxState, onCheckIn, onImportFit, onConnect, onRemoveWorkout, workoutMessage, importingFit, miles, onMiles)
                 3 -> {
@@ -127,6 +128,7 @@ private fun clock(t: Long?) = t?.let { Instant.ofEpochMilli(it).atZone(ZoneId.sy
                     DashboardEditor(preferences, onPreferences)
                     DataStatusCard(day, sync, onConnect, onHealthSettings, days)
                     SetupCard(onConnect, onSourceApp, onHealthSettings)
+                    StepSourceCard(sync,onStepSource)
                     Panel {
                         Label("CONNECTION STATUS", Blue); Text(sync.message, fontSize = 14.sp)
                         Text("${sync.granted.intersect(HealthConnectSync.READ_PERMISSIONS).size}/${HealthConnectSync.READ_PERMISSIONS.size} health permissions • last import ${if (sync.lastSync > 0) clock(sync.lastSync) else "never"}", color = Muted, fontSize = 12.sp)
