@@ -21,8 +21,17 @@ import kotlin.math.roundToInt
 
 private val Soft = Color(0xFFA9B5CA)
 private val Lavender = Color(0xFFA9B6FF)
-@Composable private fun ExploreCard(title: String, content: @Composable ColumnScope.() -> Unit) { JournalCard(title, if(title.contains("TIMELINE")) Orange else Color(0xFF8FD8CE), content) }
+@Composable private fun ExploreCard(title: String, content: @Composable ColumnScope.() -> Unit) {
+    val palette = LocalPulseStyle.current
+    val Orange = palette.warm
+ JournalCard(title, if(title.contains("TIMELINE")) Orange else palette.secondary, content) }
 @Composable internal fun TimelineCard(day: ConnectedDay?, onSleep: () -> Unit) {
+    val palette = LocalPulseStyle.current
+    val Lime = palette.primary
+    val Orange = palette.warm
+    val Soft = palette.muted
+    val Lavender = palette.violet
+
     val hours = remember(day) { day?.let { ActivityTimeline.hours(it) } ?: emptyList() }
     var selected by remember(day?.date) { mutableIntStateOf(0) }
     val reveal = chartEntrance()
@@ -56,6 +65,11 @@ private val Lavender = Color(0xFFA9B6FF)
     }
 }
 @Composable internal fun BaselineCard(days: List<ConnectedDay>) {
+    val palette = LocalPulseStyle.current
+    val Lime = palette.primary
+    val Soft = palette.muted
+    val Lavender = palette.violet
+
     val today=LocalDate.now()
     val metrics: List<Triple<String,String,(ConnectedDay)->Double?>> = listOf(Triple("Sleep duration","min",{it.asleep?.toDouble()}),Triple("Overnight heart rate","bpm",{it.overnightHr}))
     val reveal=chartEntrance()
@@ -88,6 +102,9 @@ private val Lavender = Color(0xFFA9B6FF)
     }
 }
 @Composable internal fun DashboardEditor(preferences: DashboardPreferences, onChange: (DashboardPreferences)->Unit) {
+    val palette = LocalPulseStyle.current
+    val Soft = palette.muted
+
     var expanded by remember { mutableStateOf(false) }
     val prefs=preferences.normalized()
     ExploreCard("MAKE PULSE YOURS") {
@@ -103,7 +120,7 @@ private val Lavender = Color(0xFFA9B6FF)
                 }
             }
             Text("Open Pulse on",fontWeight=FontWeight.Bold)
-            listOf("Today","Trends","Fitness Age","Connect","Workouts","Journal").forEachIndexed { index,name->
+            listOf("Today","Trends","Fitness Age","Settings","Workouts","Journal").forEachIndexed { index,name->
                 Row(verticalAlignment=androidx.compose.ui.Alignment.CenterVertically) { RadioButton(prefs.startPage==index,{onChange(prefs.copy(startPage=index))}); Text(name) }
             }
             Text("Changes save immediately. Start screen applies on a fresh launch; your current tab stays open.",color=Soft,fontSize=11.sp)

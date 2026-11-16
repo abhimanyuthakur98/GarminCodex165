@@ -37,13 +37,27 @@ private fun recoveryColor(score: Int?) = when { score == null -> Muted; score < 
 private fun number(v: Double) = String.format(Locale.US, "%.1f", v)
 private fun duration(m: Int?) = m?.let { "${it / 60}h ${it % 60}m" } ?: "—"
 private fun clock(t: Long?) = t?.let { Instant.ofEpochMilli(it).atZone(ZoneId.systemDefault()).format(DateTimeFormatter.ofPattern("HH:mm")) } ?: "—"
-@Composable fun PulseTheme(content: @Composable () -> Unit) { MaterialTheme(colorScheme = darkColorScheme(primary = Blue, onPrimary = Ink, secondary = Blue, secondaryContainer = Color(0xFF253956), onSecondaryContainer = Blue, background = Ink, surface = Card, onSurface = Color.White), content = content) }
+@Composable fun PulseTheme(style:PulseStyle=PulseStyle.NEON_CYAN,content: @Composable () -> Unit) { CompositionLocalProvider(LocalPulseStyle provides style) { MaterialTheme(colorScheme = darkColorScheme(primary=style.primary,onPrimary=style.background,secondary=style.secondary,tertiary=style.violet,secondaryContainer=style.primary.copy(alpha=.15f),onSecondaryContainer=style.primary,background=style.background,surface=style.surface,onSurface=Color.White,onSurfaceVariant=style.muted),content=content) } }
 @Composable private fun Label(text: String, color: Color = Muted) { Text(text, fontSize = 10.sp, fontWeight = FontWeight.SemiBold, letterSpacing = 1.5.sp, color = color) }
-@Composable private fun Panel(content: @Composable ColumnScope.() -> Unit) { Column(Modifier.fillMaxWidth().background(Brush.linearGradient(listOf(Color(0xFF1B2535), Card)), RoundedCornerShape(24.dp)).border(1.dp, Color.White.copy(alpha = .06f), RoundedCornerShape(24.dp)).padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp), content = content) }
+@Composable private fun Panel(content: @Composable ColumnScope.() -> Unit) {
+    val palette = LocalPulseStyle.current
+    val Card = palette.surface
+ Column(Modifier.fillMaxWidth().background(Brush.linearGradient(listOf(palette.surface, Card)), RoundedCornerShape(24.dp)).border(1.dp, Color.White.copy(alpha = .06f), RoundedCornerShape(24.dp)).padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp), content = content) }
 
 @Composable fun PulseDashboard(days: List<ConnectedDay>, sync: SyncState, live: DashboardState, connection: String, message: String?, sleepNeed: Int, maximumHr: Int, restingHr: Int,
     onConnect: () -> Unit, onSync: () -> Unit, onHealthSettings: () -> Unit, onSourceApp: () -> Unit, onBackground: () -> Unit,
-    onProfile: (Int, Int, Int) -> Unit, onClear: () -> Unit, onLive: () -> Unit, onStop: () -> Unit, goals: PersonalGoals = PersonalGoals(), onGoals: (PersonalGoals) -> Unit = {}, preferences: DashboardPreferences = DashboardPreferences(), onPreferences: (DashboardPreferences) -> Unit = {}, workouts: List<Workout> = emptyList(), checkIns: List<WorkoutCheckIn> = emptyList(), onCheckIn: (WorkoutCheckIn) -> Unit = {}, onImportFit: () -> Unit = {}, onRemoveWorkout: (String) -> Unit = {}, workoutMessage: String? = null, importingFit: Boolean = false, journal: List<JournalEntry> = emptyList(), habits: List<HabitTag> = emptyList(), onJournal: (JournalEntry) -> Unit = {}, onHabit: (HabitTag) -> Unit = {}, onDeleteJournal: (String) -> Unit = {}, onClearJournal: () -> Unit = {}, reminder: JournalReminder = JournalReminder(), onReminder: (JournalReminder) -> Unit = {}, miles: Boolean = false, onMiles: (Boolean) -> Unit = {}, onDismissMessage: () -> Unit = {}, onStepSource:(String)->Unit = {}) {
+    onProfile: (Int, Int, Int) -> Unit, onClear: () -> Unit, onLive: () -> Unit, onStop: () -> Unit, goals: PersonalGoals = PersonalGoals(), onGoals: (PersonalGoals) -> Unit = {}, preferences: DashboardPreferences = DashboardPreferences(), onPreferences: (DashboardPreferences) -> Unit = {}, workouts: List<Workout> = emptyList(), checkIns: List<WorkoutCheckIn> = emptyList(), onCheckIn: (WorkoutCheckIn) -> Unit = {}, onImportFit: () -> Unit = {}, onRemoveWorkout: (String) -> Unit = {}, workoutMessage: String? = null, importingFit: Boolean = false, journal: List<JournalEntry> = emptyList(), habits: List<HabitTag> = emptyList(), onJournal: (JournalEntry) -> Unit = {}, onHabit: (HabitTag) -> Unit = {}, onDeleteJournal: (String) -> Unit = {}, onClearJournal: () -> Unit = {}, reminder: JournalReminder = JournalReminder(), onReminder: (JournalReminder) -> Unit = {}, miles: Boolean = false, onMiles: (Boolean) -> Unit = {}, onDismissMessage: () -> Unit = {}, onStepSource:(String)->Unit = {}, appearance:PulseStyle=PulseStyle.NEON_CYAN, onAppearance:(PulseStyle)->Unit = {}) {
+    val palette = LocalPulseStyle.current
+    val Lime = palette.primary
+    val Orange = palette.warm
+    val Ink = palette.background
+    val Card = palette.surface
+    val Muted = palette.muted
+    val Blue = palette.primary
+    val Green = palette.secondary
+    val Purple = palette.violet
+    val Line = palette.line
+
     var expandedToday by rememberSaveable { mutableStateOf(false) }
     var journalRequest by rememberSaveable { mutableIntStateOf(0) }
     var journalDate by rememberSaveable { mutableStateOf(LocalDate.now().toString()) }
@@ -56,19 +70,20 @@ private fun clock(t: Long?) = t?.let { Instant.ofEpochMilli(it).atZone(ZoneId.sy
     var profile by remember { mutableStateOf(false) }; var clear by remember { mutableStateOf(false) }
     var needState by remember(sleepNeed) { mutableIntStateOf(sleepNeed) }; var maxState by remember(maximumHr) { mutableIntStateOf(maximumHr) }; var restState by remember(restingHr) { mutableIntStateOf(restingHr) }
     val tabState=rememberSaveableStateHolder()
-    val scrolls=listOf(rememberScrollState(),rememberScrollState(),rememberScrollState(),rememberScrollState(),rememberScrollState(),rememberScrollState())
+    val scrolls=listOf(rememberScrollState(),rememberScrollState(),rememberScrollState(),rememberScrollState(),rememberScrollState(),rememberScrollState(),rememberScrollState())
     val scope=rememberCoroutineScope()
     val focusManager=androidx.compose.ui.platform.LocalFocusManager.current
     val notices=remember{SnackbarHostState()}
     LaunchedEffect(message){if(message!=null){notices.showSnackbar(message,withDismissAction=true,duration=SnackbarDuration.Long);onDismissMessage()}}
     BackHandler(enabled=page!=0 || expandedToday || preview) {
-        if(page!=0) {page=0;expandedToday=false}
+        if(page==6) page=3
+        else if(page!=0) {page=0;expandedToday=false}
         else if(expandedToday) expandedToday=false
         else preview=false
         scope.launch{scrolls[0].scrollTo(0)}
     }
     Scaffold(containerColor = Ink, snackbarHost={SnackbarHost(notices)}, bottomBar = {
-        PulseDock(page) { target -> focusManager.clearFocus();if(page==target) { if(target==0){selected=LocalDate.now().toString();expandedToday=false};scope.launch{scrolls[target].animateScrollTo(0)} } else page=target }
+        PulseDock(if(page==6)3 else page) { target -> focusManager.clearFocus();if(page==target) { if(target==0){selected=LocalDate.now().toString();expandedToday=false};scope.launch{scrolls[target].animateScrollTo(0)} } else page=target }
     }) { padding ->
         Column(Modifier.padding(padding).fillMaxSize().verticalScroll(scrolls[page]).padding(horizontal = 18.dp, vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(if(page==0 && !expandedToday) 10.dp else 14.dp)) {
             PulseHeader(sync.busy,onSync,sync.lastSync)
@@ -80,14 +95,14 @@ private fun clock(t: Long?) = t?.let { Instant.ofEpochMilli(it).atZone(ZoneId.sy
                 0 -> {
                     TodayDate(selected, { selected = it }, { journalDate=selected;journalRequest++;page=5 })
                     if(!expandedToday) {
-                        TodaySnapshot(day,sync,goals,needState,{detail=it},{page=3})
+                        TodaySnapshot(day,sync,goals,needState,{detail=it},{page=6})
                         OutlinedButton(onClick={expandedToday=true},modifier=Modifier.fillMaxWidth()){Text("All details")}
                     } else {
                     TextButton(onClick={expandedToday=false}) { Text("‹ Back to snapshot") }
                     WeekStrip(selected) { selected = it }
                     if (!preview && (sync.busy || sync.lastSync == 0L || day?.hrCount == 0)) Text(sync.message, color = Muted, fontSize = 12.sp)
                     if (!preview && sync.lastSync == 0L) SetupCard(onConnect, onSourceApp, onHealthSettings)
-                    Row(Modifier.fillMaxWidth().background(Brush.linearGradient(listOf(Color(0xFF19291F),Color(0xFF101A18))),RoundedCornerShape(28.dp)).border(1.dp,Color.White.copy(alpha=.06f),RoundedCornerShape(28.dp)).padding(vertical=18.dp,horizontal=8.dp), horizontalArrangement = Arrangement.SpaceEvenly) {
+                    Row(Modifier.fillMaxWidth().background(Brush.linearGradient(listOf(palette.primary.copy(alpha=.13f).compositeOver(palette.surface),palette.surface)),RoundedCornerShape(28.dp)).border(1.dp,Color.White.copy(alpha=.06f),RoundedCornerShape(28.dp)).padding(vertical=18.dp,horizontal=8.dp), horizontalArrangement = Arrangement.SpaceEvenly) {
                         RingMetric("SLEEP", day?.asleep?.let { "${(100.0 * it / needState).roundToInt().coerceAtMost(100)}%" } ?: "—", day?.asleep?.div(needState.toFloat()) ?: 0f, Purple, Modifier.weight(1f)) { detail = "sleep" }
                         RingMetric("RECOVERY", day?.recovery?.let { "$it%" } ?: "—", (day?.recovery ?: 0) / 100f, recoveryColor(day?.recovery), Modifier.weight(1f)) { detail = "recovery" }
                         RingMetric("STRAIN", day?.takeIf { it.coveredMinutes > 0 }?.let { number(Scores.strain(it.load)) } ?: "—", (Scores.strain(day?.load ?: 0.0) / 21).toFloat(), Orange, Modifier.weight(1f)) { detail = "strain" }
@@ -115,7 +130,7 @@ private fun clock(t: Long?) = t?.let { Instant.ofEpochMilli(it).atZone(ZoneId.sy
                         1 -> { Box(Modifier.clickable(onClickLabel = "Sleep stage details") { detail = "sleep" }) { SleepPanel(day, needState, false) }; SleepPlanner(days, goals, needState, onGoals) }
                         2 -> { Box(Modifier.clickable(onClickLabel = "Strain details") { detail = "strain" }) { StrainPanel(day, maxState, restState) }; Box(Modifier.clickable(onClickLabel = "Heart rate details") { detail = "hr" }) { HeartPanel(day) }; LivePanel(live, connection, onLive, onStop) }
                     }
-                    if (!preview && (day == null || day.hrCount == 0 && day.sleepStart == null)) Panel { Text("No shared measurements for this day", fontWeight = FontWeight.Bold); Text("Sync your device in its companion app first. Enable sharing with Health Connect; some apps only send new data.", color = Muted, fontSize = 13.sp); TextButton(onClick = { page = 3 }) { Text("Check connection & permissions") } }
+                    if (!preview && (day == null || day.hrCount == 0 && day.sleepStart == null)) Panel { Text("No shared measurements for this day", fontWeight = FontWeight.Bold); Text("Sync your device in its companion app first. Enable sharing with Health Connect; some apps only send new data.", color = Muted, fontSize = 13.sp); TextButton(onClick = { page = 6 }) { Text("Check connection & permissions") } }
                     Text("${if (preview) "Synthetic preview" else "Device app → Health Connect → Pulse"} • Independent estimates, not Garmin or WHOOP scores.", color = Muted, fontSize = 10.sp)
                 }
                 }
@@ -124,8 +139,18 @@ private fun clock(t: Long?) = t?.let { Instant.ofEpochMilli(it).atZone(ZoneId.sy
                 5 -> JournalPage(journal, habits, days, workouts, onJournal, onHabit, onDeleteJournal, onClearJournal, reminder, onReminder, journalDate, journalRequest)
                 4 -> WorkoutLibrary(workouts, checkIns, restState, maxState, onCheckIn, onImportFit, onConnect, onRemoveWorkout, workoutMessage, importingFit, miles, onMiles)
                 3 -> {
+                    Text("Settings",fontSize=30.sp,fontWeight=FontWeight.Bold)
+                    AppearancePicker(appearance,onAppearance)
+                    JournalCard("HEALTH & DEVICES") {
+                        Text("Connect your health data",fontSize=22.sp)
+                        Text("Manage device sharing, step sources, permissions and imports.",fontSize=13.sp)
+                        Button(onClick={page=6},modifier=Modifier.fillMaxWidth()){Text("Connections & imports")}
+                    }
+                    DashboardEditor(preferences,onPreferences)
+                }
+                6 -> {
+                    TextButton(onClick={page=3}){Text("‹ Settings")}
                     Text("Your watch.\nYour daily picture.", fontSize = 30.sp, lineHeight = 34.sp, fontWeight = FontWeight.Bold)
-                    DashboardEditor(preferences, onPreferences)
                     DataStatusCard(day, sync, onConnect, onHealthSettings, days)
                     SetupCard(onConnect, onSourceApp, onHealthSettings)
                     StepSourceCard(sync,onStepSource)
@@ -139,7 +164,7 @@ private fun clock(t: Long?) = t?.let { Instant.ofEpochMilli(it).atZone(ZoneId.sy
                         TextButton(onClick = onHealthSettings) { Text("Health Connect settings") }
                     }
                     Panel {
-                        Label("WHAT YOUR GARMIN SHARES"); Text("Heart rate · Sleep stages · Steps · Active & total calories", fontWeight = FontWeight.SemiBold)
+                        Label("WHAT YOUR DEVICE SHARES"); Text("Heart rate · Sleep stages · Steps · Active & total calories", fontWeight = FontWeight.SemiBold)
                         Text("Available metrics depend on your device app. HRV/RHR appear only if those record types arrive. Recovery uses sleep and overnight HR trends after 3 baseline nights.", color = Muted, fontSize = 13.sp)
                     }
                     Panel {
@@ -169,6 +194,10 @@ private fun clock(t: Long?) = t?.let { Instant.ofEpochMilli(it).atZone(ZoneId.sy
     if (clear) AlertDialog(onDismissRequest = { clear = false }, title = { Text("Clear imported data?") }, text = { Text("Removes imported history and revokes Pulse’s Health Connect access. Source originals and separate BLE recordings are unchanged.") }, confirmButton = { TextButton(onClick = { onClear(); clear = false }) { Text("Clear & disconnect") } }, dismissButton = { TextButton(onClick = { clear = false }) { Text("Cancel") } })
 }
 @Composable private fun SetupCard(onConnect: () -> Unit, onSourceApp: () -> Unit, onSettings: () -> Unit) {
+    val palette = LocalPulseStyle.current
+    val Muted = palette.muted
+    val Blue = palette.primary
+
     Panel {
         Label("YOUR DEVICE → HEALTH CONNECT → PULSE", Blue); Text("Bring your whole day in.", fontSize = 23.sp, fontWeight = FontWeight.Bold)
         Text("1  Sync your watch or tracker with its companion app, such as Samsung Health or Garmin Connect.\n\n2  In that app, enable Health Connect sharing for heart rate, sleep, steps, calories and exercise.\n\n3  Allow Pulse to read those records, then import.\n\nCompatibility depends on the companion app sharing data with Health Connect. Pairing with Android alone is not enough. In Health Connect, review data-source priority to avoid duplicate activity totals.", color = Muted, fontSize = 13.sp, lineHeight = 20.sp)
@@ -177,6 +206,9 @@ private fun clock(t: Long?) = t?.let { Instant.ofEpochMilli(it).atZone(ZoneId.sy
     }
 }
 @Composable private fun DateSelector(selected: String, onSelect: (String) -> Unit) {
+    val palette = LocalPulseStyle.current
+    val Muted = palette.muted
+
     val date = LocalDate.parse(selected)
     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
         TextButton(onClick = { onSelect(date.minusDays(1).toString()) }) { Text("‹", fontSize = 28.sp) }
@@ -185,6 +217,9 @@ private fun clock(t: Long?) = t?.let { Instant.ofEpochMilli(it).atZone(ZoneId.sy
     }
 }
 @Composable private fun RingMetric(title: String, value: String, progress: Float, color: Color, modifier: Modifier, onClick: () -> Unit) {
+    val palette = LocalPulseStyle.current
+    val Line = palette.line
+
     val entrance = chartEntrance()
     Column(modifier.clickable(onClick = onClick).semantics { contentDescription = "$title $value" }, horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Box(Modifier.padding(horizontal = 5.dp).fillMaxWidth().aspectRatio(1f), contentAlignment = Alignment.Center) {
@@ -194,6 +229,11 @@ private fun clock(t: Long?) = t?.let { Instant.ofEpochMilli(it).atZone(ZoneId.sy
     }
 }
 @Composable internal fun RecoveryPanel(d: ConnectedDay?) {
+    val palette = LocalPulseStyle.current
+    val Card = palette.surface
+    val Muted = palette.muted
+    val Line = palette.line
+
     val color = recoveryColor(d?.recovery)
     Column(Modifier.fillMaxWidth().background(Brush.horizontalGradient(listOf(color.copy(alpha = .13f), Card)), RoundedCornerShape(18.dp)).padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Label("RECOVERY • ESTIMATE", color)
@@ -203,9 +243,22 @@ private fun clock(t: Long?) = t?.let { Instant.ofEpochMilli(it).atZone(ZoneId.sy
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) { MiniStat("NIGHT HR", d?.overnightHr?.roundToInt()?.let { "$it bpm" } ?: "—"); MiniStat("SLEEP", duration(d?.asleep)); MiniStat("BASELINE", "${d?.baselineNights ?: 0} nights") }
     }
 }
-@Composable private fun MiniStat(label: String, value: String) { Column(verticalArrangement = Arrangement.spacedBy(5.dp)) { Text(label, color = Muted, fontSize = 9.sp); Text(value, fontWeight = FontWeight.SemiBold, fontSize = 17.sp) } }
-@Composable private fun MetricTile(label: String, value: String, detail: String, color: Color, modifier: Modifier) { Column(modifier.background(Card, RoundedCornerShape(16.dp)).padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) { Label(label); Text(value, fontSize = 27.sp, fontWeight = FontWeight.Bold, color = color); Text(detail, color = Muted, fontSize = 10.sp) } }
+@Composable private fun MiniStat(label: String, value: String) {
+    val palette = LocalPulseStyle.current
+    val Muted = palette.muted
+ Column(verticalArrangement = Arrangement.spacedBy(5.dp)) { Text(label, color = Muted, fontSize = 9.sp); Text(value, fontWeight = FontWeight.SemiBold, fontSize = 17.sp) } }
+@Composable private fun MetricTile(label: String, value: String, detail: String, color: Color, modifier: Modifier) {
+    val palette = LocalPulseStyle.current
+    val Card = palette.surface
+    val Muted = palette.muted
+ Column(modifier.background(Card, RoundedCornerShape(16.dp)).padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) { Label(label); Text(value, fontSize = 27.sp, fontWeight = FontWeight.Bold, color = color); Text(detail, color = Muted, fontSize = 10.sp) } }
 @Composable internal fun SleepPanel(d: ConnectedDay?, need: Int, compact: Boolean) {
+    val palette = LocalPulseStyle.current
+    val Muted = palette.muted
+    val Blue = palette.primary
+    val Purple = palette.violet
+    val Line = palette.line
+
     Panel {
         Label("SLEEP PERFORMANCE", Purple)
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.Bottom) { Text(duration(d?.asleep), fontSize = 34.sp, fontWeight = FontWeight.Bold); Text("/ ${duration(need)} goal", fontSize = 12.sp, color = Muted) }
@@ -220,6 +273,11 @@ private fun clock(t: Long?) = t?.let { Instant.ofEpochMilli(it).atZone(ZoneId.sy
     }
 }
 @Composable private fun SleepTimeline(d: ConnectedDay) {
+    val palette = LocalPulseStyle.current
+    val Blue = palette.primary
+    val Purple = palette.violet
+    val Line = palette.line
+
     val entrance = chartEntrance()
     val spans = remember(d.stages) { d.stages.split(';').mapNotNull { val p = it.split(','); if (p.size == 3) runCatching { SleepSpan(p[0].toLong(), p[1].toLong(), p[2].toInt()) }.getOrNull() else null } }
     Canvas(Modifier.fillMaxWidth().height(78.dp).semantics { contentDescription = "Sleep timeline ${clock(d.sleepStart)} to ${clock(d.sleepEnd)}" }) {
@@ -233,6 +291,10 @@ private fun clock(t: Long?) = t?.let { Instant.ofEpochMilli(it).atZone(ZoneId.sy
     }
 }
 @Composable internal fun HeartPanel(d: ConnectedDay?) {
+    val palette = LocalPulseStyle.current
+    val Muted = palette.muted
+    val Blue = palette.primary
+
     Panel {
         Label("HEART RATE • DAILY", Blue)
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) { MiniStat("AVERAGE", d?.hrAverage?.let { "$it bpm" } ?: "—"); MiniStat("LOW", d?.hrMin?.toString() ?: "—"); MiniStat("HIGH", d?.hrMax?.toString() ?: "—") }
@@ -243,6 +305,10 @@ private fun clock(t: Long?) = t?.let { Instant.ofEpochMilli(it).atZone(ZoneId.sy
     }
 }
 @Composable private fun DailyHeartChart(points: List<HrPoint>, date: String) {
+    val palette = LocalPulseStyle.current
+    val Blue = palette.primary
+    val Line = palette.line
+
     val entrance = chartEntrance()
     Canvas(Modifier.fillMaxWidth().height(120.dp)) {
         val start = LocalDate.parse(date).atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli(); val end = LocalDate.parse(date).plusDays(1).atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli()
@@ -254,6 +320,11 @@ private fun clock(t: Long?) = t?.let { Instant.ofEpochMilli(it).atZone(ZoneId.sy
     }
 }
 @Composable internal fun StrainPanel(d: ConnectedDay?, maximum: Int, resting: Int) {
+    val palette = LocalPulseStyle.current
+    val Muted = palette.muted
+    val Blue = palette.primary
+    val Line = palette.line
+
     val entrance = chartEntrance()
     Panel {
         Label("CARDIOVASCULAR LOAD", Blue); Text(d?.takeIf { it.coveredMinutes > 0 }?.let { number(Scores.strain(it.load)) } ?: "—", fontSize = 48.sp, fontWeight = FontWeight.Bold, color = Blue); Text("Daily strain / 21 • estimated from imported HR", color = Muted, fontSize = 12.sp)
@@ -263,11 +334,21 @@ private fun clock(t: Long?) = t?.let { Instant.ofEpochMilli(it).atZone(ZoneId.sy
     }
 }
 @Composable private fun LivePanel(live: DashboardState, connection: String, onStart: () -> Unit, onStop: () -> Unit) {
+    val palette = LocalPulseStyle.current
+    val Muted = palette.muted
+    val Blue = palette.primary
+
     var now by remember { mutableLongStateOf(System.currentTimeMillis()) }; LaunchedEffect(Unit) { while (true) { kotlinx.coroutines.delay(1000); now = System.currentTimeMillis() } }
     val sample = live.sample?.takeIf { live.running && now - it.time < 10000 }
     Panel { Label("OPTIONAL LIVE SESSION", Blue); Text(sample?.hr?.let { "$it bpm" } ?: "No fresh signal", fontSize = 26.sp, fontWeight = FontWeight.Bold); Text(if (live.running) connection else "Broadcast HR to stream here. Daily imports do not require broadcasting.", color = Muted, fontSize = 12.sp); Row { TextButton(onClick = onStart) { Text("Connect sensor") }; if (live.running) TextButton(onClick = onStop) { Text("Stop") } } }
 }
 @Composable private fun TrendsPage(days: List<ConnectedDay>, need: Int, onDay: (String) -> Unit) {
+    val palette = LocalPulseStyle.current
+    val Card = palette.surface
+    val Muted = palette.muted
+    val Purple = palette.violet
+    val Line = palette.line
+
     Text("Your rhythm", fontSize = 32.sp, fontWeight = FontWeight.Bold); Label("DAILY HISTORY")
     val actual = days.filter { it.hrCount > 0 || it.sleepStart != null || it.steps != null }
     if (actual.isEmpty()) Panel { Text("Your history starts with your first import."); Text("Connect Health Connect and sync your device app. Imported days remain available offline.", color = Muted) }
@@ -278,13 +359,23 @@ private fun clock(t: Long?) = t?.let { Instant.ofEpochMilli(it).atZone(ZoneId.sy
         LinearProgressIndicator(progress = { ((d.asleep ?: 0) / need.toFloat()).coerceIn(0f, 1f) * entrance }, modifier = Modifier.fillMaxWidth().height(5.dp), color = Purple, trackColor = Line)
     } }
 }
-@Composable fun WatchDialog(watches: List<NearbyWatch>, status: String, onClose: () -> Unit, onScan: () -> Unit, onSelect: (String) -> Unit) { AlertDialog(onDismissRequest = onClose, title = { Text("Live HR sensor") }, text = { Column { Text(status); Text("Enable Broadcast Heart Rate on the watch. Optional for daily sync.", color = Muted, fontSize = 12.sp); watches.forEach { TextButton(onClick = { onSelect(it.address) }) { Text("${it.name}\n${it.address}") } } } }, confirmButton = { TextButton(onClick = onScan) { Text("Scan again") } }, dismissButton = { TextButton(onClick = onClose) { Text("Close") } }) }
+@Composable fun WatchDialog(watches: List<NearbyWatch>, status: String, onClose: () -> Unit, onScan: () -> Unit, onSelect: (String) -> Unit) {
+    val palette = LocalPulseStyle.current
+    val Muted = palette.muted
+ AlertDialog(onDismissRequest = onClose, title = { Text("Live HR sensor") }, text = { Column { Text(status); Text("Enable Broadcast Heart Rate on the watch. Optional for daily sync.", color = Muted, fontSize = 12.sp); watches.forEach { TextButton(onClick = { onSelect(it.address) }) { Text("${it.name}\n${it.address}") } } } }, confirmButton = { TextButton(onClick = onScan) { Text("Scan again") } }, dismissButton = { TextButton(onClick = onClose) { Text("Close") } }) }
 @Composable private fun ProfileDialog(need: Int, maximum: Int, resting: Int, onClose: () -> Unit, onSave: (Int, Int, Int) -> Unit) {
+    val palette = LocalPulseStyle.current
+    val Muted = palette.muted
+
     var n by remember { mutableStateOf(need.toString()) }; var m by remember { mutableStateOf(maximum.toString()) }; var r by remember { mutableStateOf(resting.toString()) }
     val nn = n.toIntOrNull(); val mm = m.toIntOrNull(); val rr = r.toIntOrNull(); val valid = nn != null && mm != null && rr != null && nn in 300..720 && mm in 100..230 && rr in 30..100 && mm > rr
     AlertDialog(onDismissRequest = onClose, title = { Text("Your scoring profile") }, text = { Column(verticalArrangement = Arrangement.spacedBy(10.dp)) { OutlinedTextField(n, { n = it }, label = { Text("Sleep goal (300–720 min)") }, singleLine = true); OutlinedTextField(m, { m = it }, label = { Text("Maximum HR (100–230)") }, singleLine = true); OutlinedTextField(r, { r = it }, label = { Text("Resting HR (30–100)") }, singleLine = true); Text("Use your own resting and maximum heart rates, not the defaults. Recalculates the last 28 days plus today.", color = Muted, fontSize = 12.sp) } }, confirmButton = { TextButton(enabled = valid, onClick = { onSave(nn!!, mm!!, rr!!) }) { Text("Save & recalculate") } }, dismissButton = { TextButton(onClick = onClose) { Text("Cancel") } })
 }
-@Composable fun PrivacyScreen(onClose: () -> Unit) { Surface(Modifier.fillMaxSize(), color = Ink) { Column(Modifier.safeDrawingPadding().verticalScroll(rememberScrollState()).padding(24.dp), verticalArrangement = Arrangement.spacedBy(20.dp)) { Text("Your data stays yours.", fontSize = 30.sp, fontWeight = FontWeight.Bold); Text("Pulse reads shared exercise sessions, heart rate, sleep, steps, active/total/basal calories and optional resting HR/HRV from Health Connect. It never writes to Health Connect. Background access is separately granted and refreshes about hourly.\n\nFIT files are decoded locally into workout records. Workout check-ins and your daily journal stay on this phone. Clear the journal separately from its page; clearing watch imports preserves journal entries. Optional reminders use local Android notifications. Clear imported data removes workouts and workout ratings, but preserves your daily journal. Summaries stay on your phone, excluded from backup. No server uploads, device-account passwords, ads, analytics or sale of health data.\n\nRevoke permissions in Health Connect anytime. Connect → Clear imported data & disconnect removes cached imports and revokes access. Uninstall removes all app data. Source deletions are reflected in the next successful 28-day refresh; older cached days can be removed with Clear.\n\nScores are experimental fitness estimates, not medical advice or Garmin/WHOOP scores.", color = Muted, lineHeight = 23.sp); Button(onClick = onClose) { Text("Done") } } } }
+@Composable fun PrivacyScreen(onClose: () -> Unit) {
+    val palette = LocalPulseStyle.current
+    val Ink = palette.background
+    val Muted = palette.muted
+ Surface(Modifier.fillMaxSize(), color = Ink) { Column(Modifier.safeDrawingPadding().verticalScroll(rememberScrollState()).padding(24.dp), verticalArrangement = Arrangement.spacedBy(20.dp)) { Text("Your data stays yours.", fontSize = 30.sp, fontWeight = FontWeight.Bold); Text("Pulse reads shared exercise sessions, heart rate, sleep, steps, active/total/basal calories and optional resting HR/HRV from Health Connect. It never writes to Health Connect. Background access is separately granted and refreshes about hourly.\n\nFIT files are decoded locally into workout records. Workout check-ins and your daily journal stay on this phone. Clear the journal separately from its page; clearing watch imports preserves journal entries. Optional reminders use local Android notifications. Clear imported data removes workouts and workout ratings, but preserves your daily journal. Summaries stay on your phone, excluded from backup. No server uploads, device-account passwords, ads, analytics or sale of health data.\n\nRevoke permissions in Health Connect anytime. Settings → Connections & imports → Clear imported data & disconnect removes cached imports and revokes access. Uninstall removes all app data. Source deletions are reflected in the next successful 28-day refresh; older cached days can be removed with Clear.\n\nScores are experimental fitness estimates, not medical advice or Garmin/WHOOP scores.", color = Muted, lineHeight = 23.sp); Button(onClick = onClose) { Text("Done") } } } }
 internal fun previewDay(date: String): ConnectedDay {
     val start = LocalDate.parse(date).atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli(); val ss = start - 35 * 60000; val se = start + 440 * 60000
     val stages = listOf(SleepSpan(ss, start + 80 * 60000, 4), SleepSpan(start + 80 * 60000, start + 172 * 60000, 5), SleepSpan(start + 172 * 60000, start + 270 * 60000, 4), SleepSpan(start + 270 * 60000, start + 375 * 60000, 6), SleepSpan(start + 375 * 60000, se, 4))
@@ -295,11 +386,15 @@ internal fun previewDay(date: String): ConnectedDay {
 }
 
 @Composable private fun WeekStrip(selected: String, onSelect: (String) -> Unit) {
+    val palette = LocalPulseStyle.current
+    val Lime = palette.primary
+    val Muted = palette.muted
+
     val date = LocalDate.parse(selected)
     val first = date.minusDays((date.dayOfWeek.value - 1).toLong())
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(5.dp)) {
         (0L..6L).forEach { offset -> val d = first.plusDays(offset); val active = d == date
-            Column(Modifier.weight(1f).background(if (active) Lime.copy(alpha = .1f) else Color(0xFF111614), RoundedCornerShape(14.dp)).border(1.dp, if (active) Lime else Color.Transparent, RoundedCornerShape(14.dp)).clickable(enabled = d <= LocalDate.now()) { onSelect(d.toString()) }.padding(vertical = 9.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Column(Modifier.weight(1f).background(if (active) Lime.copy(alpha = .1f) else palette.surface, RoundedCornerShape(14.dp)).border(1.dp, if (active) Lime else Color.Transparent, RoundedCornerShape(14.dp)).clickable(enabled = d <= LocalDate.now()) { onSelect(d.toString()) }.padding(vertical = 9.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text(d.dayOfWeek.toString().take(1), color = if (active) Lime else Muted, fontSize = 10.sp)
                 Text(d.dayOfMonth.toString(), fontSize = 16.sp, fontWeight = FontWeight.Bold, color = if (d > LocalDate.now()) Muted.copy(alpha = .3f) else Color.White)
 

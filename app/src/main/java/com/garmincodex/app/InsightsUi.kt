@@ -43,10 +43,20 @@ private val Slate = Color(0xFF171E2B)
 private val Mint = Color(0xFF8FD8CE)
 private fun fmt(n: Double) = String.format(Locale.US, "%.1f", n)
 private fun time(t: Long) = Instant.ofEpochMilli(t).atZone(ZoneId.systemDefault()).format(DateTimeFormatter.ofPattern("HH:mm"))
-@Composable private fun InsightPanel(content: @Composable ColumnScope.() -> Unit) { Column(Modifier.fillMaxWidth().background(Brush.linearGradient(listOf(Color(0xFF202724), Slate)), RoundedCornerShape(24.dp)).border(1.dp, Color.White.copy(alpha = .06f), RoundedCornerShape(24.dp)).padding(20.dp), verticalArrangement = Arrangement.spacedBy(14.dp), content = content) }
-@Composable private fun Caption(text: String) { Text(text.uppercase(), color = Fog, fontSize = 10.sp, letterSpacing = 1.6.sp) }
+@Composable private fun InsightPanel(content: @Composable ColumnScope.() -> Unit) {
+    val palette = LocalPulseStyle.current
+    val Slate = palette.surface
+ Column(Modifier.fillMaxWidth().background(Brush.linearGradient(listOf(Color(0xFF202724), Slate)), RoundedCornerShape(24.dp)).border(1.dp, Color.White.copy(alpha = .06f), RoundedCornerShape(24.dp)).padding(20.dp), verticalArrangement = Arrangement.spacedBy(14.dp), content = content) }
+@Composable private fun Caption(text: String) {
+    val palette = LocalPulseStyle.current
+    val Fog = palette.muted
+ Text(text.uppercase(), color = Fog, fontSize = 10.sp, letterSpacing = 1.6.sp) }
 
 @Composable internal fun GoalRingCard(title: String, value: Double?, goal: Int, color: Color, modifier: Modifier = Modifier, onClick: () -> Unit, onEdit: () -> Unit, totalCalories: Double? = null, onPermissions: (() -> Unit)? = null) {
+    val palette = LocalPulseStyle.current
+    val Fog = palette.muted
+    val Slate = palette.surface
+
     val entrance = chartEntrance()
     val progress by animateFloatAsState(((value ?: 0.0) / goal).toFloat().coerceIn(0f, 1f), label = "goal")
     Column(modifier.testTag("goal-$title").background(Brush.verticalGradient(listOf(color.copy(alpha = .12f).compositeOver(Slate), Slate)), RoundedCornerShape(25.dp)).border(1.dp, color.copy(alpha = .13f), RoundedCornerShape(25.dp)).clickable(onClickLabel = "Open $title details", onClick = onClick).padding(14.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(7.dp)) {
@@ -72,6 +82,10 @@ private fun time(t: Long) = Instant.ofEpochMilli(t).atZone(ZoneId.systemDefault(
     }
 }
 @Composable internal fun GoalEditor(kind: String, goals: PersonalGoals, onClose: () -> Unit, onSave: (PersonalGoals) -> Unit) {
+    val palette = LocalPulseStyle.current
+    val Fog = palette.muted
+    val Slate = palette.surface
+
     var text by rememberSaveable(kind) { mutableStateOf(when (kind) { "steps" -> goals.steps.toString(); "calories" -> goals.activeCalories.toString(); else -> goals.age?.toString() ?: "" }) }
     val value = text.toIntOrNull(); val range = when (kind) { "steps" -> 1000..100000; "calories" -> 100..5000; else -> 18..100 }
     Dialog(onDismissRequest = onClose, properties = DialogProperties(usePlatformDefaultWidth = false)) {
@@ -90,10 +104,15 @@ private fun time(t: Long) = Instant.ofEpochMilli(t).atZone(ZoneId.systemDefault(
     }
 }
 @Composable internal fun MetricDetails(kind: String, d: ConnectedDay?, goals: PersonalGoals, need: Int, maximum: Int, resting: Int, onGoals: (PersonalGoals) -> Unit, sync:SyncState=SyncState(), onPermissions:()->Unit={}, onSettings:()->Unit={}, onSourceApp:()->Unit={}, onSync:()->Unit={}, onClose: () -> Unit) {
+    val palette = LocalPulseStyle.current
+    val Lime = palette.primary
+    val Orange = palette.warm
+    val Fog = palette.muted
+
     var edit by remember { mutableStateOf(false) }
 
     Dialog(onDismissRequest = onClose, properties = DialogProperties(usePlatformDefaultWidth = false)) {
-        Surface(Modifier.fillMaxSize(), color = Color(0xFF0C1018)) {
+        Surface(Modifier.fillMaxSize(), color = palette.background) {
             Column(Modifier.then(pageMotion(kind)).safeDrawingPadding().imePadding().verticalScroll(rememberScrollState()).padding(20.dp), verticalArrangement = Arrangement.spacedBy(20.dp)) {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) { TextButton(onClick = onClose) { Text("‹ Back") }; Caption(d?.date ?: "No imported day"); if (kind == "steps" || kind == "calories") TextButton(onClick = { edit = true }) { Text("Edit goal") } }
                 if (edit) InlineGoalForm(kind, goals, onGoals) { edit = false }
@@ -125,6 +144,10 @@ private fun time(t: Long) = Instant.ofEpochMilli(t).atZone(ZoneId.systemDefault(
     }
 }
 @Composable private fun CalorieBreakdown(d: ConnectedDay?) {
+    val palette = LocalPulseStyle.current
+    val Orange = palette.warm
+    val Fog = palette.muted
+
     InsightPanel {
         Caption("Calorie breakdown")
         val nonActive = EnergyBreakdown.nonActive(d?.calories, d?.activeCalories)
@@ -134,6 +157,9 @@ private fun time(t: Long) = Instant.ofEpochMilli(t).atZone(ZoneId.systemDefault(
     }
 }
 @Composable private fun HourlyChart(hours: List<HourBucket>, steps: Boolean, color: Color, total: Boolean = false) {
+    val palette = LocalPulseStyle.current
+    val Fog = palette.muted
+
     val entrance = chartEntrance()
     var selected by remember(hours, steps) { mutableIntStateOf(-1) }
     fun value(h: HourBucket) = if (steps) h.steps?.toDouble() else if (total) h.total else h.active
@@ -153,6 +179,10 @@ private fun time(t: Long) = Instant.ofEpochMilli(t).atZone(ZoneId.systemDefault(
     }
 }
 @Composable internal fun InteractiveHeart(d: ConnectedDay?) {
+    val palette = LocalPulseStyle.current
+    val Fog = palette.muted
+    val Mint = palette.secondary
+
     val points = remember(d?.chart) { d?.chart?.split(';')?.mapNotNull { val p = it.split(','); if (p.size == 2) runCatching { HrPoint(p[0].toLong(), p[1].toInt()) }.getOrNull() else null }?.sortedBy { it.time } ?: emptyList() }
     val entrance = chartEntrance()
     var selected by remember(points) { mutableIntStateOf(0) }

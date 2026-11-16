@@ -1,3 +1,9 @@
+## 0.15.0: personal themes and Settings
+
+- Settings replaces Connect in the bottom dock. Connections & imports is a nested screen; Back returns to Settings. Existing connection shortcuts open that screen directly.
+- Neon Cyan (default), Neon Lime, Neon Violet and Midnight Blue apply immediately to cards, charts and controls and persist independently of imported health data.
+- Update identity is unchanged from 0.14.1: com.garmincodex.app.testing2, versionCode 17. CI now fails if its existing signing key is unavailable or the certificate differs from 0.14.1. It never silently generates a replacement key. Install over 0.14.1 without uninstalling; Android retains settings, permissions and local records.
+
 ## 0.14.1: import compatibility hotfix
 
 - Read requests end at the current time; hourly aggregates use one metric and one calendar day per request. Daily step totals retain full-day bounds.

@@ -17,6 +17,10 @@ import androidx.compose.ui.unit.sp
 import kotlin.math.*
 
 @Composable internal fun RunningDetails(w:Workout,miles:Boolean) {
+    val palette = LocalPulseStyle.current
+    val Lime = palette.primary
+    val Orange = palette.warm
+
     JournalCard("DISTANCE & TIMING",Orange) {
         Text(RunningMetrics.distance(w.distanceMeters,miles),fontSize=30.sp,fontWeight=FontWeight.Bold)
         val elapsed=(w.end-w.start)/1000.0
@@ -46,6 +50,10 @@ import kotlin.math.*
     }
 }
 @Composable private fun PaceChart(w:Workout,miles:Boolean) {
+    val palette = LocalPulseStyle.current
+    val Lime = palette.primary
+    val Orange = palette.warm
+
     val samples=remember(w.paceChart){PaceSample.decode(w.paceChart).filter{it.time>=w.start && it.time<w.end}}
     val hr=remember(w.chart){WorkoutAnalysis.points(w)}
     val plot=remember(samples){samples.groupBy{(it.time-w.start)/((w.end-w.start)/600).coerceAtLeast(1000)}.values.map {group->PaceSample(group.first().time,group.map{it.speed}.average())}}

@@ -26,6 +26,10 @@ private val Soft=Color(0xFFA9B5CA)
 private val Mint=Color(0xFF83B4FF)
 private val Lavender=Color(0xFFC0AFF5)
 @Composable internal fun PulseHeader(busy:Boolean,onSync:()->Unit,lastSync:Long=0) {
+    val palette = LocalPulseStyle.current
+    val Soft = palette.muted
+    val Mint = palette.primary
+
     Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.SpaceBetween) {
         Image(painterResource(R.drawable.ic_pulse),contentDescription="Pulse 165",modifier=Modifier.size(42.dp).clip(RoundedCornerShape(12.dp)))
         val imported=if(lastSync>0) Instant.ofEpochMilli(lastSync).atZone(ZoneId.systemDefault()) else null
@@ -41,6 +45,9 @@ private val Lavender=Color(0xFFC0AFF5)
     }
 }
 @Composable internal fun TodayDate(date:String,onDate:(String)->Unit,onJournal:()->Unit) {
+    val palette = LocalPulseStyle.current
+    val Soft = palette.muted
+
     val d=LocalDate.parse(date)
     var calendar by remember{mutableStateOf(false)}
     Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically) {
@@ -57,9 +64,18 @@ private val Lavender=Color(0xFFC0AFF5)
     }
 }
 @Composable private fun SnapshotCard(modifier:Modifier=Modifier,onClick:()->Unit,content:@Composable ColumnScope.()->Unit) {
-    Column(modifier.fillMaxWidth().background(Color(0xFF192232),RoundedCornerShape(28.dp)).clickable(role=Role.Button,onClick=onClick).padding(16.dp),verticalArrangement=Arrangement.spacedBy(8.dp),content=content)
+    val palette = LocalPulseStyle.current
+
+    Column(modifier.fillMaxWidth().background(palette.surface,RoundedCornerShape(28.dp)).clickable(role=Role.Button,onClick=onClick).padding(16.dp),verticalArrangement=Arrangement.spacedBy(8.dp),content=content)
 }
 @Composable internal fun TodaySnapshot(day:ConnectedDay?,sync:SyncState,goals:PersonalGoals,sleepNeed:Int,onDetail:(String)->Unit,onConnection:()->Unit) {
+    val palette = LocalPulseStyle.current
+    val Lime = palette.primary
+    val Orange = palette.warm
+    val Soft = palette.muted
+    val Mint = palette.primary
+    val Lavender = palette.violet
+
     val needsAttention=listOf("Sync interrupted", "Health access changed", "Health Connect is unavailable", "Allow Pulse", "Could not revoke").any{sync.message.startsWith(it)}
     if(!sync.busy && needsAttention) TextButton(onClick=onConnection){Text("Sync needs attention · review connection ›",color=Orange,fontSize=12.sp)}
     if(day==null || day.hrCount==0 && day.asleep==null && day.steps==null && day.activeCalories==null && day.recovery==null) {
@@ -73,7 +89,7 @@ private val Lavender=Color(0xFFC0AFF5)
     val reveal=chartEntrance(day?.updatedAt ?: 0L)
     val recovery=day?.recovery
     val tint=when{recovery==null->Soft;recovery<34->Color(0xFFFF8791);recovery<67->Color(0xFFF4CA58);else->Mint}
-    Row(Modifier.fillMaxWidth().background(Brush.linearGradient(listOf(Color(0xFF223A5B),Color(0xFF172438))),RoundedCornerShape(26.dp)).clickable(role=Role.Button,onClickLabel="Recovery details"){onDetail("recovery")}.padding(18.dp),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(18.dp)) {
+    Row(Modifier.fillMaxWidth().background(Brush.linearGradient(listOf(palette.primary.copy(alpha=.13f).compositeOver(palette.surface),palette.primary.copy(alpha=.13f).compositeOver(palette.surface))),RoundedCornerShape(26.dp)).clickable(role=Role.Button,onClickLabel="Recovery details"){onDetail("recovery")}.padding(18.dp),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(18.dp)) {
         Box(Modifier.size(88.dp),contentAlignment=Alignment.Center) {
             Canvas(Modifier.fillMaxSize().padding(4.dp)){drawArc(Color.White.copy(alpha=.09f),-90f,360f,false,style=Stroke(5.dp.toPx()));drawArc(tint,-90f,(recovery ?: 0)*3.6f*reveal,false,style=Stroke(5.dp.toPx(),cap=StrokeCap.Round))}
             Text(recovery?.let{"$it%"} ?: "—",fontSize=27.sp,fontWeight=FontWeight.Bold,color=tint)
@@ -99,7 +115,7 @@ private val Lavender=Color(0xFFC0AFF5)
             Text("Of 21 · details ›",fontSize=11.sp,color=Soft)
         }
     }
-    Column(Modifier.fillMaxWidth().background(Color(0xFF192232),RoundedCornerShape(22.dp)).padding(16.dp),verticalArrangement=Arrangement.spacedBy(14.dp)) {
+    Column(Modifier.fillMaxWidth().background(palette.surface,RoundedCornerShape(22.dp)).padding(16.dp),verticalArrangement=Arrangement.spacedBy(14.dp)) {
         Text("Your movement",fontWeight=FontWeight.SemiBold,fontSize=20.sp)
         listOf(Triple("Steps",day?.steps?.toDouble(),goals.steps),Triple("Active calories",day?.activeCalories,goals.activeCalories)).forEachIndexed{index,(label,value,goal)->
             val color=if(index==0)Lime else Orange

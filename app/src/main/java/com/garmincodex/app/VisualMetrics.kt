@@ -16,7 +16,7 @@ import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
 /** Comparable quantities share a zero-based scale. Missing readings never become zero. */
-@Composable internal fun MetricBars(rows:List<Triple<String,Double?,String>>,tint:Color=Lime,scale:Double?=null) {
+@Composable internal fun MetricBars(rows:List<Triple<String,Double?,String>>,tint:Color=LocalPulseStyle.current.primary,scale:Double?=null) {
     val ceiling=(scale ?: rows.mapNotNull{it.second?.takeIf{v->v.isFinite() && v>=0}}.maxOrNull() ?: 1.0).coerceAtLeast(1.0)
     val reveal=chartEntrance(rows)
     rows.forEachIndexed { index,(label,value,display) ->
@@ -35,7 +35,7 @@ import java.time.format.DateTimeFormatter
     var selected by remember(end){mutableIntStateOf(6)}
     val ceiling=maxOf(need,values.filterNotNull().maxOrNull() ?: need,1).toFloat()
     val reveal=chartEntrance()
-    val tint=Color(0xFFA9B6FF)
+    val tint=LocalPulseStyle.current.violet
     val value=values[selected]
     Text("${dates[selected].format(DateTimeFormatter.ofPattern("EEE d MMM"))} · ${value?.let{"${it/60}h ${it%60}m"} ?: "No sleep record"}",color=tint,fontSize=14.sp)
     Box(Modifier.fillMaxWidth().height(132.dp)) {

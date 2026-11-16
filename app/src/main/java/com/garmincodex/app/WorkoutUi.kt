@@ -22,8 +22,15 @@ import kotlin.math.roundToInt
 private fun workoutTime(time:Long)=Instant.ofEpochMilli(time).atZone(ZoneId.systemDefault()).format(DateTimeFormatter.ofPattern("d MMM yyyy · HH:mm"))
 private fun minutes(w:Workout)=(w.end-w.start)/60000.0
 private fun decimal(value:Double)=String.format(java.util.Locale.US,"%.1f",value)
-@Composable private fun WorkoutCard(content:@Composable ColumnScope.()->Unit) { Column(Modifier.fillMaxWidth().background(Brush.linearGradient(listOf(Color(0xFF29221D),Color(0xFF171D1A))),RoundedCornerShape(26.dp)).border(1.dp,Orange.copy(alpha=.09f),RoundedCornerShape(26.dp)).padding(20.dp),verticalArrangement=Arrangement.spacedBy(12.dp),content=content) }
+@Composable private fun WorkoutCard(content:@Composable ColumnScope.()->Unit) {
+    val palette = LocalPulseStyle.current
+    val Orange = palette.warm
+ Column(Modifier.fillMaxWidth().background(Brush.linearGradient(listOf(Color(0xFF29221D),Color(0xFF171D1A))),RoundedCornerShape(26.dp)).border(1.dp,Orange.copy(alpha=.09f),RoundedCornerShape(26.dp)).padding(20.dp),verticalArrangement=Arrangement.spacedBy(12.dp),content=content) }
 @Composable internal fun WorkoutLibrary(workouts:List<Workout>, checkIns:List<WorkoutCheckIn>, resting:Int, maximum:Int, onCheckIn:(WorkoutCheckIn)->Unit,onImport:()->Unit,onPermissions:()->Unit,onRemove:(String)->Unit,message:String?,busy:Boolean,miles:Boolean=false,onMiles:(Boolean)->Unit={}) {
+    val palette = LocalPulseStyle.current
+    val Lime = palette.primary
+    val Orange = palette.warm
+
     var selectedId by remember { mutableStateOf<String?>(null) }
     var filter by rememberSaveable { mutableStateOf("All") }
     var window by rememberSaveable { mutableIntStateOf(0) }
@@ -49,6 +56,10 @@ private fun decimal(value:Double)=String.format(java.util.Locale.US,"%.1f",value
     selectedId?.let { id -> workouts.firstOrNull {it.id==id}?.let { w -> WorkoutDetails(w,workouts,checkIns.firstOrNull {it.workoutId==id},resting,maximum,onCheckIn,{onRemove(id);selectedId=null},miles) {selectedId=null} } }
 }
 @Composable internal fun WorkoutDetails(w:Workout,all:List<Workout>,checkIn:WorkoutCheckIn?,resting:Int,maximum:Int,onSave:(WorkoutCheckIn)->Unit,onRemove:()->Unit,miles:Boolean=false,onClose:()->Unit) {
+    val palette = LocalPulseStyle.current
+    val Lime = palette.primary
+    val Orange = palette.warm
+
     val points=remember(w.chart){WorkoutAnalysis.points(w)}
     val load=remember(points,resting,maximum){DailyAnalysis.load(points,resting,maximum)}
     val chart=remember(points){points.groupBy { (it.time-w.start)/((w.end-w.start)/500).coerceAtLeast(1000) }.values.map { chunk -> HrPoint(chunk.first().time,chunk.map {it.bpm}.average().roundToInt()) }.joinToString(";"){"${it.time},${it.bpm}"}}
@@ -56,7 +67,7 @@ private fun decimal(value:Double)=String.format(java.util.Locale.US,"%.1f",value
     var soreness by remember(w.id,checkIn){mutableIntStateOf(checkIn?.soreness ?: 0)}
     val saved = checkIn?.effort == effort && checkIn.soreness == soreness
     var deleting by remember {mutableStateOf(false)}
-    Dialog(onDismissRequest=onClose,properties=DialogProperties(usePlatformDefaultWidth=false)) { Surface(Modifier.fillMaxSize(),color=Color(0xFF0C1018)) { Column(Modifier.safeDrawingPadding().verticalScroll(rememberScrollState()).padding(20.dp),verticalArrangement=Arrangement.spacedBy(16.dp)) {
+    Dialog(onDismissRequest=onClose,properties=DialogProperties(usePlatformDefaultWidth=false)) { Surface(Modifier.fillMaxSize(),color=palette.background) { Column(Modifier.safeDrawingPadding().verticalScroll(rememberScrollState()).padding(20.dp),verticalArrangement=Arrangement.spacedBy(16.dp)) {
         TextButton(onClick=onClose){Text("‹ Workouts")}
         Text(w.title,fontSize=32.sp,fontWeight=FontWeight.Bold)
         Text(workoutTime(w.start),color=Lime)

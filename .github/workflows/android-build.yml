@@ -25,13 +25,9 @@ jobs:
         with:
           path: .signing/pulse-test.jks
           key: pulse-explicit-testing-signing-v1
-      - name: Create testing identity if absent
-        run: |
-          mkdir -p .signing
-          if [ ! -f .signing/pulse-test.jks ]; then
-            keytool -genkeypair -keystore .signing/pulse-test.jks -storepass android -keypass android -alias androiddebugkey -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Pulse Testing,O=Pulse,C=US"
-          fi
-          test -s .signing/pulse-test.jks
+          fail-on-cache-miss: true
+      - name: Require existing update identity
+        run: test -s .signing/pulse-test.jks
       - name: Install SDK
         run: sdkmanager 'platforms;android-36' 'build-tools;36.0.0'
       - name: Build, test and lint
@@ -40,7 +36,8 @@ jobs:
           ./gradlew assembleDebug testDebugUnitTest lintDebug --no-daemon
       - name: Verify APK signature
         run: |
-          "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify --verbose --print-certs app/build/outputs/apk/debug/app-debug.apk
+          "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify --verbose --print-certs app/build/outputs/apk/debug/app-debug.apk | tee signing-verification.txt
+          grep -F "Signer #1 certificate SHA-256 digest: 4db58908d9a1bc9ec251ccd7f0ca3d9182b1371c0c79a3f1ce8413e1a5e48a63" signing-verification.txt
       - name: Upload installable debug-signed APK
         uses: actions/upload-artifact@v4
         with:

@@ -30,6 +30,11 @@ private val AgeMuted=Color(0xFFA9B5CA)
 private val FactorColors=listOf(Color(0xFF88B5FF),Color(0xFFC0AFF5),AgeMint,Color(0xFFFFB28D))
 private fun ageNumber(value:Double)=String.format(Locale.US,"%.1f",value)
 @Composable internal fun FitnessAgePage(days:List<ConnectedDay>,goals:PersonalGoals,onAge:()->Unit) {
+    val palette = LocalPulseStyle.current
+    val AgeMint = palette.primary
+    val AgeMuted = palette.muted
+    val FactorColors = listOf(palette.primary,palette.violet,palette.secondary,palette.warm)
+
     val today=LocalDate.now()
     val result=remember(days,goals.age,today){FitnessAgeModel.calculate(days,goals.age,today)}
     var section by rememberSaveable{mutableStateOf("Overview")}
@@ -81,6 +86,10 @@ private fun ageNumber(value:Double)=String.format(Locale.US,"%.1f",value)
     } }
 }
 @Composable private fun CalibrationCard(result:FitnessAgeResult,onAge:()->Unit,missingAge:Boolean) {
+    val palette = LocalPulseStyle.current
+    val AgeMint = palette.primary
+    val AgeMuted = palette.muted
+
     JournalCard("BUILDING YOUR PICTURE") {
         LinearProgressIndicator(progress={result.days.coerceAtMost(14)/14f},modifier=Modifier.fillMaxWidth(),color=AgeMint)
         Text(result.reason,fontSize=13.sp,color=AgeMuted)
@@ -89,9 +98,13 @@ private fun ageNumber(value:Double)=String.format(Locale.US,"%.1f",value)
     }
 }
 @Composable private fun FactorChart(factors:List<FitnessFactor>,selected:Int=-1,onFactor:(Int)->Unit) {
+    val palette = LocalPulseStyle.current
+    val AgeMuted = palette.muted
+    val FactorColors = listOf(palette.primary,palette.violet,palette.secondary,palette.warm)
+
     val reveal=chartEntrance()
     Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(8.dp)) {
-        factors.forEachIndexed{i,factor->Column(Modifier.weight(1f).background(Color(0xFF192232),RoundedCornerShape(16.dp)).border(1.dp,if(i==selected) FactorColors[i] else Color.Transparent,RoundedCornerShape(16.dp)).clickable(role=Role.Button,onClickLabel="Explore ${factor.name}"){onFactor(i)}.padding(horizontal=6.dp,vertical=10.dp).semantics{contentDescription="${factor.name}: ${factor.score.roundToInt()} out of 100"},horizontalAlignment=Alignment.CenterHorizontally,verticalArrangement=Arrangement.spacedBy(5.dp)) {
+        factors.forEachIndexed{i,factor->Column(Modifier.weight(1f).background(palette.surface,RoundedCornerShape(16.dp)).border(1.dp,if(i==selected) FactorColors[i] else Color.Transparent,RoundedCornerShape(16.dp)).clickable(role=Role.Button,onClickLabel="Explore ${factor.name}"){onFactor(i)}.padding(horizontal=6.dp,vertical=10.dp).semantics{contentDescription="${factor.name}: ${factor.score.roundToInt()} out of 100"},horizontalAlignment=Alignment.CenterHorizontally,verticalArrangement=Arrangement.spacedBy(5.dp)) {
             Text("${factor.score.roundToInt()}",fontSize=18.sp,fontWeight=FontWeight.Bold,color=FactorColors[i])
             Box(Modifier.height(30.dp).width(18.dp).background(Color.White.copy(alpha=.06f),RoundedCornerShape(8.dp)),contentAlignment=Alignment.BottomCenter){Box(Modifier.fillMaxWidth().fillMaxHeight((factor.score/100*reveal).toFloat().coerceIn(0f,1f)).background(FactorColors[i],RoundedCornerShape(8.dp)))}
             Text(listOf("Move","Sleep","Routine","Cardio")[i],fontSize=10.sp,color=AgeMuted,maxLines=1)
@@ -99,6 +112,10 @@ private fun ageNumber(value:Double)=String.format(Locale.US,"%.1f",value)
     }
 }
 @Composable private fun AgeHistory(days:List<ConnectedDay>,age:Int?,today:LocalDate) {
+    val palette = LocalPulseStyle.current
+    val AgeMint = palette.primary
+    val AgeMuted = palette.muted
+
     val dates=remember(today){(13 downTo 0).map{today.minusDays(it.toLong())}}
     val values=remember(days,age,today){dates.map{FitnessAgeModel.calculate(days,age,it).age}}
     var selected by rememberSaveable{mutableIntStateOf(13)}
@@ -123,6 +140,9 @@ private fun ageNumber(value:Double)=String.format(Locale.US,"%.1f",value)
 }
 
 @Composable private fun AuroraOrb(modifier:Modifier) {
+    val palette = LocalPulseStyle.current
+    val AgeMint = palette.primary
+
     val transition=rememberInfiniteTransition(label="fluid-orb")
     val phase=transition.animateFloat(0f,2*PI.toFloat(),infiniteRepeatable(tween(24000,easing=LinearEasing)),label="outward-flow")
     val particles=remember{val r=Random(165);List(180){floatArrayOf(r.nextFloat()*2*PI.toFloat(),r.nextFloat(),r.nextFloat(),r.nextFloat())}}
@@ -135,16 +155,19 @@ private fun ageNumber(value:Double)=String.format(Locale.US,"%.1f",value)
         for(i in 0..120){val a=i*2*PI/120;val r=radius*(1+.022*sin(3*a+t)+.012*cos(5*a-2*t));val p=center+Offset((cos(a)*r).toFloat(),(sin(a)*r).toFloat());if(i==0)path.moveTo(p.x,p.y) else path.lineTo(p.x,p.y)}
         path.close()
         drawCircle(Brush.radialGradient(listOf(AgeMint.copy(alpha=.04f*entrance),Color.Transparent),center,radius*1.08f),radius*1.08f)
-        drawPath(path,Brush.radialGradient(listOf(Color(0xFF111A2B),Color(0xFF233559),AgeMint.copy(alpha=.23f*entrance)),center,radius))
+        drawPath(path,Brush.radialGradient(listOf(palette.background,palette.primary.copy(alpha=.13f).compositeOver(palette.surface),AgeMint.copy(alpha=.23f*entrance)),center,radius))
         clipPath(path){
             particles.forEach{p->val travel=(p[1]+t/(2*PI.toFloat()))%1f;val a=p[0]+.16f*sin(t+p[0])+travel*.2f;val r=radius*(.1f+.9f*travel);val fade=(travel*4).coerceAtMost(1f)*((1-travel)*6).coerceAtMost(1f);drawCircle((if(p[2]>.75f)Color(0xFF9DDCFF) else AgeMint).copy(alpha=(.2f+p[2]*.55f)*fade*entrance),( .65f+p[3]*1.2f).dp.toPx(),center+Offset(cos(a)*r,sin(a)*r))}
         }
         drawPath(path,Brush.sweepGradient(listOf(AgeMint.copy(alpha=.1f),Color(0xFF9DDCFF).copy(alpha=.65f),AgeMint.copy(alpha=.15f),AgeMint.copy(alpha=.1f)),center),style=Stroke(1.2.dp.toPx()))
-        drawCircle(Brush.radialGradient(listOf(Color(0xFF111A2B).copy(alpha=.97f),Color(0xFF111A2B).copy(alpha=.8f),Color.Transparent),center,radius*.72f),radius*.72f)
+        drawCircle(Brush.radialGradient(listOf(palette.background.copy(alpha=.97f),palette.background.copy(alpha=.8f),Color.Transparent),center,radius*.72f),radius*.72f)
     }
 }
 
 @Composable private fun FitnessExplanation(label:String,text:String) {
+    val palette = LocalPulseStyle.current
+    val AgeMuted = palette.muted
+
     var expanded by remember{mutableStateOf(false)}
     TextButton(onClick={expanded=!expanded},contentPadding=PaddingValues(0.dp)){Text(if(expanded) "Hide explanation" else label,fontSize=12.sp)}
     if(expanded) Text(text,fontSize=12.sp,color=AgeMuted)

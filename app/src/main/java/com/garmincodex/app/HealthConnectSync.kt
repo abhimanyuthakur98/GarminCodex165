@@ -25,6 +25,8 @@ class HealthConnectSync(private val context: Context, private val dao: DailyDao)
     private val prefs = context.getSharedPreferences("health_sync", Context.MODE_PRIVATE)
     val status = MutableStateFlow(SyncState(lastSync = prefs.getLong("lastSync", 0), diagnostics = prefs.getString("diagnostics", "") ?: "", sources = prefs.getStringSet("sources", emptySet())!!.sorted(), stepSource=prefs.getString("stepSource", "") ?: ""))
     fun saveStepSource(pkg:String) { prefs.edit().putString("stepSource",pkg).apply();status.value=status.value.copy(stepSource=pkg) }
+    val appearance=MutableStateFlow(PulseStyle.fromId(prefs.getString("appearance",null)))
+    fun saveAppearance(value:PulseStyle) { prefs.edit().putString("appearance",value.name).apply();appearance.value=value }
     val goals = MutableStateFlow(PersonalGoals(prefs.getInt("stepGoal", 8000), prefs.getInt("activeGoal", 500), prefs.getInt("age", 0).takeIf { it in 18..100 }, prefs.getInt("wakeMinute", 420)))
     fun saveGoals(value: PersonalGoals) {
         value.validate()

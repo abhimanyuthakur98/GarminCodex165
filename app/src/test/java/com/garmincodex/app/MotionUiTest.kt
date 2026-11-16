@@ -41,7 +41,7 @@ class MotionUiTest {
         System.setProperty("roborazzi.test.record", "true")
         var selected by mutableIntStateOf(0)
         compose.setContent { PulseTheme { PulseDock(selected) { selected=it } } }
-        listOf("Today","Trends","Fitness Age","Connect","Workouts").forEachIndexed { i,label ->
+        listOf("Today","Trends","Fitness Age","Settings","Workouts").forEachIndexed { i,label ->
             compose.onNodeWithText(label).assertIsDisplayed().performClick()
             compose.runOnIdle { assertEquals(i,selected) }
         }

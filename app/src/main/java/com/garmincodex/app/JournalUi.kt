@@ -18,6 +18,9 @@ import java.util.UUID
 
 private val JournalMuted=Color(0xFFA4B2AB)
 @Composable internal fun JournalPage(entries:List<JournalEntry>,tags:List<HabitTag>,days:List<ConnectedDay>,workouts:List<Workout>,onSave:(JournalEntry)->Unit,onTag:(HabitTag)->Unit,onDelete:(String)->Unit,onClear:()->Unit,reminder:JournalReminder,onReminder:(JournalReminder)->Unit,initialDate:String=LocalDate.now().toString(),openRequest:Int=0) {
+    val palette = LocalPulseStyle.current
+    val Lime = palette.primary
+
     var date by rememberSaveable(initialDate) {mutableStateOf(initialDate)}
     var tab by rememberSaveable {mutableIntStateOf(0)}
     var month by rememberSaveable(initialDate) {mutableStateOf(YearMonth.from(LocalDate.parse(initialDate)).toString())}
@@ -34,7 +37,7 @@ private val JournalMuted=Color(0xFFA4B2AB)
             ReminderCard(reminder,onReminder)
         }
         1 -> {
-            JournalCard("PATTERNS, NOT PROOF",Color(0xFFA9B6FF)) {
+            JournalCard("PATTERNS, NOT PROOF",palette.violet) {
                 Text("Your habits & next morning",fontSize=24.sp,fontWeight=FontWeight.Bold)
                 Text("Last 90 logged days, paired with the following morning. Differences appear after 5 yes and 5 no days with an outcome. Unanswered questions are excluded. These associations can reflect other factors; they do not establish cause.",fontSize=12.sp,color=JournalMuted)
             }
@@ -99,14 +102,19 @@ private val JournalMuted=Color(0xFFA4B2AB)
     }
 }
 @Composable private fun RatingRow(label:String,value:Int?,hint:String,onChange:(Int?)->Unit) {
+    val palette = LocalPulseStyle.current
+    val Lime = palette.primary
+
     Text(label,fontWeight=FontWeight.SemiBold);Text(hint,color=JournalMuted,fontSize=11.sp)
     Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(6.dp)){(1..5).forEach {n->OutlinedButton(onClick={onChange(if(value==n)null else n)},modifier=Modifier.weight(1f).testTag("$label-$n"),contentPadding=PaddingValues(0.dp),colors=ButtonDefaults.outlinedButtonColors(containerColor=if(value==n)Lime else Color.Transparent,contentColor=if(value==n)Color.Black else Color.White)){Text(n.toString())}}}
 }
 @Composable private fun AnswerRow(label:String,value:Boolean?,onChange:(Boolean?)->Unit) {Row(horizontalArrangement=Arrangement.spacedBy(8.dp)){listOf(true,false).forEach{v->FilterChip(value==v,{onChange(if(value==v)null else v)},label={Text(if(v) "Yes" else "No")},modifier=Modifier.testTag("$label-$v"))}}}
 @Composable private fun ReminderCard(reminder:JournalReminder,onChange:(JournalReminder)->Unit) {
+    val palette = LocalPulseStyle.current
+
     var time by remember(reminder.minute){mutableStateOf("%02d:%02d".format(reminder.minute/60,reminder.minute%60))}
     val parsed=DailyCoach.parseWake(time)
-    JournalCard("A GENTLE NUDGE",Color(0xFFA9B6FF)) {
+    JournalCard("A GENTLE NUDGE",palette.violet) {
         Text("Your daily reminder",fontSize=22.sp,fontWeight=FontWeight.Bold)
         OutlinedTextField(time,{time=it.take(5)},label={Text("Local time · HH:mm")},singleLine=true,modifier=Modifier.fillMaxWidth().testTag("reminder-time"),isError=parsed==null)
         Button(enabled=parsed!=null,onClick={parsed?.let{onChange(JournalReminder(true,it.hour*60+it.minute))}}){Text(if(reminder.enabled) "Update reminder" else "Enable reminder")}

@@ -73,6 +73,7 @@ class MainActivity : ComponentActivity() {
         })[DashboardViewModel::class.java]
         lifecycleScope.launch { repeatOnLifecycle(Lifecycle.State.RESUMED) { while(true) { delay(120000); vm.refresh() } } }
         setContent {
+            val appearance by vm.sync.appearance.collectAsStateWithLifecycle()
             val dashboardPreferences by vm.sync.dashboardPreferences.collectAsStateWithLifecycle()
             val workouts by vm.workouts.collectAsStateWithLifecycle()
             val checkIns by vm.checkIns.collectAsStateWithLifecycle()
@@ -87,7 +88,7 @@ class MainActivity : ComponentActivity() {
             val live by vm.state.collectAsStateWithLifecycle()
             val connection by vm.connection.collectAsStateWithLifecycle()
             val watches by vm.devices.collectAsStateWithLifecycle()
-            PulseTheme {
+            PulseTheme(style=appearance) {
                 PulseDashboard(days, sync, live, connection, uiMessage.value, vm.sync.sleepNeed, vm.sync.maximumHr, vm.sync.restingHr,
                     onConnect = ::connectHealth, onSync = { vm.refresh { success -> uiMessage.value=if(success && vm.sync.status.value.message.startsWith("Imported ")) "Health data refreshed" else vm.sync.status.value.message } },
                     onHealthSettings = { open(Intent(HealthConnectClient.ACTION_HEALTH_CONNECT_SETTINGS)) },
@@ -96,7 +97,7 @@ class MainActivity : ComponentActivity() {
                     onProfile = { n, m, r -> vm.sync.saveProfile(n, m, r); vm.refresh() }, onClear = { vm.clearImported() },
                     onLive = { stopService(Intent(this, TrackingService::class.java)); blePermissions.launch(if (Build.VERSION.SDK_INT >= 31) arrayOf(Manifest.permission.BLUETOOTH_SCAN, Manifest.permission.BLUETOOTH_CONNECT) else arrayOf(Manifest.permission.ACCESS_FINE_LOCATION)) },
                     onStop = { vm.stop(); stopService(Intent(this, TrackingService::class.java)) },
-                    goals = goals, onGoals = { vm.sync.saveGoals(it) }, preferences = if(intent.getBooleanExtra("openJournal",false)) dashboardPreferences.copy(startPage=5) else if(intent.getBooleanExtra("openToday",false)) dashboardPreferences.copy(startPage=0) else dashboardPreferences, onPreferences = { vm.sync.saveDashboard(it) }, workouts = workouts, checkIns = checkIns, onCheckIn = vm::saveCheckIn, onImportFit = { fitPicker.launch(arrayOf("*/*")) }, onRemoveWorkout = vm::removeWorkout, workoutMessage = workoutMessage, importingFit = importingFit, journal = journal, habits = habits, onJournal = vm::saveJournal, onHabit = vm::saveHabit, onDeleteJournal = vm::deleteJournal, onClearJournal = vm::clearJournal, reminder = reminderState.value, onReminder = ::setJournalReminder, miles = miles, onMiles = vm.sync::saveDistanceMiles, onDismissMessage = {uiMessage.value=null}, onStepSource = { vm.sync.saveStepSource(it); vm.refresh() })
+                    goals = goals, onGoals = { vm.sync.saveGoals(it) }, preferences = if(intent.getBooleanExtra("openJournal",false)) dashboardPreferences.copy(startPage=5) else if(intent.getBooleanExtra("openToday",false)) dashboardPreferences.copy(startPage=0) else dashboardPreferences, onPreferences = { vm.sync.saveDashboard(it) }, workouts = workouts, checkIns = checkIns, onCheckIn = vm::saveCheckIn, onImportFit = { fitPicker.launch(arrayOf("*/*")) }, onRemoveWorkout = vm::removeWorkout, workoutMessage = workoutMessage, importingFit = importingFit, journal = journal, habits = habits, onJournal = vm::saveJournal, onHabit = vm::saveHabit, onDeleteJournal = vm::deleteJournal, onClearJournal = vm::clearJournal, reminder = reminderState.value, onReminder = ::setJournalReminder, miles = miles, onMiles = vm.sync::saveDistanceMiles, onDismissMessage = {uiMessage.value=null}, onStepSource = { vm.sync.saveStepSource(it); vm.refresh() }, appearance=appearance, onAppearance=vm.sync::saveAppearance)
                 if (choosing.value) WatchDialog(watches, connection, { choosing.value = false }, { vm.scan() }) {
                     vm.select(it); choosing.value = false
                     try { ContextCompat.startForegroundService(this, Intent(this, TrackingService::class.java)) }

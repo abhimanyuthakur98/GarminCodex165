@@ -19,8 +19,14 @@ import java.time.*
 import java.time.format.DateTimeFormatter
 import kotlin.math.roundToInt
 
-@Composable private fun CoachCard(title: String, content: @Composable ColumnScope.() -> Unit) { JournalCard(title, if(title.contains("SLEEP")) Color(0xFFA9B6FF) else if(title.contains("WEEK")) Color(0xFF8FD8CE) else Lime, content) }
+@Composable private fun CoachCard(title: String, content: @Composable ColumnScope.() -> Unit) {
+    val palette = LocalPulseStyle.current
+    val Lime = palette.primary
+ JournalCard(title, if(title.contains("SLEEP")) palette.violet else if(title.contains("WEEK")) palette.secondary else Lime, content) }
 @Composable internal fun MorningBriefing(day: ConnectedDay?, days: List<ConnectedDay>, date: String, need: Int) {
+    val palette = LocalPulseStyle.current
+    val Lime = palette.primary
+
     CoachCard(if (date == LocalDate.now().toString()) "YOUR MORNING BRIEFING" else "DAY BRIEFING") {
         Text("Your day, explained.", fontSize = 24.sp, fontWeight = FontWeight.Bold)
         var expanded by remember(date) { mutableStateOf(false) }
@@ -31,13 +37,15 @@ import kotlin.math.roundToInt
     }
 }
 @Composable internal fun SleepPlanner(days: List<ConnectedDay>, goals: PersonalGoals, need: Int, onGoals: (PersonalGoals) -> Unit) {
+    val palette = LocalPulseStyle.current
+
     var edit by remember { mutableStateOf(false) }
     var input by remember(goals.wakeMinute) { mutableStateOf("%02d:%02d".format(goals.wakeMinute / 60, goals.wakeMinute % 60)) }
     val parsed = DailyCoach.parseWake(input)
     val shortage = DailyCoach.shortfall(days, LocalDate.now(), need)
     CoachCard("SLEEP PLANNER") {
         Text("Make room for rest.", fontSize = 24.sp, fontWeight = FontWeight.Bold)
-        Text("Bedtime ${DailyCoach.bedtime(goals.wakeMinute, need)}  →  Wake ${LocalTime.of(goals.wakeMinute / 60, goals.wakeMinute % 60)}", fontSize = 20.sp, color = Color(0xFFA9B6FF))
+        Text("Bedtime ${DailyCoach.bedtime(goals.wakeMinute, need)}  →  Wake ${LocalTime.of(goals.wakeMinute / 60, goals.wakeMinute % 60)}", fontSize = 20.sp, color = palette.violet)
         Text("Allows ${need / 60}h ${need % 60}m for your sleep goal. Plan extra time to wind down and fall asleep.", fontSize = 13.sp)
         WeekSleepChart(days,LocalDate.now(),need)
         Text("${shortage.first / 60}h ${shortage.first % 60}m below goal · ${shortage.second}/7 recorded nights", color = Color.Gray, fontSize = 12.sp)
@@ -51,6 +59,9 @@ import kotlin.math.roundToInt
     }
 }
 @Composable internal fun WeeklyReport(days: List<ConnectedDay>, need: Int) {
+    val palette = LocalPulseStyle.current
+    val Lime = palette.primary
+
     val end = LocalDate.now()
     CoachCard("YOUR WEEKLY REPORT") {
         Text("Seven days in perspective.", fontSize = 24.sp, fontWeight = FontWeight.Bold)
@@ -68,6 +79,10 @@ import kotlin.math.roundToInt
     }
 }
 @Composable internal fun DataStatusCard(day: ConnectedDay?, sync: SyncState, onPermissions: () -> Unit, onSettings: () -> Unit, days: List<ConnectedDay> = emptyList()) {
+    val palette = LocalPulseStyle.current
+    val Lime = palette.primary
+    val Orange = palette.warm
+
     var expanded by remember { mutableStateOf(false) }
     CoachCard("DATA STATUS") {
         Text(if (sync.busy) "Importing shared records…" else if (sync.lastSync == 0L) "No successful import yet" else "Last import: " + Instant.ofEpochMilli(sync.lastSync).atZone(ZoneId.systemDefault()).format(DateTimeFormatter.ofPattern("d MMM, HH:mm")), fontSize = 13.sp)

@@ -35,7 +35,8 @@ class DashboardUiTest {
         compose.onNodeWithText("Trends").performClick()
         compose.onNodeWithContentDescription("Select trend date").performScrollTo().assertIsDisplayed()
         compose.onRoot().captureRoboImage("build/screenshots/trends.png")
-        compose.onNodeWithText("Connect").performClick()
+        compose.onNodeWithText("Settings").performClick()
+        compose.onNodeWithText("Connections & imports").performScrollTo().performClick()
         compose.onNodeWithText("Connect Health Connect").performScrollTo().assertIsDisplayed()
         compose.onRoot().captureRoboImage("build/screenshots/connect.png")
     }
