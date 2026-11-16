@@ -1,3 +1,15 @@
+## 0.13.0 test build: Fitness Age v2 and device-independent imports
+
+- Fitness Age v2 uses all qualifying days from a rolling 28-day window (14 minimum, at least 4 in the last week). Today is excluded. Missing/invalid records do not become zero scores. Each day needs nonnegative steps, known sleep (no more than 30 unknown minutes) and at least eight hours of HR coverage with valid zone totals.
+- Weights: daily movement 30%, sleep duration 20%, activity consistency 10%, cardio 40%. Movement and sleep are capped per day; excess on one day cannot erase a deficit on another. Recovery is context for advice, not another sleep-derived input. Factors, habit suggestions, data coverage, history and the full formula are visible in the Fitness Age tab.
+- The numerical age mapping remains an **unvalidated illustration**, not Garmin Fitness Age, physiological age, VO₂ max or a longevity prediction. The reference settings and arbitrary age mapping are disclosed in-app. v1 history is recomputed under v2, clearly labelled.
+- Health Connect reads are no longer restricted to Garmin. Samsung Health and other apps can supply the supported record types when the user enables sharing. Android pairing alone does not provide data. No claim of compatibility with every device or of completed physical-device testing is made.
+- Activity totals use Health Connect aggregation and its source priority. Raw HR uses the source with most usable coverage per day; resting HR/HRV use one source per day. Main sleep is selected once per wake date. Mirrored workouts of the same type with at least 80% overlap across different sources are counted once. These deterministic policies avoid blending raw sensor streams but cannot resolve every differently named mirrored workout.
+- Sync refreshes the preceding 28 days plus today, within the initial Health Connect reading window. Source apps may not backfill history. Days with unstaged sleep remain unknown rather than inventing asleep time.
+- **Testing APK:** debug builds use package com.garmincodex.app.preview, labelled **Pulse Preview**, and install alongside the existing app. This checkout does not contain its original signing key. Connect permissions and set age/HR profile again in Preview; existing Pulse data is untouched. Future updates need a stable signing key before shipping as the original package.
+
+References: [Android aggregate/source priority](https://developer.android.com/health-and-fitness/health-connect/aggregate-data), [Samsung Health Connect support](https://developer.samsung.com/health/health-connect-faq.html), [WHO activity guidance](https://www.who.int/europe/news-room/fact-sheets/item/physical-activity), [CDC sleep guidance](https://www.cdc.gov/sleep/about/). These support general habits/integration, **not** the age conversion, weights or HR-zone proxy.
+
 # Pulse 165 — real Garmin daily dashboard
 
 Native Android / Kotlin / Compose companion for Garmin Forerunner 165. Version **0.12.0** refines navigation, remembered tab state, refresh feedback and keyboard handling. The app name and pulse icon are unchanged.

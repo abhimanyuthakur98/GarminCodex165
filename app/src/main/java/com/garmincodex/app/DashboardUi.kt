@@ -42,7 +42,7 @@ private fun clock(t: Long?) = t?.let { Instant.ofEpochMilli(it).atZone(ZoneId.sy
 @Composable private fun Panel(content: @Composable ColumnScope.() -> Unit) { Column(Modifier.fillMaxWidth().background(Brush.linearGradient(listOf(Color(0xFF212825), Card)), RoundedCornerShape(24.dp)).border(1.dp, Color.White.copy(alpha = .06f), RoundedCornerShape(24.dp)).padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp), content = content) }
 
 @Composable fun PulseDashboard(days: List<ConnectedDay>, sync: SyncState, live: DashboardState, connection: String, message: String?, sleepNeed: Int, maximumHr: Int, restingHr: Int,
-    onConnect: () -> Unit, onSync: () -> Unit, onHealthSettings: () -> Unit, onGarmin: () -> Unit, onBackground: () -> Unit,
+    onConnect: () -> Unit, onSync: () -> Unit, onHealthSettings: () -> Unit, onSourceApp: () -> Unit, onBackground: () -> Unit,
     onProfile: (Int, Int, Int) -> Unit, onClear: () -> Unit, onLive: () -> Unit, onStop: () -> Unit, goals: PersonalGoals = PersonalGoals(), onGoals: (PersonalGoals) -> Unit = {}, preferences: DashboardPreferences = DashboardPreferences(), onPreferences: (DashboardPreferences) -> Unit = {}, workouts: List<Workout> = emptyList(), checkIns: List<WorkoutCheckIn> = emptyList(), onCheckIn: (WorkoutCheckIn) -> Unit = {}, onImportFit: () -> Unit = {}, onRemoveWorkout: (String) -> Unit = {}, workoutMessage: String? = null, importingFit: Boolean = false, journal: List<JournalEntry> = emptyList(), habits: List<HabitTag> = emptyList(), onJournal: (JournalEntry) -> Unit = {}, onHabit: (HabitTag) -> Unit = {}, onDeleteJournal: (String) -> Unit = {}, onClearJournal: () -> Unit = {}, reminder: JournalReminder = JournalReminder(), onReminder: (JournalReminder) -> Unit = {}, miles: Boolean = false, onMiles: (Boolean) -> Unit = {}, onDismissMessage: () -> Unit = {}) {
     var expandedToday by rememberSaveable { mutableStateOf(false) }
     var journalRequest by rememberSaveable { mutableIntStateOf(0) }
@@ -85,7 +85,7 @@ private fun clock(t: Long?) = t?.let { Instant.ofEpochMilli(it).atZone(ZoneId.sy
                     TextButton(onClick={expandedToday=false}) { Text("‹ Back to snapshot") }
                     WeekStrip(selected) { selected = it }
                     if (!preview && (sync.busy || sync.lastSync == 0L || day?.hrCount == 0)) Text(sync.message, color = Muted, fontSize = 12.sp)
-                    if (!preview && sync.lastSync == 0L) SetupCard(onConnect, onGarmin, onHealthSettings)
+                    if (!preview && sync.lastSync == 0L) SetupCard(onConnect, onSourceApp, onHealthSettings)
                     Row(Modifier.fillMaxWidth().background(Brush.linearGradient(listOf(Color(0xFF19291F),Color(0xFF101A18))),RoundedCornerShape(28.dp)).border(1.dp,Color.White.copy(alpha=.06f),RoundedCornerShape(28.dp)).padding(vertical=18.dp,horizontal=8.dp), horizontalArrangement = Arrangement.SpaceEvenly) {
                         RingMetric("SLEEP", day?.asleep?.let { "${(100.0 * it / needState).roundToInt().coerceAtMost(100)}%" } ?: "—", day?.asleep?.div(needState.toFloat()) ?: 0f, Purple, Modifier.weight(1f)) { detail = "sleep" }
                         RingMetric("RECOVERY", day?.recovery?.let { "$it%" } ?: "—", (day?.recovery ?: 0) / 100f, recoveryColor(day?.recovery), Modifier.weight(1f)) { detail = "recovery" }
@@ -114,8 +114,8 @@ private fun clock(t: Long?) = t?.let { Instant.ofEpochMilli(it).atZone(ZoneId.sy
                         1 -> { Box(Modifier.clickable(onClickLabel = "Sleep stage details") { detail = "sleep" }) { SleepPanel(day, needState, false) }; SleepPlanner(days, goals, needState, onGoals) }
                         2 -> { Box(Modifier.clickable(onClickLabel = "Strain details") { detail = "strain" }) { StrainPanel(day, maxState, restState) }; Box(Modifier.clickable(onClickLabel = "Heart rate details") { detail = "hr" }) { HeartPanel(day) }; LivePanel(live, connection, onLive, onStop) }
                     }
-                    if (!preview && (day == null || day.hrCount == 0 && day.sleepStart == null)) Panel { Text("No Garmin measurements for this day", fontWeight = FontWeight.Bold); Text("Sync your watch in Garmin Connect first. If sharing was just enabled, Garmin may only send new data; check after your next night of sleep.", color = Muted, fontSize = 13.sp); TextButton(onClick = { page = 3 }) { Text("Check connection & permissions") } }
-                    Text("${if (preview) "Synthetic preview" else "Garmin → Health Connect → Pulse"} • Independent estimates, not Garmin or WHOOP scores.", color = Muted, fontSize = 10.sp)
+                    if (!preview && (day == null || day.hrCount == 0 && day.sleepStart == null)) Panel { Text("No shared measurements for this day", fontWeight = FontWeight.Bold); Text("Sync your device in its companion app first. Enable sharing with Health Connect; some apps only send new data.", color = Muted, fontSize = 13.sp); TextButton(onClick = { page = 3 }) { Text("Check connection & permissions") } }
+                    Text("${if (preview) "Synthetic preview" else "Device app → Health Connect → Pulse"} • Independent estimates, not Garmin or WHOOP scores.", color = Muted, fontSize = 10.sp)
                 }
                 }
                 1 -> TrendsExplorer(days) { selected=it;expandedToday=false;page=0 }
@@ -126,7 +126,7 @@ private fun clock(t: Long?) = t?.let { Instant.ofEpochMilli(it).atZone(ZoneId.sy
                     Text("Your watch.\nYour daily picture.", fontSize = 30.sp, lineHeight = 34.sp, fontWeight = FontWeight.Bold)
                     DashboardEditor(preferences, onPreferences)
                     DataStatusCard(day, sync, onConnect, onHealthSettings, days)
-                    SetupCard(onConnect, onGarmin, onHealthSettings)
+                    SetupCard(onConnect, onSourceApp, onHealthSettings)
                     Panel {
                         Label("CONNECTION STATUS", Blue); Text(sync.message, fontSize = 14.sp)
                         Text("${sync.granted.intersect(HealthConnectSync.READ_PERMISSIONS).size}/${HealthConnectSync.READ_PERMISSIONS.size} health permissions • last import ${if (sync.lastSync > 0) clock(sync.lastSync) else "never"}", color = Muted, fontSize = 12.sp)
@@ -138,19 +138,20 @@ private fun clock(t: Long?) = t?.let { Instant.ofEpochMilli(it).atZone(ZoneId.sy
                     }
                     Panel {
                         Label("WHAT YOUR GARMIN SHARES"); Text("Heart rate · Sleep stages · Steps · Active & total calories", fontWeight = FontWeight.SemiBold)
-                        Text("Garmin does not list HRV, resting heart rate or Body Battery in its Health Connect export. HRV/RHR appear only if those record types arrive. Recovery uses sleep and overnight HR trends after 3 baseline nights.", color = Muted, fontSize = 13.sp)
+                        Text("Available metrics depend on your device app. HRV/RHR appear only if those record types arrive. Recovery uses sleep and overnight HR trends after 3 baseline nights.", color = Muted, fontSize = 13.sp)
                     }
                     Panel {
+                        if(sync.sources.isNotEmpty()) Text("Imported sources: " + sync.sources.joinToString(), fontSize = 11.sp, color = Muted)
                         Label("YOUR TARGETS"); Text("Sleep ${duration(needState)} • max HR $maxState • resting HR $restState", fontSize = 13.sp)
                         TextButton(onClick = { profile = true }) { Text("Adjust sleep & heart-rate profile") }; HorizontalDivider(color = Line)
                         Text("Live heart rate is optional", fontWeight = FontWeight.Bold)
-                        Text("Broadcast HR for a workout stream. Daily data comes from Garmin Connect even when broadcasting is off.", color = Muted, fontSize = 13.sp)
+                        Text("Broadcast HR for a workout stream. Daily data comes through Health Connect. Live HR requires a device broadcasting the standard Bluetooth Heart Rate service; not every watch supports this.", color = Muted, fontSize = 13.sp)
                         OutlinedButton(onClick = onLive) { Text("Connect live HR sensor") }
                         if (live.running) TextButton(onClick = onStop) { Text("Stop sensor stream") }
                     }
                     Panel {
                         Label("PRIVACY & TESTING")
-                        Text("Read-only, on-device storage. No Garmin password, uploads or ads. Clearing imports removes local Health Connect history and disconnects access; Garmin originals stay intact.", color = Muted, fontSize = 13.sp)
+                        Text("Read-only, on-device storage. No device-account password, uploads or ads. Clearing imports removes local Health Connect history and disconnects access; Source originals stay intact.", color = Muted, fontSize = 13.sp)
                         TextButton(onClick = { clear = true }) { Text("Clear imported data & disconnect", color = Color(0xFFFF8791)) }
                         TextButton(onClick = { preview = true; page = 0 }) { Text("Open synthetic design preview") }
                     }
@@ -160,17 +161,17 @@ private fun clock(t: Long?) = t?.let { Instant.ofEpochMilli(it).atZone(ZoneId.sy
     }
     }
     }
-    detail?.let { MetricDetails(it, day, goals, needState, maxState, restState, onGoals, sync, onConnect, onHealthSettings, onGarmin, onSync) { detail = null } }
+    detail?.let { MetricDetails(it, day, goals, needState, maxState, restState, onGoals, sync, onConnect, onHealthSettings, onSourceApp, onSync) { detail = null } }
     goalEditor?.let { GoalEditor(it, goals, { goalEditor = null }, onGoals) }
     if (profile) ProfileDialog(needState, maxState, restState, { profile = false }) { n, m, r -> needState = n; maxState = m; restState = r; onProfile(n, m, r); profile = false }
-    if (clear) AlertDialog(onDismissRequest = { clear = false }, title = { Text("Clear imported data?") }, text = { Text("Removes imported history and revokes Pulse’s Health Connect access. Garmin originals and separate BLE recordings are unchanged.") }, confirmButton = { TextButton(onClick = { onClear(); clear = false }) { Text("Clear & disconnect") } }, dismissButton = { TextButton(onClick = { clear = false }) { Text("Cancel") } })
+    if (clear) AlertDialog(onDismissRequest = { clear = false }, title = { Text("Clear imported data?") }, text = { Text("Removes imported history and revokes Pulse’s Health Connect access. Source originals and separate BLE recordings are unchanged.") }, confirmButton = { TextButton(onClick = { onClear(); clear = false }) { Text("Clear & disconnect") } }, dismissButton = { TextButton(onClick = { clear = false }) { Text("Cancel") } })
 }
-@Composable private fun SetupCard(onConnect: () -> Unit, onGarmin: () -> Unit, onSettings: () -> Unit) {
+@Composable private fun SetupCard(onConnect: () -> Unit, onSourceApp: () -> Unit, onSettings: () -> Unit) {
     Panel {
-        Label("GARMIN → HEALTH CONNECT → PULSE", Blue); Text("Bring your whole day in.", fontSize = 23.sp, fontWeight = FontWeight.Bold)
-        Text("1  In Health Connect, allow Garmin Connect to write heart rate, sleep, steps and calories.\n\n2  Open Garmin Connect and sync your Forerunner.\n\n3  Allow Pulse to read those records, then import.", color = Muted, fontSize = 13.sp, lineHeight = 20.sp)
+        Label("YOUR DEVICE → HEALTH CONNECT → PULSE", Blue); Text("Bring your whole day in.", fontSize = 23.sp, fontWeight = FontWeight.Bold)
+        Text("1  Sync your watch or tracker with its companion app, such as Samsung Health or Garmin Connect.\n\n2  In that app, enable Health Connect sharing for heart rate, sleep, steps, calories and exercise.\n\n3  Allow Pulse to read those records, then import.\n\nCompatibility depends on the companion app sharing data with Health Connect. Pairing with Android alone is not enough. In Health Connect, review data-source priority to avoid duplicate activity totals.", color = Muted, fontSize = 13.sp, lineHeight = 20.sp)
         Button(onClick = onConnect, modifier = Modifier.fillMaxWidth()) { Text("Connect Health Connect") }
-        Row { TextButton(onClick = onSettings) { Text("Sharing settings", fontSize = 12.sp) }; TextButton(onClick = onGarmin) { Text("Open Garmin", fontSize = 12.sp) } }
+        Row { TextButton(onClick = onSettings) { Text("Sharing settings", fontSize = 12.sp) }; TextButton(onClick = onSourceApp) { Text("Open device app", fontSize = 12.sp) } }
     }
 }
 @Composable private fun DateSelector(selected: String, onSelect: (String) -> Unit) {
@@ -206,7 +207,7 @@ private fun clock(t: Long?) = t?.let { Instant.ofEpochMilli(it).atZone(ZoneId.sy
     Panel {
         Label("SLEEP PERFORMANCE", Purple)
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.Bottom) { Text(duration(d?.asleep), fontSize = 34.sp, fontWeight = FontWeight.Bold); Text("/ ${duration(need)} goal", fontSize = 12.sp, color = Muted) }
-        if (d?.sleepStart == null) Text("No sleep record for this wake-up date. Sync Garmin after waking, then refresh Pulse.", color = Muted, fontSize = 13.sp)
+        if (d?.sleepStart == null) Text("No sleep record for this wake-up date. Sync your device app after waking, then refresh Pulse.", color = Muted, fontSize = 13.sp)
         else {
             Text("${clock(d.sleepStart)} — ${clock(d.sleepEnd)} • wake-up date ${d.date}", color = Muted, fontSize = 12.sp)
             if (d.asleep == null) Text("This session has no classified sleep stages. Its duration is not presented as time asleep.", color = Muted, fontSize = 12.sp)
@@ -267,7 +268,7 @@ private fun clock(t: Long?) = t?.let { Instant.ofEpochMilli(it).atZone(ZoneId.sy
 @Composable private fun TrendsPage(days: List<ConnectedDay>, need: Int, onDay: (String) -> Unit) {
     Text("Your rhythm", fontSize = 32.sp, fontWeight = FontWeight.Bold); Label("DAILY HISTORY")
     val actual = days.filter { it.hrCount > 0 || it.sleepStart != null || it.steps != null }
-    if (actual.isEmpty()) Panel { Text("Your history starts with your first import."); Text("Connect Health Connect and sync Garmin. Imported days remain available offline.", color = Muted) }
+    if (actual.isEmpty()) Panel { Text("Your history starts with your first import."); Text("Connect Health Connect and sync your device app. Imported days remain available offline.", color = Muted) }
     val entrance = chartEntrance()
     actual.forEach { d -> Column(Modifier.fillMaxWidth().background(Card, RoundedCornerShape(16.dp)).clickable { onDay(d.date) }.padding(18.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) { Text(LocalDate.parse(d.date).format(DateTimeFormatter.ofPattern("EEE, d MMM")), fontWeight = FontWeight.Bold); Text("›", color = Muted) }
@@ -279,9 +280,9 @@ private fun clock(t: Long?) = t?.let { Instant.ofEpochMilli(it).atZone(ZoneId.sy
 @Composable private fun ProfileDialog(need: Int, maximum: Int, resting: Int, onClose: () -> Unit, onSave: (Int, Int, Int) -> Unit) {
     var n by remember { mutableStateOf(need.toString()) }; var m by remember { mutableStateOf(maximum.toString()) }; var r by remember { mutableStateOf(resting.toString()) }
     val nn = n.toIntOrNull(); val mm = m.toIntOrNull(); val rr = r.toIntOrNull(); val valid = nn != null && mm != null && rr != null && nn in 300..720 && mm in 100..230 && rr in 30..100 && mm > rr
-    AlertDialog(onDismissRequest = onClose, title = { Text("Your scoring profile") }, text = { Column(verticalArrangement = Arrangement.spacedBy(10.dp)) { OutlinedTextField(n, { n = it }, label = { Text("Sleep goal (300–720 min)") }, singleLine = true); OutlinedTextField(m, { m = it }, label = { Text("Maximum HR (100–230)") }, singleLine = true); OutlinedTextField(r, { r = it }, label = { Text("Resting HR (30–100)") }, singleLine = true); Text("Use your established Garmin profile. Recalculates the last 14 imported days.", color = Muted, fontSize = 12.sp) } }, confirmButton = { TextButton(enabled = valid, onClick = { onSave(nn!!, mm!!, rr!!) }) { Text("Save & recalculate") } }, dismissButton = { TextButton(onClick = onClose) { Text("Cancel") } })
+    AlertDialog(onDismissRequest = onClose, title = { Text("Your scoring profile") }, text = { Column(verticalArrangement = Arrangement.spacedBy(10.dp)) { OutlinedTextField(n, { n = it }, label = { Text("Sleep goal (300–720 min)") }, singleLine = true); OutlinedTextField(m, { m = it }, label = { Text("Maximum HR (100–230)") }, singleLine = true); OutlinedTextField(r, { r = it }, label = { Text("Resting HR (30–100)") }, singleLine = true); Text("Use your own resting and maximum heart rates, not the defaults. Recalculates the last 28 days plus today.", color = Muted, fontSize = 12.sp) } }, confirmButton = { TextButton(enabled = valid, onClick = { onSave(nn!!, mm!!, rr!!) }) { Text("Save & recalculate") } }, dismissButton = { TextButton(onClick = onClose) { Text("Cancel") } })
 }
-@Composable fun PrivacyScreen(onClose: () -> Unit) { Surface(Modifier.fillMaxSize(), color = Ink) { Column(Modifier.safeDrawingPadding().verticalScroll(rememberScrollState()).padding(24.dp), verticalArrangement = Arrangement.spacedBy(20.dp)) { Text("Your data stays yours.", fontSize = 30.sp, fontWeight = FontWeight.Bold); Text("Pulse reads Garmin-origin exercise sessions, heart rate, sleep, steps, active/total/basal calories and optional resting HR/HRV from Health Connect. It never writes to Health Connect. Background access is separately granted and refreshes about hourly.\n\nFIT files are decoded locally into workout records. Workout check-ins and your daily journal stay on this phone. Clear the journal separately from its page; clearing watch imports preserves journal entries. Optional reminders use local Android notifications. Clear imported data removes workouts and workout ratings, but preserves your daily journal. Summaries stay on your phone, excluded from backup. No server uploads, Garmin passwords, ads, analytics or sale of health data.\n\nRevoke permissions in Health Connect anytime. Connect → Clear imported data & disconnect removes cached imports and revokes access. Uninstall removes all app data. Source deletions are reflected in the next successful 14-day refresh; older cached days can be removed with Clear.\n\nScores are experimental fitness estimates, not medical advice or Garmin/WHOOP scores.", color = Muted, lineHeight = 23.sp); Button(onClick = onClose) { Text("Done") } } } }
+@Composable fun PrivacyScreen(onClose: () -> Unit) { Surface(Modifier.fillMaxSize(), color = Ink) { Column(Modifier.safeDrawingPadding().verticalScroll(rememberScrollState()).padding(24.dp), verticalArrangement = Arrangement.spacedBy(20.dp)) { Text("Your data stays yours.", fontSize = 30.sp, fontWeight = FontWeight.Bold); Text("Pulse reads shared exercise sessions, heart rate, sleep, steps, active/total/basal calories and optional resting HR/HRV from Health Connect. It never writes to Health Connect. Background access is separately granted and refreshes about hourly.\n\nFIT files are decoded locally into workout records. Workout check-ins and your daily journal stay on this phone. Clear the journal separately from its page; clearing watch imports preserves journal entries. Optional reminders use local Android notifications. Clear imported data removes workouts and workout ratings, but preserves your daily journal. Summaries stay on your phone, excluded from backup. No server uploads, device-account passwords, ads, analytics or sale of health data.\n\nRevoke permissions in Health Connect anytime. Connect → Clear imported data & disconnect removes cached imports and revokes access. Uninstall removes all app data. Source deletions are reflected in the next successful 28-day refresh; older cached days can be removed with Clear.\n\nScores are experimental fitness estimates, not medical advice or Garmin/WHOOP scores.", color = Muted, lineHeight = 23.sp); Button(onClick = onClose) { Text("Done") } } } }
 internal fun previewDay(date: String): ConnectedDay {
     val start = LocalDate.parse(date).atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli(); val ss = start - 35 * 60000; val se = start + 440 * 60000
     val stages = listOf(SleepSpan(ss, start + 80 * 60000, 4), SleepSpan(start + 80 * 60000, start + 172 * 60000, 5), SleepSpan(start + 172 * 60000, start + 270 * 60000, 4), SleepSpan(start + 270 * 60000, start + 375 * 60000, 6), SleepSpan(start + 375 * 60000, se, 4))

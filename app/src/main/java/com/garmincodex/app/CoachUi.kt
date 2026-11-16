@@ -70,23 +70,23 @@ import kotlin.math.roundToInt
 @Composable internal fun DataStatusCard(day: ConnectedDay?, sync: SyncState, onPermissions: () -> Unit, onSettings: () -> Unit, days: List<ConnectedDay> = emptyList()) {
     var expanded by remember { mutableStateOf(false) }
     CoachCard("DATA STATUS") {
-        Text(if (sync.busy) "Importing Garmin records…" else if (sync.lastSync == 0L) "No successful import yet" else "Last import: " + Instant.ofEpochMilli(sync.lastSync).atZone(ZoneId.systemDefault()).format(DateTimeFormatter.ofPattern("d MMM, HH:mm")), fontSize = 13.sp)
+        Text(if (sync.busy) "Importing shared records…" else if (sync.lastSync == 0L) "No successful import yet" else "Last import: " + Instant.ofEpochMilli(sync.lastSync).atZone(ZoneId.systemDefault()).format(DateTimeFormatter.ofPattern("d MMM, HH:mm")), fontSize = 13.sp)
         ImportCoverage(days)
         TextButton(onClick = { expanded = !expanded }) { Text(if (expanded) "Hide data categories" else "Check data categories") }
         if (expanded) {
             if(sync.diagnostics.isNotBlank()) {
                 Text("LAST SUCCESSFUL IMPORT",color=Lime,fontSize=11.sp)
                 Text(sync.diagnostics,fontSize=12.sp,lineHeight=20.sp)
-                Text("Counts describe imported Garmin data, not permission grants. A zero means no data was read; review the permission rows below. FIT imports are separate.",fontSize=11.sp,color=Color.Gray)
+                Text("Counts describe imported Health Connect data, not permission grants. A zero means no data was read; review the permission rows below. FIT imports are separate.",fontSize=11.sp,color=Color.Gray)
             }
             val fields = listOf(Triple("Heart rate", HeartRateRecord::class, (day?.hrCount ?: 0) > 0), Triple("Sleep", SleepSessionRecord::class, day?.sleepStart != null), Triple("Steps", StepsRecord::class, day?.steps != null), Triple("Active calories", ActiveCaloriesBurnedRecord::class, day?.activeCalories != null), Triple("Total calories", TotalCaloriesBurnedRecord::class, day?.calories != null), Triple("Basal energy", BasalMetabolicRateRecord::class, day?.basalCalories != null))
             fields.forEach { (label, type, present) ->
                 val allowed = HealthPermission.getReadPermission(type) in sync.granted
-                Text("$label · ${if (!allowed) "Permission needed" else if (present) "Imported" else "No Garmin record for this day"}", fontSize = 12.sp, color = if (!allowed || !present) Orange else Lime)
+                Text("$label · ${if (!allowed) "Permission needed" else if (present) "Imported" else "No shared record for this day"}", fontSize = 12.sp, color = if (!allowed || !present) Orange else Lime)
             }
-            Text("A successful import does not guarantee fresh watch measurements. Missing records can mean Garmin has not shared that category yet.", fontSize = 11.sp, color = Color.Gray)
+            Text("A successful import does not guarantee fresh watch measurements. Missing records can mean your device app has not shared that category yet.", fontSize = 11.sp, color = Color.Gray)
             TextButton(onClick = onPermissions) { Text("Review Pulse permissions") }
-            TextButton(onClick = onSettings) { Text("Review Garmin sharing") }
+            TextButton(onClick = onSettings) { Text("Review device sharing") }
         }
     }
 }

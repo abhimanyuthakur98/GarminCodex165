@@ -65,8 +65,8 @@ private val Lavender=Color(0xFFB6B9FF)
     if(day==null || day.hrCount==0 && day.asleep==null && day.steps==null && day.activeCalories==null && day.recovery==null) {
         SnapshotCard(onClick=onConnection) {
             Text(if(sync.lastSync==0L) "Your day starts here" else "No records for this day",fontSize=24.sp,fontWeight=FontWeight.Bold)
-            Text(if(sync.lastSync==0L) "Connect Garmin to see your sleep, recovery and movement." else "Sync your watch in Garmin Connect, then refresh Pulse.",color=Soft,fontSize=14.sp)
-            Text("${if(sync.lastSync==0L) "Connect Garmin" else "Check connection"} ›",color=Mint,fontSize=14.sp)
+            Text(if(sync.lastSync==0L) "Connect your device to see your sleep, recovery and movement." else "Sync your watch in its companion app, then refresh Pulse.",color=Soft,fontSize=14.sp)
+            Text("${if(sync.lastSync==0L) "Connect device" else "Check connection"} ›",color=Mint,fontSize=14.sp)
         }
         return
     }

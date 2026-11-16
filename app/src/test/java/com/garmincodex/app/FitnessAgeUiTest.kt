@@ -27,8 +27,8 @@ class FitnessAgeUiTest {
   compose.setContent{PulseTheme{Surface{Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(18.dp),verticalArrangement=Arrangement.spacedBy(10.dp)){FitnessAgePage(days,PersonalGoals(age=30)) {}}}}}
   compose.onNodeWithText("Pause motion").performScrollTo().performClick();compose.onNodeWithText("Play motion").assertExists()
   compose.onRoot().captureRoboImage("build/screenshots/fitness-overview.png")
-  compose.onNodeWithText("Focus: Recovery ›").performScrollTo().performClick()
-  compose.onNodeWithText("Leave room for recovery").assertIsDisplayed()
+  compose.onNodeWithText("Focus: Sleep duration ›").performScrollTo().performClick()
+  compose.onNodeWithText("Protect your sleep window").assertIsDisplayed()
   compose.onNodeWithContentDescription("Cardio activity:",substring=true).performClick()
   compose.onNodeWithText("Build consistency after rest").assertIsDisplayed()
   compose.onRoot().captureRoboImage("build/screenshots/fitness-actions.png")

@@ -36,13 +36,13 @@ private fun decimal(value:Double)=String.format(java.util.Locale.US,"%.1f",value
     Row(Modifier.horizontalScroll(rememberScrollState()),horizontalArrangement=Arrangement.spacedBy(8.dp)) { (listOf("All")+workouts.map {it.type}.distinct().sorted()).forEach { type -> FilterChip(filter==type,{filter=type},label={Text(if(type=="All") "All activities" else WorkoutAnalysis.title(type))}) } }
     val cutoff=if(window==0) Long.MIN_VALUE else LocalDate.now().minusDays((window-1).toLong()).atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli()
     val filtered=workouts.filter { (filter=="All" || it.type==filter) && it.start>=cutoff }.sortedByDescending {it.start}
-    if(filtered.isEmpty()) WorkoutCard { Text("No workouts in this view",fontWeight=FontWeight.Bold); Text("Allow Pulse to read Exercise in Health Connect, then sync Garmin. If Garmin does not share sessions, export an original .fit activity file from Garmin Connect and use Import FIT. Unzip downloaded archives first.",fontSize=13.sp,color=Color.Gray) }
+    if(filtered.isEmpty()) WorkoutCard { Text("No workouts in this view",fontWeight=FontWeight.Bold); Text("Allow Pulse to read Exercise in Health Connect, then sync your device app. If your device app does not share sessions, export an original .fit activity file from that app and use Import FIT. Unzip downloaded archives first.",fontSize=13.sp,color=Color.Gray) }
     if(filtered.isEmpty() && (filter!="All" || window!=0)) TextButton(onClick={filter="All";window=0}){Text("Reset workout filters")}
     filtered.forEach { w -> Box(Modifier.clickable(onClickLabel="Open ${w.title}"){selectedId=w.id}) { WorkoutCard {
         Text(w.title,fontSize=22.sp,fontWeight=FontWeight.Bold)
         Text(workoutTime(w.start),color=Lime,fontSize=12.sp)
         w.distanceMeters?.let { Text(RunningMetrics.distance(it,miles),color=Orange,fontWeight=FontWeight.Bold) }
-        Text("${decimal(minutes(w))} min elapsed · ${if(w.source=="FIT") "FIT file" else "Garmin / Health Connect"}",fontSize=12.sp)
+        Text("${decimal(minutes(w))} min elapsed · ${if(w.source=="FIT") "FIT file" else "Health Connect"}",fontSize=12.sp)
         checkIns.firstOrNull {it.workoutId==w.id}?.let { Text("Effort ${it.effort}/10 · soreness ${it.soreness}/10",color=Color.Gray,fontSize=12.sp) }
     } } }
     Text("FIT and Health Connect entries remain separate. The same session may appear twice; comparisons stay within one source. Workouts never add a second copy of load to your daily score.",color=Color.Gray,fontSize=11.sp)

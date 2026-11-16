@@ -40,7 +40,7 @@ class TodayUiTest {
         compose.onNodeWithText("Sync needs attention · review connection ›").assertIsDisplayed()
         compose.onNodeWithText("Your day starts here").assertIsDisplayed()
         compose.onNodeWithText("Your movement").assertDoesNotExist()
-        compose.onNodeWithText("Connect Garmin ›").performClick()
+        compose.onNodeWithText("Connect device ›").performClick()
         compose.onNodeWithText("Connect Health Connect").performScrollTo().assertIsDisplayed()
     }
 }

@@ -47,10 +47,12 @@ private fun ageNumber(value:Double)=String.format(Locale.US,"%.1f",value)
                     Column(Modifier.width(210.dp),horizontalAlignment=Alignment.CenterHorizontally,verticalArrangement=Arrangement.spacedBy(5.dp)) {
                         Text(result.age?.let(::ageNumber) ?: "—",fontSize=54.sp,fontWeight=FontWeight.Bold)
                         Text("EXPERIMENTAL FITNESS AGE",fontSize=9.sp,color=AgeMuted)
-                        Text(result.age?.let{"${ageNumber(abs(it-goals.age!!))} years ${if(it<=goals.age) "below" else "above"} your age"} ?: "${result.days}/7 qualifying days",fontSize=12.sp,color=AgeMint)
+                        Text(result.age?.let{"${ageNumber(abs(it-goals.age!!))} years ${if(it<=goals.age) "below" else "above"} your age"} ?: "${result.days}/14 qualifying days",fontSize=12.sp,color=AgeMint)
                     }
                 }
                 Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.SpaceBetween){Text("Wellness estimate · not biological age",fontSize=10.sp,color=AgeMuted);TextButton(onClick={moving=!moving}){Text(if(moving) "Pause motion" else "Play motion",fontSize=11.sp)}}
+                Text(result.reason,fontSize=11.sp,color=AgeMuted)
+                Text("Your recent movement, sleep and cardio habits, compared with fixed references. More consistent habits can improve the estimate; missing records can limit it.",fontSize=12.sp,color=AgeMuted)
                 if(result.factors.isNotEmpty()) {
                     FactorChart(result.factors){factorIndex=it;section="Actions"}
                     TextButton(onClick={factorIndex=-1;section="Actions"}){Text("Focus: ${result.factors[FitnessCoaching.focus(result,currentRecovery)].name} ›")}
@@ -62,7 +64,7 @@ private fun ageNumber(value:Double)=String.format(Locale.US,"%.1f",value)
                 else {
                     FactorChart(result.factors,index){factorIndex=it}
                     val factor=result.factors[index]
-                    val advice=FitnessCoaching.suggestion(factor,result.factors.any{it.name=="Recovery" && it.score<34} || (currentRecovery!=null && currentRecovery<34))
+                    val advice=FitnessCoaching.suggestion(factor,(currentRecovery!=null && currentRecovery<34))
                     JournalCard("YOUR NEXT SMALL STEP",FactorColors[index]) {
                         Text(advice.title,fontSize=24.sp,fontWeight=FontWeight.Bold)
                         Text("${factor.name} · ${factor.score.roundToInt()}/100",color=FactorColors[index],fontSize=13.sp)
@@ -71,20 +73,20 @@ private fun ageNumber(value:Double)=String.format(Locale.US,"%.1f",value)
                         Text(advice.action,fontSize=16.sp)
                         FitnessExplanation("Why this suggestion",advice.why+" Suggestions support consistent habits; they do not guarantee a lower age estimate or reverse aging.")
                         val uri=LocalUriHandler.current
-                        TextButton(onClick={uri.openUri(if(factor.name=="Sleep duration" || factor.name=="Recovery") "https://www.cdc.gov/sleep/about/" else "https://www.niddk.nih.gov/health-information/weight-management/tips-get-active/tips-starting-physical-activity")}){Text("Read habit guidance ↗",fontSize=12.sp)}
+                        TextButton(onClick={uri.openUri(if(factor.name=="Sleep duration") "https://www.cdc.gov/sleep/about/" else "https://www.niddk.nih.gov/health-information/weight-management/tips-get-active/tips-starting-physical-activity")}){Text("Read habit guidance ↗",fontSize=12.sp)}
                     }
                 }
             }
         }
-        if(section!="Overview") FitnessExplanation("How the estimate works","Pulse's unvalidated wellness model uses seven qualifying days from the preceding 14; today is excluded. Movement, sleep, recovery and cardio contribute equally. Index 70 maps to your entered age; each six index points changes the illustrative age by one year, capped at ±5 years (minimum 18). It does not measure biological aging or predict lifespan. Changing personal goals does not change these references.")
+        FitnessExplanation("How the estimate works",FitnessAgeModel.EXPLANATION)
     } }
 }
 @Composable private fun CalibrationCard(result:FitnessAgeResult,onAge:()->Unit,missingAge:Boolean) {
     JournalCard("BUILDING YOUR PICTURE") {
-        LinearProgressIndicator(progress={result.days.coerceAtMost(7)/7f},modifier=Modifier.fillMaxWidth(),color=AgeMint)
+        LinearProgressIndicator(progress={result.days.coerceAtMost(14)/14f},modifier=Modifier.fillMaxWidth(),color=AgeMint)
         Text(result.reason,fontSize=13.sp,color=AgeMuted)
         if(missingAge) Button(onClick=onAge){Text("Add chronological age")}
-        else Text("Keep syncing your watch. Each qualifying day needs steps, sleep, recovery and at least two hours of recorded HR.",fontSize=13.sp)
+        else Text("Keep syncing your watch. Each qualifying day needs steps, known sleep and at least eight hours of recorded HR. Four qualifying days must be in the last week. Missing data is never scored as zero.",fontSize=13.sp)
     }
 }
 @Composable private fun FactorChart(factors:List<FitnessFactor>,selected:Int=-1,onFactor:(Int)->Unit) {
@@ -93,7 +95,7 @@ private fun ageNumber(value:Double)=String.format(Locale.US,"%.1f",value)
         factors.forEachIndexed{i,factor->Column(Modifier.weight(1f).background(Color(0xFF15211C),RoundedCornerShape(16.dp)).border(1.dp,if(i==selected) FactorColors[i] else Color.Transparent,RoundedCornerShape(16.dp)).clickable(role=Role.Button,onClickLabel="Explore ${factor.name}"){onFactor(i)}.padding(horizontal=6.dp,vertical=10.dp).semantics{contentDescription="${factor.name}: ${factor.score.roundToInt()} out of 100"},horizontalAlignment=Alignment.CenterHorizontally,verticalArrangement=Arrangement.spacedBy(5.dp)) {
             Text("${factor.score.roundToInt()}",fontSize=18.sp,fontWeight=FontWeight.Bold,color=FactorColors[i])
             Box(Modifier.height(30.dp).width(18.dp).background(Color.White.copy(alpha=.06f),RoundedCornerShape(8.dp)),contentAlignment=Alignment.BottomCenter){Box(Modifier.fillMaxWidth().fillMaxHeight((factor.score/100*reveal).toFloat().coerceIn(0f,1f)).background(FactorColors[i],RoundedCornerShape(8.dp)))}
-            Text(listOf("Move","Sleep","Recover","Cardio")[i],fontSize=10.sp,color=AgeMuted,maxLines=1)
+            Text(listOf("Move","Sleep","Routine","Cardio")[i],fontSize=10.sp,color=AgeMuted,maxLines=1)
         }}
     }
 }
@@ -117,7 +119,7 @@ private fun ageNumber(value:Double)=String.format(Locale.US,"%.1f",value)
         Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween){Text(dates.first().format(DateTimeFormatter.ofPattern("d MMM")),fontSize=11.sp,color=AgeMuted);Text("Today",fontSize=11.sp,color=AgeMuted)}
         Slider(selected.toFloat(),{selected=it.roundToInt()},valueRange=0f..13f,steps=12,modifier=Modifier.semantics{contentDescription="Select fitness age date"})
         Text("${known.size}/14 estimates · gaps mean insufficient history",fontSize=12.sp,color=AgeMuted)
-        Text("Recomputed from local records using your current entered age. Each point excludes that day's data.",fontSize=11.sp,color=AgeMuted)
+        Text("Recomputed with model v2 and your current entered age; not comparable to v1 estimates. Each point excludes that day's data.",fontSize=11.sp,color=AgeMuted)
     }
 }
 

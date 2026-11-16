@@ -6,7 +6,8 @@ plugins {
 android {
     namespace = "com.garmincodex.app"
     compileSdk = 36
-    defaultConfig { applicationId = "com.garmincodex.app"; minSdk = 26; targetSdk = 36; versionCode = 13; versionName = "0.12.0" }
+    defaultConfig { applicationId = "com.garmincodex.app"; minSdk = 26; targetSdk = 36; versionCode = 14; versionName = "0.13.0"; manifestPlaceholders["appLabel"] = "Pulse 165" }
+    buildTypes { getByName("debug") { applicationIdSuffix = ".preview"; manifestPlaceholders["appLabel"] = "Pulse Preview" } }
     buildFeatures { compose = true }
     testOptions { unitTests.isIncludeAndroidResources = true }
     compileOptions { sourceCompatibility = JavaVersion.VERSION_17; targetCompatibility = JavaVersion.VERSION_17 }

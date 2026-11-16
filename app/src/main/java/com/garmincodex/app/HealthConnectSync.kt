@@ -5,7 +5,6 @@ import androidx.health.connect.client.HealthConnectClient
 import androidx.health.connect.client.HealthConnectFeatures
 import androidx.health.connect.client.permission.HealthPermission
 import androidx.health.connect.client.records.*
-import androidx.health.connect.client.records.metadata.DataOrigin
 import androidx.health.connect.client.request.*
 import androidx.health.connect.client.time.TimeRangeFilter
 import androidx.work.*
@@ -20,10 +19,10 @@ import java.util.concurrent.TimeUnit
 import kotlin.reflect.KClass
 import kotlin.math.roundToInt
 
-data class SyncState(val busy: Boolean = false, val message: String = "Connect Garmin through Health Connect", val lastSync: Long = 0, val granted: Set<String> = emptySet(), val background: Boolean = false, val diagnostics: String = "")
+data class SyncState(val busy: Boolean = false, val message: String = "Connect your device through Health Connect", val lastSync: Long = 0, val granted: Set<String> = emptySet(), val background: Boolean = false, val diagnostics: String = "", val sources: List<String> = emptyList())
 class HealthConnectSync(private val context: Context, private val dao: DailyDao) {
     private val prefs = context.getSharedPreferences("health_sync", Context.MODE_PRIVATE)
-    val status = MutableStateFlow(SyncState(lastSync = prefs.getLong("lastSync", 0), diagnostics = prefs.getString("diagnostics", "") ?: ""))
+    val status = MutableStateFlow(SyncState(lastSync = prefs.getLong("lastSync", 0), diagnostics = prefs.getString("diagnostics", "") ?: "", sources = prefs.getStringSet("sources", emptySet())!!.sorted()))
     val goals = MutableStateFlow(PersonalGoals(prefs.getInt("stepGoal", 8000), prefs.getInt("activeGoal", 500), prefs.getInt("age", 0).takeIf { it in 18..100 }, prefs.getInt("wakeMinute", 420)))
     fun saveGoals(value: PersonalGoals) {
         value.validate()
@@ -45,7 +44,6 @@ class HealthConnectSync(private val context: Context, private val dao: DailyDao)
     val maximumHr get() = prefs.getInt("maximumHr", 190)
     val restingHr get() = prefs.getInt("restingHr", 55)
     private val lock = Mutex()
-    private val origin = setOf(DataOrigin("com.garmin.android.apps.connectmobile"))
     fun availability() = HealthConnectClient.getSdkStatus(context)
     private fun client() = HealthConnectClient.getOrCreate(context)
     fun backgroundSupported() = availability() == HealthConnectClient.SDK_AVAILABLE && client().features.getFeatureStatus(HealthConnectFeatures.FEATURE_READ_HEALTH_DATA_IN_BACKGROUND) == HealthConnectFeatures.FEATURE_STATUS_AVAILABLE
@@ -71,38 +69,51 @@ class HealthConnectSync(private val context: Context, private val dao: DailyDao)
             if (availability() == HealthConnectClient.SDK_AVAILABLE) client().permissionController.revokeAllPermissions()
         } catch (e: CancellationException) { throw e }
         catch (_: Exception) { status.value = status.value.copy(message = "Could not revoke access. Open Health Connect settings to disconnect, then retry clearing."); return@withLock }
-        dao.clearAllImports(); prefs.edit().remove("lastSync").remove("diagnostics").apply(); PulseWidget.refresh(context)
+        dao.clearAllImports(); prefs.edit().remove("lastSync").remove("diagnostics").remove("sources").apply(); PulseWidget.refresh(context)
         WorkManager.getInstance(context).cancelUniqueWork("garmin-health-sync")
         // Revocation prevents the next app-open sync from restoring a cache the user just deleted.
 
-        status.value = SyncState(message = "Imported data cleared and access disconnected. Garmin originals are unchanged.")
+        status.value = SyncState(message = "Imported data cleared and access disconnected. Source originals are unchanged.")
     }
     suspend fun sync(): Boolean = lock.withLock {
         try {
             refreshPermissions()
             val granted = status.value.granted
             if (granted.intersect(READ_PERMISSIONS).isEmpty()) { status.value = status.value.copy(message = "Allow Pulse 165 to read your health data to begin."); return@withLock false }
-            status.value = status.value.copy(busy = true, message = "Reading Garmin history…")
+            status.value = status.value.copy(busy = true, message = "Reading Health Connect history…")
             val client = client(); val now = Instant.now(); val zone = ZoneId.systemDefault()
-            val today = LocalDate.now(zone); val first = today.minusDays(13)
+            val today = LocalDate.now(zone); val first = today.minusDays(28)
             val start = first.minusDays(1).atStartOfDay(zone).toInstant()
             suspend fun <T : Record> read(type: KClass<T>): List<T> {
                 if (HealthPermission.getReadPermission(type) !in granted) return emptyList()
                 val records = mutableListOf<T>(); var token: String? = null
                 do {
-                    val response = client.readRecords(ReadRecordsRequest(type, TimeRangeFilter.between(start, now), dataOriginFilter = origin, pageSize = 1000, pageToken = token))
+                    val response = client.readRecords(ReadRecordsRequest(type, TimeRangeFilter.between(start, now), pageSize = 1000, pageToken = token))
                     records += response.records; token = response.pageToken
                 } while (!token.isNullOrEmpty())
                 return records.distinctBy { it.metadata.id }
             }
-            val hr = read(HeartRateRecord::class).flatMap { it.samples }.map { HrPoint(it.time.toEpochMilli(), it.beatsPerMinute.toInt()) }.filter { it.bpm in 25..240 }.groupBy { it.time }.map { (time, points) -> HrPoint(time, points.map { it.bpm }.average().roundToInt()) }
-            val exerciseRecords = read(ExerciseSessionRecord::class)
+            val sourcePackages = sortedSetOf<String>()
+            val hrRecords = read(HeartRateRecord::class)
+            sourcePackages += hrRecords.map { it.metadata.dataOrigin.packageName }
+            val hr = hrRecords.flatMap { record -> record.samples.map { record.metadata.dataOrigin.packageName to it } }
+                .groupBy { it.second.time.atZone(zone).toLocalDate() }.values.flatMap { samples ->
+                    val sources = samples.groupBy { it.first }
+                    val chosen = sources.keys.sorted().maxByOrNull { name ->
+                        DailyAnalysis.load(sources.getValue(name).map { HrPoint(it.second.time.toEpochMilli(), it.second.beatsPerMinute.toInt()) }, restingHr, maximumHr).coveredMinutes
+                    }
+                    chosen?.let { sources.getValue(it) }.orEmpty().map { it.second }
+                }.map { HrPoint(it.time.toEpochMilli(), it.beatsPerMinute.toInt()) }.filter { it.bpm in 25..240 }.groupBy { it.time }.map { (time, points) -> HrPoint(time, points.map { it.bpm }.average().roundToInt()) }
+            val allExercises = read(ExerciseSessionRecord::class)
+            sourcePackages += allExercises.map { it.metadata.dataOrigin.packageName }
+            val exerciseRecords = SourceSelection.workouts(allExercises, { it.metadata.dataOrigin.packageName }, { it.startTime.toEpochMilli() }, { it.endTime.toEpochMilli() }, { it.exerciseType })
             val sleepRecords = read(SleepSessionRecord::class)
+            sourcePackages += sleepRecords.map { it.metadata.dataOrigin.packageName }
             val rests = read(RestingHeartRateRecord::class)
             val hrvs = read(HeartRateVariabilityRmssdRecord::class)
             val nights = sleepRecords.groupBy { it.endTime.atZone(zone).toLocalDate() }.mapValues { (_, sessions) ->
                 // Main overnight sleep; naps are not added to recovery. Duplicate sessions cannot double count.
-                val main = sessions.maxBy { Duration.between(it.startTime, it.endTime).toMinutes() }
+                val main = sessions.sortedWith(compareByDescending<SleepSessionRecord> { Duration.between(it.startTime, it.endTime).toMinutes() }.thenBy { it.metadata.dataOrigin.packageName }).first()
                 DailyAnalysis.sleep(SleepInput(main.startTime.toEpochMilli(), main.endTime.toEpochMilli(), main.stages.map { SleepSpan(it.startTime.toEpochMilli(), it.endTime.toEpochMilli(), it.stage) }))
             }
             val overnight = nights.mapValues { (_, night) -> DailyAnalysis.overnightHr(hr, night) }
@@ -112,9 +123,9 @@ class HealthConnectSync(private val context: Context, private val dao: DailyDao)
                 if (HealthPermission.getReadPermission(TotalCaloriesBurnedRecord::class) in granted) add(TotalCaloriesBurnedRecord.ENERGY_TOTAL)
             }
             val hourly = if (hourlyMetrics.isEmpty()) emptyList() else client.aggregateGroupByDuration(
-                AggregateGroupByDurationRequest(hourlyMetrics, TimeRangeFilter.between(first.atStartOfDay(zone).toInstant(), now), Duration.ofHours(1), dataOriginFilter = origin)
+                AggregateGroupByDurationRequest(hourlyMetrics, TimeRangeFilter.between(first.atStartOfDay(zone).toInstant(), now), Duration.ofHours(1))
             ).map { bucket -> HourBucket(bucket.startTime.toEpochMilli(), bucket.endTime.toEpochMilli(), bucket.result[StepsRecord.COUNT_TOTAL], bucket.result[ActiveCaloriesBurnedRecord.ACTIVE_CALORIES_TOTAL]?.inKilocalories, bucket.result[TotalCaloriesBurnedRecord.ENERGY_TOTAL]?.inKilocalories) }
-            val result = (0L..13L).map { offset ->
+            val result = (0L..28L).map { offset ->
                 val date = first.plusDays(offset); val dayStart = date.atStartOfDay(zone).toInstant(); val dayEnd = minOf(date.plusDays(1).atStartOfDay(zone).toInstant(), now)
                 val points = hr.filter { it.time >= dayStart.toEpochMilli() && it.time < dayEnd.toEpochMilli() }
                 val load = DailyAnalysis.load(points, restingHr, maximumHr)
@@ -126,13 +137,14 @@ class HealthConnectSync(private val context: Context, private val dao: DailyDao)
                     if (HealthPermission.getReadPermission(ActiveCaloriesBurnedRecord::class) in granted) add(ActiveCaloriesBurnedRecord.ACTIVE_CALORIES_TOTAL)
                     if (HealthPermission.getReadPermission(BasalMetabolicRateRecord::class) in granted) add(BasalMetabolicRateRecord.BASAL_CALORIES_TOTAL)
                 }
-                val aggregate = if (extendedMetrics.isEmpty()) null else client.aggregate(AggregateRequest(extendedMetrics, TimeRangeFilter.between(dayStart, dayEnd), dataOriginFilter = origin))
+                val aggregate = if (extendedMetrics.isEmpty()) null else client.aggregate(AggregateRequest(extendedMetrics, TimeRangeFilter.between(dayStart, dayEnd)))
+                aggregate?.dataOrigins?.forEach { sourcePackages += it.packageName }
                 val night = nights[date]
                 val baseline = overnight.filter { (d, value) -> d < date && d >= date.minusDays(7) && value != null }.values.filterNotNull()
                 val wakeTimes = nights.filterKeys { it <= date && it >= date.minusDays(6) }.toSortedMap().values.map { it.end }
                 fun inDay(time: Instant) = time >= dayStart && time < dayEnd
-                val rest = rests.filter { inDay(it.time) }.map { it.beatsPerMinute.toDouble() }.average().takeIf { it.isFinite() }
-                val hrv = hrvs.filter { inDay(it.time) }.map { it.heartRateVariabilityMillis }.average().takeIf { it.isFinite() }
+                val rest = SourceSelection.primary(rests.filter { inDay(it.time) }, { it.metadata.dataOrigin.packageName }, { 1L }).map { it.beatsPerMinute.toDouble() }.average().takeIf { it.isFinite() }
+                val hrv = SourceSelection.primary(hrvs.filter { inDay(it.time) }, { it.metadata.dataOrigin.packageName }, { 1L }).map { it.heartRateVariabilityMillis }.average().takeIf { it.isFinite() }
                 // Five-minute bins preserve actual time positions and gaps in the chart.
                 val chart = load.points.groupBy { it.time / 300000L }.map { (_, p) -> HrPoint(p.first().time, p.map { it.bpm }.average().roundToInt()) }
                 ConnectedDay(date.toString(), load.load, load.coveredMinutes, load.points.size,
@@ -159,19 +171,19 @@ class HealthConnectSync(private val context: Context, private val dao: DailyDao)
                     else -> "EXERCISE_${session.exerciseType}"
                 }
                 val calories = if(HealthPermission.getReadPermission(ActiveCaloriesBurnedRecord::class) in granted)
-                    client.aggregate(AggregateRequest(setOf(ActiveCaloriesBurnedRecord.ACTIVE_CALORIES_TOTAL),TimeRangeFilter.between(session.startTime, session.endTime),dataOriginFilter=origin))[ActiveCaloriesBurnedRecord.ACTIVE_CALORIES_TOTAL]?.inKilocalories else null
+                    client.aggregate(AggregateRequest(setOf(ActiveCaloriesBurnedRecord.ACTIVE_CALORIES_TOTAL),TimeRangeFilter.between(session.startTime, session.endTime)))[ActiveCaloriesBurnedRecord.ACTIVE_CALORIES_TOTAL]?.inKilocalories else null
                 Workout("HC:${session.metadata.id}","HEALTH_CONNECT",type,session.title ?: WorkoutAnalysis.title(type),begin,finish,
                     hr.filter { it.time >= begin && it.time < finish }.sortedBy { it.time }.joinToString(";") { "${it.time},${it.bpm}" },calories)
             }
 
             dao.replaceHealthImport(first.toString(), start.toEpochMilli(), result, workouts.takeIf { HealthPermission.getReadPermission(ExerciseSessionRecord::class) in granted })
             val report = importReport(result, first.toString(), today.toString(), workouts.size)
-            prefs.edit().putLong("lastSync", now.toEpochMilli()).putString("diagnostics",report).apply()
+            prefs.edit().putLong("lastSync", now.toEpochMilli()).putString("diagnostics",report).putStringSet("sources",sourcePackages).apply()
             PulseWidget.refresh(context)
             val hrCount = result.sumOf { it.hrCount }; val sleepCount = result.count { it.sleepStart != null }
-            status.value = status.value.copy(busy = false, diagnostics = report, lastSync = now.toEpochMilli(), message = if (hrCount == 0 && sleepCount == 0 && workouts.isEmpty() && result.none { it.steps != null })
-                "No Garmin records found. Enable Garmin Connect’s write permissions in Health Connect, sync your watch in Garmin Connect, then retry. Earlier data may not be backfilled by Garmin."
-                else "Imported $hrCount HR samples, $sleepCount nights and ${workouts.size} workouts from Garmin Connect. ${granted.intersect(READ_PERMISSIONS).size}/${READ_PERMISSIONS.size} read permissions granted.")
+            status.value = status.value.copy(busy = false, sources = sourcePackages.toList(), diagnostics = report, lastSync = now.toEpochMilli(), message = if (hrCount == 0 && sleepCount == 0 && workouts.isEmpty() && result.none { it.steps != null })
+                "No shared records found. Enable your device app’s write permissions in Health Connect, sync your device in that app, then retry. Some apps only share new data."
+                else "Imported $hrCount HR samples, $sleepCount nights and ${workouts.size} workouts from Health Connect. ${granted.intersect(READ_PERMISSIONS).size}/${READ_PERMISSIONS.size} read permissions granted.")
             true
         } catch (e: CancellationException) { status.value = status.value.copy(busy = false); throw e }
         catch (e: Exception) { status.value = status.value.copy(busy = false, message = if (e is SecurityException) "Health access changed. Grant permissions and sync again." else "Sync interrupted (${e.javaClass.simpleName}). Keep the app open and retry. Your previous import is retained."); false }

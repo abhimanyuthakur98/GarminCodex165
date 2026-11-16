@@ -48,6 +48,14 @@ class MainActivity : ComponentActivity() {
         JournalNotifications.save(this,value);reminderState.value=value
     }
     private fun open(intent: Intent) { try { startActivity(intent) } catch (_: Exception) { uiMessage.value = "This app or settings screen is unavailable on your phone." } }
+    private fun chooseDeviceApp() {
+        val apps = listOf("Samsung Health" to "com.sec.android.app.shealth", "Garmin Connect" to "com.garmin.android.apps.connectmobile", "Fitbit" to "com.fitbit.FitbitMobile", "Google Fit" to "com.google.android.apps.fitness")
+            .mapNotNull { (name, pkg) -> packageManager.getLaunchIntentForPackage(pkg)?.let { name to it } }
+        val options = apps + ("Other apps / Health Connect settings" to Intent(HealthConnectClient.ACTION_HEALTH_CONNECT_SETTINGS))
+        android.app.AlertDialog.Builder(this).setTitle("Sync in your device app")
+            .setItems(options.map { it.first }.toTypedArray()) { _, index -> open(options[index].second) }
+            .setNegativeButton("Cancel", null).show()
+    }
     private fun connectHealth() {
         if (vm.sync.availability() == HealthConnectClient.SDK_AVAILABLE) healthPermissions.launch(HealthConnectSync.READ_PERMISSIONS)
         else open(Intent(Intent.ACTION_VIEW, Uri.parse("https://play.google.com/store/apps/details?id=com.google.android.apps.healthdata")))
@@ -77,7 +85,7 @@ class MainActivity : ComponentActivity() {
                 PulseDashboard(days, sync, live, connection, uiMessage.value, vm.sync.sleepNeed, vm.sync.maximumHr, vm.sync.restingHr,
                     onConnect = ::connectHealth, onSync = { vm.refresh { success -> uiMessage.value=if(success && vm.sync.status.value.message.startsWith("Imported ")) "Health data refreshed" else vm.sync.status.value.message } },
                     onHealthSettings = { open(Intent(HealthConnectClient.ACTION_HEALTH_CONNECT_SETTINGS)) },
-                    onGarmin = { open(packageManager.getLaunchIntentForPackage("com.garmin.android.apps.connectmobile") ?: Intent(Intent.ACTION_VIEW, Uri.parse("https://play.google.com/store/apps/details?id=com.garmin.android.apps.connectmobile"))) },
+                    onSourceApp = ::chooseDeviceApp,
                     onBackground = { if (vm.sync.backgroundSupported()) healthPermissions.launch(setOf(HealthPermission.PERMISSION_READ_HEALTH_DATA_IN_BACKGROUND)) else uiMessage.value = "Background access unavailable. Sync works when Pulse is open." },
                     onProfile = { n, m, r -> vm.sync.saveProfile(n, m, r); vm.refresh() }, onClear = { vm.clearImported() },
                     onLive = { stopService(Intent(this, TrackingService::class.java)); blePermissions.launch(if (Build.VERSION.SDK_INT >= 31) arrayOf(Manifest.permission.BLUETOOTH_SCAN, Manifest.permission.BLUETOOTH_CONNECT) else arrayOf(Manifest.permission.ACCESS_FINE_LOCATION)) },

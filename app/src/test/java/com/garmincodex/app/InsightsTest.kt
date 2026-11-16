@@ -20,14 +20,14 @@ class InsightsTest {
         assertThrows(IllegalArgumentException::class.java) { PersonalGoals(age=10).validate() }
     }
     private val today = LocalDate.of(2026,11,9)
-    private fun days() = (1L..7L).map { ConnectedDay(today.minusDays(it).toString(), coveredMinutes=600, steps=8000, asleep=480, recovery=80, zones="300,100,30,0,0,0,0") }
-    @Test fun fitnessAgeRequiresSevenCompleteDaysAndAge() {
+    private fun days() = (1L..14L).map { ConnectedDay(today.minusDays(it).toString(), coveredMinutes=600, steps=8000, asleep=480, recovery=80, zones="300,100,30,0,0,0,0") }
+    @Test fun fitnessAgeRequiresFourteenCompleteDaysAndAge() {
         assertNull(FitnessAgeModel.calculate(days(),null,today).age)
-        assertNull(FitnessAgeModel.calculate(days().take(6),30,today).age)
+        assertNull(FitnessAgeModel.calculate(days().take(13),30,today).age)
         assertNull(FitnessAgeModel.calculate(days().map { it.copy(coveredMinutes=0) },30,today).age)
     }
     @Test fun fitnessAgeExcludesTodayAndDuplicateDates() {
-        val d=days().take(6)
+        val d=days().take(13)
         assertNull(FitnessAgeModel.calculate(d + d.first() + d.first().copy(date=today.toString()),30,today).age)
     }
     @Test fun fitnessAgeIsBoundedAndExplainsItsInputs() {

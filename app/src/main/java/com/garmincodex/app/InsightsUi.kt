@@ -89,7 +89,7 @@ private fun time(t: Long) = Instant.ofEpochMilli(t).atZone(ZoneId.systemDefault(
         }
     }
 }
-@Composable internal fun MetricDetails(kind: String, d: ConnectedDay?, goals: PersonalGoals, need: Int, maximum: Int, resting: Int, onGoals: (PersonalGoals) -> Unit, sync:SyncState=SyncState(), onPermissions:()->Unit={}, onSettings:()->Unit={}, onGarmin:()->Unit={}, onSync:()->Unit={}, onClose: () -> Unit) {
+@Composable internal fun MetricDetails(kind: String, d: ConnectedDay?, goals: PersonalGoals, need: Int, maximum: Int, resting: Int, onGoals: (PersonalGoals) -> Unit, sync:SyncState=SyncState(), onPermissions:()->Unit={}, onSettings:()->Unit={}, onSourceApp:()->Unit={}, onSync:()->Unit={}, onClose: () -> Unit) {
     var edit by remember { mutableStateOf(false) }
 
     Dialog(onDismissRequest = onClose, properties = DialogProperties(usePlatformDefaultWidth = false)) {
@@ -104,7 +104,7 @@ private fun time(t: Long) = Instant.ofEpochMilli(t).atZone(ZoneId.systemDefault(
                         val showTotal = !steps && d?.activeCalories == null && d?.calories != null
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.Bottom) { Text((if (steps) d?.steps?.toDouble() else if (showTotal) d?.calories else d?.activeCalories)?.roundToInt()?.let { String.format(Locale.US, "%,d", it) } ?: "—", fontSize = 58.sp, fontWeight = FontWeight.Bold, color = color); Text(if (steps) "steps" else if (showTotal) "total kcal" else "active kcal", color = Fog, modifier = Modifier.padding(bottom = 12.dp)) }
                         Text("Daily goal ${if (steps) goals.steps else goals.activeCalories} · tap Edit goal to change", color = Fog, fontSize = 12.sp)
-                        if (!steps && d?.activeCalories==null) CalorieRepair(d,sync,onPermissions,onSettings,onGarmin,onSync)
+                        if (!steps && d?.activeCalories==null) CalorieRepair(d,sync,onPermissions,onSettings,onSourceApp,onSync)
                         if (!steps) CalorieBreakdown(d)
                         InsightPanel {
                             Caption("Hourly ${if (steps) "steps" else if (showTotal) "total energy" else "active energy"}")
@@ -117,7 +117,7 @@ private fun time(t: Long) = Instant.ofEpochMilli(t).atZone(ZoneId.systemDefault(
                     "recovery" -> { RecoveryPanel(d); InsightPanel { Caption("How this score is built"); Text("Resting HR: ${d?.restingHr?.roundToInt()?.toString() ?: "Not supplied"} · HRV: ${d?.hrv?.roundToInt()?.toString() ?: "Not supplied"}", color = Fog, fontSize = 12.sp); Text("40% sleep goal completion\n20% sleep efficiency\n40% overnight HR versus your baseline", lineHeight = 27.sp); Text("Requires 3 previous baseline nights. Missing stages or insufficient HR keep the score unavailable. HRV and Body Battery are not fabricated.", color = Fog, fontSize = 12.sp) } }
                     else -> { StrainPanel(d, maximum, resting); InsightPanel { Caption("HR reserve contribution"); Text("Each minute has a zone weight: 0, 1, 2, 3, 5, 8 or 12. Accumulated weighted minutes map onto a bounded 0–21 score.", color = Fog); Text("${d?.coveredMinutes ?: 0} minutes of measured coverage", color = Lime) } }
                 }
-                Text("Garmin Connect / Health Connect · ${d?.date ?: "No data"}", color = Fog, fontSize = 10.sp)
+                Text("Health Connect · ${d?.date ?: "No data"}", color = Fog, fontSize = 10.sp)
             }
         }
 
@@ -128,8 +128,8 @@ private fun time(t: Long) = Instant.ofEpochMilli(t).atZone(ZoneId.systemDefault(
         Caption("Calorie breakdown")
         val nonActive = EnergyBreakdown.nonActive(d?.calories, d?.activeCalories)
         listOf("Active" to d?.activeCalories, "Resting / other · total minus active" to nonActive, "Total burned" to d?.calories, "Basal energy · reported BMR" to d?.basalCalories).forEach { (label, value) -> Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) { Text(label, color = Fog, fontSize = 11.sp, modifier = Modifier.weight(1f)); Text(value?.roundToInt()?.let { "$it kcal" } ?: "—", fontWeight = FontWeight.SemiBold) } }
-        Text("Resting/other is derived only when total and active are both present and consistent. It is not a BMR measurement. Basal energy is shown separately only if Garmin supplies BMR records, and is for the imported portion of the day.", color = Fog, fontSize = 11.sp)
-        if (d?.activeCalories == null) Text("Active energy unavailable. Review the new active-calorie read permission in Connect, then sync. Garmin must also share this category.", color = Orange, fontSize = 12.sp)
+        Text("Resting/other is derived only when total and active are both present and consistent. It is not a BMR measurement. Basal energy is shown separately only if your device app supplies BMR records, and is for the imported portion of the day.", color = Fog, fontSize = 11.sp)
+        if (d?.activeCalories == null) Text("Active energy unavailable. Review the new active-calorie read permission in Connect, then sync. Your device app must also share this category.", color = Orange, fontSize = 12.sp)
     }
 }
 @Composable private fun HourlyChart(hours: List<HourBucket>, steps: Boolean, color: Color, total: Boolean = false) {

@@ -27,8 +27,8 @@ class CalorieRepairTest {
   compose.onNodeWithText("Pulse needs read access").performScrollTo().assertIsDisplayed()
   compose.onNodeWithText("1 · Review Pulse access").performScrollTo().performClick()
   compose.onNodeWithText("No active-calorie record for this day").performScrollTo().assertIsDisplayed()
-  compose.onNodeWithText("2 · Garmin sharing settings").performScrollTo().performClick()
-  compose.onNodeWithText("3 · Sync in Garmin").performScrollTo().performClick()
+  compose.onNodeWithText("2 · Device sharing settings").performScrollTo().performClick()
+  compose.onNodeWithText("3 · Open device app").performScrollTo().performClick()
   compose.onNodeWithText("4 · Import again").performScrollTo().performClick()
   compose.runOnIdle{assertEquals(1,settings);assertEquals(1,garmin);assertEquals(1,imported)}
  }
