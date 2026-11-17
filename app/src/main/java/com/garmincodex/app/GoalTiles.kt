@@ -108,7 +108,7 @@ import kotlin.math.roundToInt
                 Row(horizontalArrangement=Arrangement.spacedBy(10.dp)){listOf("Deep","Light","REM","Awake").forEachIndexed{i,label->Text("● $label",color=colours[i],fontSize=10.sp)}}
             } else Text(if(day?.sleepStart!=null) "Sleep stages not shared · view session ›" else "Sync after wearing your watch to bed",color=ink,fontSize=12.sp)
             }
-            if(complete) TextButton(onClick={replay++},modifier=Modifier.semantics{contentDescription="Celebrate Sleep goal"}){Text("Sleep goal reached ✦",color=ink)}
+            if(complete) TextButton(onClick={replay++},modifier=Modifier.testTag("replay-Sleep-$replay").semantics{contentDescription="Celebrate Sleep goal"}){Text("Sleep goal reached ✦",color=ink)}
         }
         GoalCelebration(complete,replay,Modifier.matchParentSize())
     }

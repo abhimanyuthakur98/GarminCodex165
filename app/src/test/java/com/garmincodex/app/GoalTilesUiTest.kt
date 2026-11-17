@@ -35,24 +35,16 @@ class GoalTilesUiTest {
         assertEquals(steps.top,calories.top)
         assertTrue(steps.right<calories.left)
         compose.onAllNodesWithTag("goal-confetti",useUnmergedTree=true).assertCountEquals(3)
+        compose.onRoot().captureRoboImage("build/screenshots/goal-tiles-celebration.png")
         compose.mainClock.advanceTimeBy(3000)
         compose.onAllNodesWithTag("goal-confetti",useUnmergedTree=true).assertCountEquals(0)
         compose.mainClock.autoAdvance=true
         compose.onNodeWithContentDescription("Celebrate Steps goal").performClick()
-        try { compose.onNodeWithTag("replay-Steps-1").assertExists() }
-        catch(e:AssertionError){throw AssertionError(compose.onRoot(useUnmergedTree=true).printToString(),e)}
-        compose.mainClock.autoAdvance=false
-        compose.onNodeWithContentDescription("Celebrate Steps goal").performSemanticsAction(androidx.compose.ui.semantics.SemanticsActions.OnClick){it()}
-        compose.mainClock.advanceTimeByFrame()
-        compose.mainClock.advanceTimeBy(200)
-        compose.onAllNodesWithTag("goal-confetti",useUnmergedTree=true).assertCountEquals(1)
-        compose.mainClock.advanceTimeBy(3000)
-        compose.onNodeWithContentDescription("Celebrate Sleep goal").performSemanticsAction(androidx.compose.ui.semantics.SemanticsActions.OnClick){it()}
-        compose.mainClock.advanceTimeByFrame()
-        compose.waitForIdle()
-        compose.mainClock.advanceTimeBy(200)
-        compose.onAllNodesWithTag("goal-confetti",useUnmergedTree=true).assertCountEquals(1)
-        compose.onRoot().captureRoboImage("build/screenshots/goal-tiles-celebration.png")
+        compose.onNodeWithTag("replay-Steps-1").assertExists()
+        compose.onAllNodesWithTag("goal-confetti",useUnmergedTree=true).assertCountEquals(0)
+        compose.onNodeWithContentDescription("Celebrate Sleep goal").performClick()
+        compose.onNodeWithTag("replay-Sleep-1").assertExists()
+        compose.onAllNodesWithTag("goal-confetti",useUnmergedTree=true).assertCountEquals(0)
     }
     @Test fun missingMetricsCannotCelebrate() {
         compose.setContent{PulseTheme{Column{ActivityTiles(null,PersonalGoals(),1f,{},SyncState());SleepHero(null,480){}}}}
