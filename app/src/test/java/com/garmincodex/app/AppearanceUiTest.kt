@@ -50,5 +50,19 @@ class AppearanceUiTest {
     @Test fun unknownPreferenceFallsBackWithoutCrashing() {
         assertEquals(PulseStyle.NEON_CYAN,PulseStyle.fromId("obsolete"))
         assertEquals(PulseStyle.NEON_CYAN,PulseStyle.fromId(null))
+        for(hex in listOf("000000","FFFFFF","EC245A")) {
+            val custom=PulseStyle.custom(hex)!!
+            assertEquals(custom,PulseStyle.fromId(custom.name))
+            assertNotEquals(custom.seed,tileInk(custom.seed))
+        }
+        assertNull(PulseStyle.custom("oops"))
+    }
+    @Test fun exactCustomColourCanBeApplied() {
+        var chosen=PulseStyle.NEON_CYAN
+        compose.setContent{PulseTheme{CustomColourPicker(chosen){chosen=it}}}
+        compose.onNodeWithTag("custom-hex").performTextReplacement("EC245A")
+        compose.onNodeWithText("Apply custom colour").performClick()
+        compose.runOnIdle{assertEquals("CUSTOM:EC245A",chosen.name)}
+        compose.onRoot().captureRoboImage("build/screenshots/custom-colour.png")
     }
 }

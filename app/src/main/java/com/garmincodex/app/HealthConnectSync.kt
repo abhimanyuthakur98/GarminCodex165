@@ -20,11 +20,11 @@ import java.util.concurrent.TimeUnit
 import kotlin.reflect.KClass
 import kotlin.math.roundToInt
 
-data class SyncState(val busy: Boolean = false, val message: String = "Connect your device through Health Connect", val lastSync: Long = 0, val granted: Set<String> = emptySet(), val background: Boolean = false, val diagnostics: String = "", val sources: List<String> = emptyList(), val stepSource:String="", val stepComparisons:Map<String,Long> = emptyMap())
+data class SyncState(val busy: Boolean = false, val message: String = "Connect your device through Health Connect", val lastSync: Long = 0, val granted: Set<String> = emptySet(), val background: Boolean = false, val diagnostics: String = "", val sources: List<String> = emptyList(), val stepSource:String="", val stepComparisons:Map<String,Long> = emptyMap(),val phase:String="",val progress:Float=0f)
 class HealthConnectSync(private val context: Context, private val dao: DailyDao) {
     private val prefs = context.getSharedPreferences("health_sync", Context.MODE_PRIVATE)
     val status = MutableStateFlow(SyncState(lastSync = prefs.getLong("lastSync", 0), diagnostics = prefs.getString("diagnostics", "") ?: "", sources = prefs.getStringSet("sources", emptySet())!!.sorted(), stepSource=prefs.getString("stepSource", "") ?: ""))
-    fun saveStepSource(pkg:String) { prefs.edit().putString("stepSource",pkg).apply();status.value=status.value.copy(stepSource=pkg) }
+    fun saveStepSource(pkg:String) { prefs.edit().putString("stepSource",pkg).remove("lastFullSync").apply();status.value=status.value.copy(stepSource=pkg) }
     val appearance=MutableStateFlow(PulseStyle.fromId(prefs.getString("appearance",null)))
     fun saveAppearance(value:PulseStyle) { prefs.edit().putString("appearance",value.name).apply();appearance.value=value }
     val goals = MutableStateFlow(PersonalGoals(prefs.getInt("stepGoal", 8000), prefs.getInt("activeGoal", 500), prefs.getInt("age", 0).takeIf { it in 18..100 }, prefs.getInt("wakeMinute", 420)))
@@ -53,7 +53,7 @@ class HealthConnectSync(private val context: Context, private val dao: DailyDao)
     fun backgroundSupported() = availability() == HealthConnectClient.SDK_AVAILABLE && client().features.getFeatureStatus(HealthConnectFeatures.FEATURE_READ_HEALTH_DATA_IN_BACKGROUND) == HealthConnectFeatures.FEATURE_STATUS_AVAILABLE
     fun saveProfile(need: Int, maximum: Int, resting: Int) {
         require(need in 300..720 && maximum in 100..230 && resting in 30..100 && maximum > resting)
-        prefs.edit().putInt("sleepNeed", need).putInt("maximumHr", maximum).putInt("restingHr", resting).apply()
+        prefs.edit().putInt("sleepNeed", need).putInt("maximumHr", maximum).putInt("restingHr", resting).remove("lastFullSync").apply()
     }
     suspend fun refreshPermissions() {
         if (availability() != HealthConnectClient.SDK_AVAILABLE) { status.value = status.value.copy(message = "Health Connect is unavailable. Install or update it first."); return }
@@ -73,30 +73,36 @@ class HealthConnectSync(private val context: Context, private val dao: DailyDao)
             if (availability() == HealthConnectClient.SDK_AVAILABLE) client().permissionController.revokeAllPermissions()
         } catch (e: CancellationException) { throw e }
         catch (_: Exception) { status.value = status.value.copy(message = "Could not revoke access. Open Health Connect settings to disconnect, then retry clearing."); return@withLock }
-        dao.clearAllImports(); prefs.edit().remove("lastSync").remove("diagnostics").remove("sources").apply(); PulseWidget.refresh(context)
+        dao.clearAllImports(); prefs.edit().remove("lastSync").remove("lastFullSync").remove("diagnostics").remove("sources").apply(); PulseWidget.refresh(context)
         WorkManager.getInstance(context).cancelUniqueWork("garmin-health-sync")
         // Revocation prevents the next app-open sync from restoring a cache the user just deleted.
 
         status.value = SyncState(message = "Imported data cleared and access disconnected. Source originals are unchanged.")
     }
-    suspend fun sync(): Boolean = lock.withLock {
+    suspend fun sync(fullHistory:Boolean=false): Boolean = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) { lock.withLock {
         val guard=ImportGuard()
         try {
             refreshPermissions()
             val granted = status.value.granted
             if (granted.intersect(READ_PERMISSIONS).isEmpty()) { status.value = status.value.copy(message = "Allow Pulse 165 to read your health data to begin."); return@withLock false }
-            status.value = status.value.copy(busy = true, message = "Reading Health Connect history…")
+            status.value = status.value.copy(busy = true, phase="Preparing refresh…",progress=0f, message = "Reading Health Connect history…")
             val client = client(); val now = Instant.now(); val zone = ZoneId.systemDefault()
-            val today = LocalDate.now(zone); val first = today.minusDays(28)
+            val today = LocalDate.now(zone)
+            val permissionsKey=granted.sorted().joinToString("|")
+            val full=SyncWindow.full(fullHistory,prefs.getLong("lastFullSync",0),now.toEpochMilli(),permissionsKey!=prefs.getString("syncedPermissions",null))
+            val daysBack=if(full)28L else 2L
+            val first=today.minusDays(daysBack)
+            val rawStart=first.minusDays(8).atStartOfDay(zone).toInstant().coerceAtLeast(today.minusDays(29).atStartOfDay(zone).toInstant())
             val selectedStepSource = status.value.stepSource
             val stepOrigins = selectedStepSource.takeIf { it.isNotEmpty() }?.let { setOf(DataOrigin(it)) } ?: emptySet()
             val start = first.minusDays(1).atStartOfDay(zone).toInstant()
             suspend fun <T : Record> read(type: KClass<T>): List<T> {
+                status.value=status.value.copy(phase="Reading "+(type.simpleName ?: "health records").removeSuffix("Record"))
                 if (HealthPermission.getReadPermission(type) !in granted) return emptyList()
                 return guard.query(type.simpleName ?: "records", emptyList<T>()) {
                 val records = mutableListOf<T>(); var token: String? = null
                 do {
-                    val response = client.readRecords(ReadRecordsRequest(type, TimeRangeFilter.between(start, now), pageSize = 1000, pageToken = token))
+                    val response = client.readRecords(ReadRecordsRequest(type, TimeRangeFilter.between(if(type==HeartRateRecord::class || type==SleepSessionRecord::class)rawStart else start, now), pageSize = 1000, pageToken = token))
                     records += response.records; token = response.pageToken
                 } while (!token.isNullOrEmpty())
                 records.distinctBy { it.metadata.id }
@@ -112,7 +118,7 @@ class HealthConnectSync(private val context: Context, private val dao: DailyDao)
                     if(value!=null) stepComparisons[pkg]=value
                 }
             }
-            val sourcePackages = sortedSetOf<String>().apply { addAll(stepPackages) }
+            val sourcePackages = sortedSetOf<String>().apply { if(!full)addAll(status.value.sources);addAll(stepPackages) }
             val hrRecords = read(HeartRateRecord::class)
             sourcePackages += hrRecords.map { it.metadata.dataOrigin.packageName }
             val hr = hrRecords.flatMap { record -> record.samples.map { record.metadata.dataOrigin.packageName to it } }
@@ -123,7 +129,7 @@ class HealthConnectSync(private val context: Context, private val dao: DailyDao)
                     }
                     chosen?.let { sources.getValue(it) }.orEmpty().map { it.second }
                 }.map { HrPoint(it.time.toEpochMilli(), it.beatsPerMinute.toInt()) }.filter { it.bpm in 25..240 }.groupBy { it.time }.map { (time, points) -> HrPoint(time, points.map { it.bpm }.average().roundToInt()) }
-            val allExercises = read(ExerciseSessionRecord::class)
+            val allExercises = read(ExerciseSessionRecord::class).filter { it.startTime>=start }
             sourcePackages += allExercises.map { it.metadata.dataOrigin.packageName }
             val exerciseRecords = SourceSelection.workouts(allExercises, { it.metadata.dataOrigin.packageName }, { it.startTime.toEpochMilli() }, { it.endTime.toEpochMilli() }, { it.exerciseType })
             val sleepRecords = read(SleepSessionRecord::class)
@@ -136,8 +142,9 @@ class HealthConnectSync(private val context: Context, private val dao: DailyDao)
                 DailyAnalysis.sleep(SleepInput(main.startTime.toEpochMilli(), main.endTime.toEpochMilli(), main.stages.map { SleepSpan(it.startTime.toEpochMilli(), it.endTime.toEpochMilli(), it.stage) }))
             }
             val overnight = nights.mapValues { (_, night) -> DailyAnalysis.overnightHr(hr, night) }
-            val result = (0L..28L).map { offset ->
-                val date = first.plusDays(offset); val dayStart = date.atStartOfDay(zone).toInstant(); val dayEnd = minOf(date.plusDays(1).atStartOfDay(zone).toInstant(), now)
+            val result = (0L..daysBack).map { offset ->
+                status.value=status.value.copy(phase="Updating day ${offset+1} of ${daysBack+1}",progress=offset.toFloat()/(daysBack+1))
+                val date = today.minusDays(offset); val dayStart = date.atStartOfDay(zone).toInstant(); val dayEnd = minOf(date.plusDays(1).atStartOfDay(zone).toInstant(), now)
                 val previous=dao.day(date.toString())
                 val stepBounds = StepWindows.bounds(date,zone)
                 val dailySteps = if(HealthPermission.getReadPermission(StepsRecord::class) !in granted) null else guard.query("daily steps",previous?.steps) { client.aggregate(AggregateRequest(setOf(StepsRecord.COUNT_TOTAL),TimeRangeFilter.between(stepBounds.first,stepBounds.second),dataOriginFilter=stepOrigins))[StepsRecord.COUNT_TOTAL] }
@@ -184,6 +191,7 @@ class HealthConnectSync(private val context: Context, private val dao: DailyDao)
                     basal,
                     hourly.joinToString(";") { it.encode() }).let { fresh -> preserveUnavailableRecords(fresh,previous,guard.unavailable) }
             }
+            status.value=status.value.copy(phase="Updating workouts…",progress=.98f)
             val workouts = exerciseRecords.map { session ->
                 val begin=session.startTime.toEpochMilli(); val finish=session.endTime.toEpochMilli()
                 val type=when(session.exerciseType) {
@@ -204,10 +212,11 @@ class HealthConnectSync(private val context: Context, private val dao: DailyDao)
             if(guard.unavailable.isNotEmpty() && result.none { it.steps!=null || it.asleep!=null || it.hrCount>0 || it.calories!=null || it.activeCalories!=null || it.restingHr!=null || it.hrv!=null } && workouts.isEmpty()) {
                 status.value=status.value.copy(busy=false,message="Health Connect rejected: "+guard.unavailable.joinToString()+". No import was saved. Update Health Connect and your device app, then retry."); return@withLock false
             }
+            status.value=status.value.copy(phase="Saving on your phone…",progress=.99f)
             guard.stage="saving local history"
             dao.replaceHealthImport(first.toString(), start.toEpochMilli(), result, workouts.takeIf { HealthPermission.getReadPermission(ExerciseSessionRecord::class) in granted && "ExerciseSessionRecord" !in guard.unavailable })
             val report = importReport(result, first.toString(), today.toString(), workouts.size) + if(guard.unavailable.isEmpty()) "" else "\nUnavailable in this import (previous values retained where available): " + guard.unavailable.joinToString()
-            prefs.edit().putLong("lastSync", now.toEpochMilli()).putString("diagnostics",report).putStringSet("sources",sourcePackages).apply()
+            prefs.edit().apply { if(full)putLong("lastFullSync",now.toEpochMilli());putString("syncedPermissions",permissionsKey) }.putLong("lastSync", now.toEpochMilli()).putString("diagnostics",report).putStringSet("sources",sourcePackages).apply()
             PulseWidget.refresh(context)
             val hrCount = result.sumOf { it.hrCount }; val sleepCount = result.count { it.sleepStart != null }
             status.value = status.value.copy(busy = false, stepComparisons=stepComparisons, sources = sourcePackages.toList(), diagnostics = report, lastSync = now.toEpochMilli(), message = if(guard.unavailable.isNotEmpty()) "Imported available health data. Some requests were rejected: " + guard.unavailable.joinToString() + ". See Data status for details." else if (hrCount == 0 && sleepCount == 0 && workouts.isEmpty() && result.none { it.steps != null })
@@ -216,6 +225,7 @@ class HealthConnectSync(private val context: Context, private val dao: DailyDao)
             true
         } catch (e: CancellationException) { status.value = status.value.copy(busy = false); throw e }
         catch (e: Exception) { status.value = status.value.copy(busy = false, message = if (e is SecurityException) "Health access changed. Grant permissions and sync again." else "Sync interrupted during ${guard.stage} (${e.javaClass.simpleName}). Your previous import is retained. Update Health Connect and retry."); false }
+    }
     }
     companion object {
         val READ_PERMISSIONS = setOf(ExerciseSessionRecord::class, HeartRateRecord::class, SleepSessionRecord::class, StepsRecord::class, TotalCaloriesBurnedRecord::class, ActiveCaloriesBurnedRecord::class, BasalMetabolicRateRecord::class, RestingHeartRateRecord::class, HeartRateVariabilityRmssdRecord::class).map { HealthPermission.getReadPermission(it) }.toSet()

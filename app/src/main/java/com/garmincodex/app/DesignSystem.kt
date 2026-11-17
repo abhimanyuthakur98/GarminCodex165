@@ -28,12 +28,7 @@ import androidx.compose.ui.text.font.FontWeight
         contentPadding=PaddingValues(horizontal=10.dp,vertical=8.dp),
         border=BorderStroke(1.dp,palette.primary.copy(alpha=if(selected) .6f else .22f)),
         colors=ButtonDefaults.outlinedButtonColors(containerColor=palette.primary.copy(alpha=if(selected) .16f else .07f),contentColor=palette.primary)) {
-        Canvas(Modifier.size(16.dp)) {
-            val s=size.width;val stroke=1.3.dp.toPx()
-            drawRoundRect(palette.primary,Offset(s*.15f,s*.08f),Size(s*.72f,s*.84f),androidx.compose.ui.geometry.CornerRadius(s*.1f),style=Stroke(stroke))
-            drawLine(palette.primary,Offset(s*.33f,s*.08f),Offset(s*.33f,s*.92f),stroke)
-            repeat(2){i->drawLine(palette.primary,Offset(s*.46f,s*(.38f+i*.22f)),Offset(s*.72f,s*(.38f+i*.22f)),stroke)}
-        }
+        Icon(androidx.compose.ui.res.painterResource(R.drawable.symbol_book),null,tint=palette.primary,modifier=Modifier.size(18.dp))
         Spacer(Modifier.width(6.dp));Text("Journal",fontSize=12.sp,fontWeight=FontWeight.SemiBold,maxLines=1)
     }
 }
@@ -57,17 +52,8 @@ import androidx.compose.ui.text.font.FontWeight
     }
 }
 @Composable internal fun DockIcon(index:Int,color:Color) {
-    Canvas(Modifier.size(24.dp)) {
-        val s=size.width; val stroke=1.6.dp.toPx()
-        fun line(x:Float,y:Float,xx:Float,yy:Float)=drawLine(color,Offset(x*s,y*s),Offset(xx*s,yy*s),stroke,StrokeCap.Round)
-        when(index) {
-            0 -> { drawCircle(color,s*.36f,style=Stroke(stroke));line(.28f,.52f,.43f,.52f);line(.43f,.52f,.49f,.32f);line(.49f,.32f,.58f,.68f);line(.58f,.68f,.65f,.49f);line(.65f,.49f,.76f,.49f) }
-            1 -> { line(.16f,.82f,.16f,.6f);line(.39f,.82f,.39f,.43f);line(.62f,.82f,.62f,.55f);line(.85f,.82f,.85f,.18f) }
-            2 -> { drawCircle(color,s*.37f,style=Stroke(stroke));drawCircle(color,s*.19f,style=Stroke(stroke));drawCircle(color,s*.035f) }
-            3 -> { drawCircle(color,s*.28f,style=Stroke(stroke));drawCircle(color,s*.10f,style=Stroke(stroke)); repeat(8){i->val a=i*kotlin.math.PI/4;drawLine(color,Offset(s*.5f+kotlin.math.cos(a).toFloat()*s*.29f,s*.5f+kotlin.math.sin(a).toFloat()*s*.29f),Offset(s*.5f+kotlin.math.cos(a).toFloat()*s*.43f,s*.5f+kotlin.math.sin(a).toFloat()*s*.43f),stroke,StrokeCap.Round)} }
-            4 -> { line(.2f,.26f,.2f,.74f);line(.35f,.15f,.35f,.85f);line(.35f,.5f,.65f,.5f);line(.65f,.15f,.65f,.85f);line(.8f,.26f,.8f,.74f) }
-        }
-    }
+    val icon=when(index){0->R.drawable.symbol_home;1->R.drawable.symbol_monitoring;2->R.drawable.symbol_favorite;3->R.drawable.symbol_settings;else->R.drawable.symbol_fitness_center}
+    Icon(androidx.compose.ui.res.painterResource(icon),contentDescription=null,tint=color,modifier=Modifier.size(24.dp))
 }
 @Composable internal fun JournalCard(title:String,accent:Color=LocalPulseStyle.current.primary,content:@Composable ColumnScope.()->Unit) {
     val palette = LocalPulseStyle.current

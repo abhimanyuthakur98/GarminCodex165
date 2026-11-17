@@ -44,9 +44,10 @@ private fun clock(t: Long?) = t?.let { Instant.ofEpochMilli(it).atZone(ZoneId.sy
     val Card = palette.surface
  Column(Modifier.fillMaxWidth().background(Brush.linearGradient(listOf(palette.surface, Card)), RoundedCornerShape(24.dp)).border(1.dp, Color.White.copy(alpha = .06f), RoundedCornerShape(24.dp)).padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp), content = content) }
 
+@OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 @Composable fun PulseDashboard(days: List<ConnectedDay>, sync: SyncState, live: DashboardState, connection: String, message: String?, sleepNeed: Int, maximumHr: Int, restingHr: Int,
     onConnect: () -> Unit, onSync: () -> Unit, onHealthSettings: () -> Unit, onSourceApp: () -> Unit, onBackground: () -> Unit,
-    onProfile: (Int, Int, Int) -> Unit, onClear: () -> Unit, onLive: () -> Unit, onStop: () -> Unit, goals: PersonalGoals = PersonalGoals(), onGoals: (PersonalGoals) -> Unit = {}, preferences: DashboardPreferences = DashboardPreferences(), onPreferences: (DashboardPreferences) -> Unit = {}, workouts: List<Workout> = emptyList(), checkIns: List<WorkoutCheckIn> = emptyList(), onCheckIn: (WorkoutCheckIn) -> Unit = {}, onImportFit: () -> Unit = {}, onRemoveWorkout: (String) -> Unit = {}, workoutMessage: String? = null, importingFit: Boolean = false, journal: List<JournalEntry> = emptyList(), habits: List<HabitTag> = emptyList(), onJournal: (JournalEntry) -> Unit = {}, onHabit: (HabitTag) -> Unit = {}, onDeleteJournal: (String) -> Unit = {}, onClearJournal: () -> Unit = {}, reminder: JournalReminder = JournalReminder(), onReminder: (JournalReminder) -> Unit = {}, miles: Boolean = false, onMiles: (Boolean) -> Unit = {}, onDismissMessage: () -> Unit = {}, onStepSource:(String)->Unit = {}, appearance:PulseStyle=PulseStyle.NEON_CYAN, onAppearance:(PulseStyle)->Unit = {}) {
+    onProfile: (Int, Int, Int) -> Unit, onClear: () -> Unit, onLive: () -> Unit, onStop: () -> Unit, goals: PersonalGoals = PersonalGoals(), onGoals: (PersonalGoals) -> Unit = {}, preferences: DashboardPreferences = DashboardPreferences(), onPreferences: (DashboardPreferences) -> Unit = {}, workouts: List<Workout> = emptyList(), checkIns: List<WorkoutCheckIn> = emptyList(), onCheckIn: (WorkoutCheckIn) -> Unit = {}, onImportFit: () -> Unit = {}, onRemoveWorkout: (String) -> Unit = {}, workoutMessage: String? = null, importingFit: Boolean = false, journal: List<JournalEntry> = emptyList(), habits: List<HabitTag> = emptyList(), onJournal: (JournalEntry) -> Unit = {}, onHabit: (HabitTag) -> Unit = {}, onDeleteJournal: (String) -> Unit = {}, onClearJournal: () -> Unit = {}, reminder: JournalReminder = JournalReminder(), onReminder: (JournalReminder) -> Unit = {}, miles: Boolean = false, onMiles: (Boolean) -> Unit = {}, onDismissMessage: () -> Unit = {}, onStepSource:(String)->Unit = {}, appearance:PulseStyle=PulseStyle.NEON_CYAN, onAppearance:(PulseStyle)->Unit = {}, onHistorySync:()->Unit = onSync) {
     val palette = LocalPulseStyle.current
     val Lime = palette.primary
     val Orange = palette.warm
@@ -86,13 +87,18 @@ private fun clock(t: Long?) = t?.let { Instant.ofEpochMilli(it).atZone(ZoneId.sy
     }
     Scaffold(containerColor = Ink, topBar = {
         Column(Modifier.statusBarsPadding().padding(horizontal=18.dp,vertical=4.dp)) {
-            PulseHeader(sync.busy,onSync,sync.lastSync,onSettings={if(page!=3 && page!=6){settingsReturnPage=page;page=3}},onBack=if(page==3 || page==6) ({page=if(page==6)3 else settingsReturnPage}) else null)
+            PulseHeader(sync.busy,onSync,sync.lastSync,sync.phase,onSettings={if(page!=3 && page!=6){settingsReturnPage=page;page=3}},onBack=if(page==3 || page==6) ({page=if(page==6)3 else settingsReturnPage}) else null)
+            if(sync.busy) LinearProgressIndicator(progress={sync.progress},modifier=Modifier.fillMaxWidth().height(2.dp),color=Blue,trackColor=Card)
         }
     }, snackbarHost={SnackbarHost(notices)}, bottomBar = {
         if(page!=3 && page!=6) PulseDock(page) { target -> focusManager.clearFocus();if(page==target) { if(target==0){selected=LocalDate.now().toString();expandedToday=false};scope.launch{scrolls[target].animateScrollTo(0)} } else page=target }
     }) { padding ->
-        Column(Modifier.padding(padding).fillMaxSize().verticalScroll(scrolls[page]).padding(horizontal = 18.dp, vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(if(page==0 && !expandedToday) 14.dp else 16.dp)) {
-            androidx.compose.animation.AnimatedVisibility(sync.busy) { Column(Modifier.fillMaxWidth().padding(vertical=4.dp),verticalArrangement=Arrangement.spacedBy(6.dp)) { LinearProgressIndicator(modifier=Modifier.fillMaxWidth(),color=Blue,trackColor=Card); Text("Refreshing your health data",fontSize=11.sp,color=Muted) } }
+        val pullState=androidx.compose.material3.pulltorefresh.rememberPullToRefreshState()
+        androidx.compose.material3.pulltorefresh.PullToRefreshBox(isRefreshing=sync.busy,onRefresh={if(!sync.busy)onSync()},state=pullState,modifier=Modifier.padding(padding).fillMaxSize(),indicator={
+            if(!sync.busy && pullState.distanceFraction>0f) Text("Pull to refresh",modifier=Modifier.align(Alignment.TopCenter).background(Card,RoundedCornerShape(12.dp)).padding(12.dp),color=Blue)
+        }) {
+        Column(Modifier.fillMaxSize().verticalScroll(scrolls[page]).padding(horizontal = 18.dp, vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(if(page==0 && !expandedToday) 14.dp else 16.dp)) {
+
             if (preview) Row(Modifier.fillMaxWidth().background(Color(0xFF483F21), RoundedCornerShape(8.dp)).padding(12.dp), horizontalArrangement = Arrangement.SpaceBetween) { Text("PREVIEW • synthetic data", fontSize = 11.sp); Text("Exit", Modifier.clickable { preview = false }, color = Blue) }
             tabState.SaveableStateProvider(page) {
             Column(pageMotion(page),verticalArrangement=Arrangement.spacedBy(if(page==0 && !expandedToday) 10.dp else 14.dp)) {
@@ -147,6 +153,7 @@ private fun clock(t: Long?) = t?.let { Instant.ofEpochMilli(it).atZone(ZoneId.sy
                     Text("Settings",fontSize=34.sp,fontWeight=FontWeight.Bold)
                     Text("Your Pulse, your way.",color=Muted,fontSize=14.sp)
                     AppearancePicker(appearance,onAppearance)
+                    CustomColourPicker(appearance,onAppearance)
                     JournalCard("HEALTH & DEVICES") {
                         Text("Connect your health data",fontSize=22.sp)
                         Text("Manage device sharing, step sources, permissions and imports.",fontSize=13.sp)
@@ -163,7 +170,8 @@ private fun clock(t: Long?) = t?.let { Instant.ofEpochMilli(it).atZone(ZoneId.sy
                     Panel {
                         Label("CONNECTION STATUS", Blue); Text(sync.message, fontSize = 14.sp)
                         Text("${sync.granted.intersect(HealthConnectSync.READ_PERMISSIONS).size}/${HealthConnectSync.READ_PERMISSIONS.size} health permissions • last import ${if (sync.lastSync > 0) clock(sync.lastSync) else "never"}", color = Muted, fontSize = 12.sp)
-                        Button(onClick = onSync, enabled = !sync.busy, modifier = Modifier.fillMaxWidth()) { Text(if (sync.busy) "Importing…" else "Import last 28 days") }
+                        Button(onClick = onHistorySync, enabled = !sync.busy, modifier = Modifier.fillMaxWidth()) { Text(if (sync.busy) "Importing…" else "Import last 28 days") }
+                        Text("Routine refresh updates recent days. Full history is checked daily, or whenever you import here.",fontSize=12.sp,color=Muted)
                         OutlinedButton(onClick = onConnect, modifier = Modifier.fillMaxWidth()) { Text("Review read permissions") }
                         Text("Background refresh: ${if (sync.background) "enabled, about hourly" else "off; refreshes when Pulse opens"}", color = Muted, fontSize = 12.sp)
                         if (!sync.background) TextButton(onClick = onBackground) { Text("Enable background refresh") }
@@ -191,6 +199,7 @@ private fun clock(t: Long?) = t?.let { Instant.ofEpochMilli(it).atZone(ZoneId.sy
                 }
             }
         }
+    }
     }
     }
     }

@@ -24,6 +24,9 @@ class GoalsPersistenceTest {
         assertTrue(HealthConnectSync(context,db.days()).distanceMiles.value)
         HealthConnectSync(context,db.days()).saveAppearance(PulseStyle.NEON_VIOLET)
         assertEquals(PulseStyle.NEON_VIOLET,HealthConnectSync(context,db.days()).appearance.value)
+        val custom=PulseStyle.custom("123ABC")!!
+        HealthConnectSync(context,db.days()).saveAppearance(custom)
+        assertEquals(custom,HealthConnectSync(context,db.days()).appearance.value)
         assertEquals(goals,HealthConnectSync(context,db.days()).goals.value)
         db.close()
     }

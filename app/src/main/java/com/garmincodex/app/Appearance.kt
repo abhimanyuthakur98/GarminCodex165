@@ -9,20 +9,35 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.*
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
-enum class PulseStyle(val title:String,val primary:Color,val secondary:Color,val violet:Color,val warm:Color,val background:Color,val surface:Color) {
-    NEON_CYAN("Neon Cyan",Color(0xFF3DEBFF),Color(0xFF7AFFB2),Color(0xFFC0A0FF),Color(0xFFFFAA70),Color(0xFF070C12),Color(0xFF111D28)),
-    NEON_LIME("Neon Lime",Color(0xFFC6FF42),Color(0xFF40F5CA),Color(0xFFE1A0FF),Color(0xFFFFA477),Color(0xFF090D09),Color(0xFF182016)),
-    NEON_VIOLET("Neon Violet",Color(0xFFD0A0FF),Color(0xFF62E9FF),Color(0xFFFF8DD7),Color(0xFFFFB381),Color(0xFF100B17),Color(0xFF23192F)),
-    MIDNIGHT("Midnight Blue",Color(0xFF88B5FF),Color(0xFF8FD8CE),Color(0xFFC0AFF5),Color(0xFFFFB28D),Color(0xFF0C1018),Color(0xFF171E2B));
+data class PulseStyle(val name:String,val title:String,val primary:Color,val secondary:Color,val violet:Color,val warm:Color,val background:Color,val surface:Color,val seed:Color=primary) {
     val muted:Color get()=Color(0xFFB0BACC)
     val line:Color get()=primary.copy(alpha=.18f)
-    companion object { fun fromId(id:String?)=entries.firstOrNull { it.name==id } ?: NEON_CYAN }
+    companion object {
+        val NEON_CYAN=PulseStyle("NEON_CYAN","Neon Cyan",Color(0xFF3DEBFF),Color(0xFF7AFFB2),Color(0xFFC0A0FF),Color(0xFFFFAA70),Color(0xFF070C12),Color(0xFF111D28))
+        val NEON_LIME=PulseStyle("NEON_LIME","Neon Lime",Color(0xFFC6FF42),Color(0xFF40F5CA),Color(0xFFE1A0FF),Color(0xFFFFA477),Color(0xFF090D09),Color(0xFF182016))
+        val NEON_VIOLET=PulseStyle("NEON_VIOLET","Neon Violet",Color(0xFFD0A0FF),Color(0xFF62E9FF),Color(0xFFFF8DD7),Color(0xFFFFB381),Color(0xFF100B17),Color(0xFF23192F))
+        val MIDNIGHT=PulseStyle("MIDNIGHT","Midnight Blue",Color(0xFF88B5FF),Color(0xFF8FD8CE),Color(0xFFC0AFF5),Color(0xFFFFB28D),Color(0xFF0C1018),Color(0xFF171E2B))
+        val entries=listOf(NEON_CYAN,NEON_LIME,NEON_VIOLET,MIDNIGHT)
+        fun custom(hex:String):PulseStyle? {
+            val clean=hex.removePrefix("#").uppercase()
+            if(!clean.matches(Regex("[0-9A-F]{6}"))) return null
+            val seed=Color(0xFF000000 or clean.toLong(16))
+            var accent=seed
+            repeat(12){if(accent.luminance()<.4f) accent=lerp(accent,Color.White,.12f)}
+            return PulseStyle("CUSTOM:"+clean,"Custom colour",accent,lerp(accent,Color(0xFF7AFFB2),.3f),lerp(accent,Color(0xFFD5A7FF),.5f),lerp(accent,Color(0xFFFFAA70),.65f),lerp(Color(0xFF080B10),seed,.045f),lerp(Color(0xFF171D26),seed,.09f),seed)
+        }
+        fun fromId(id:String?)=entries.firstOrNull{it.name==id} ?: id?.takeIf{it.startsWith("CUSTOM:")}?.let{custom(it.substringAfter(':'))} ?: NEON_CYAN
+    }
 }
+internal fun tileInk(color:Color)=if(color.luminance()>.179f) Color(0xFF080B10) else Color.White
 internal val LocalPulseStyle=staticCompositionLocalOf { PulseStyle.NEON_CYAN }
 
 @Composable internal fun AppearancePicker(selected:PulseStyle,onSelect:(PulseStyle)->Unit) {
@@ -36,5 +51,25 @@ internal val LocalPulseStyle=staticCompositionLocalOf { PulseStyle.NEON_CYAN }
                 if(style==selected) Text("✓",color=style.primary)
             }
         }
+    }
+}
+
+@Composable internal fun CustomColourPicker(selected:PulseStyle,onSelect:(PulseStyle)->Unit) {
+    var hex by remember(selected.name){mutableStateOf("%06X".format(selected.seed.toArgb() and 0xFFFFFF))}
+    val candidate=PulseStyle.custom(hex)
+    val colour=candidate?.seed ?: selected.seed
+    JournalCard("CUSTOM COLOUR") {
+        Text("Every shade is yours",fontSize=22.sp)
+        Box(Modifier.fillMaxWidth().height(64.dp).background(colour,RoundedCornerShape(18.dp))) {
+            Text("Your personal Pulse",color=tileInk(colour),modifier=Modifier.padding(20.dp))
+        }
+        OutlinedTextField(hex,{hex=it.removePrefix("#").take(6)},label={Text("Hex colour")},prefix={Text("#")},singleLine=true,isError=candidate==null,modifier=Modifier.fillMaxWidth().testTag("custom-hex"))
+        listOf("Red","Green","Blue").forEachIndexed { index,label ->
+            val channels=listOf(colour.red,colour.green,colour.blue)
+            Text(label,fontSize=12.sp)
+            Slider(channels[index],{v->val c=channels.toMutableList();c[index]=v;hex="%02X%02X%02X".format((c[0]*255).toInt(),(c[1]*255).toInt(),(c[2]*255).toInt())},modifier=Modifier.semantics{contentDescription=label+" colour channel"})
+        }
+        Text("Your exact shade colours the activity tiles. Text and accents adapt for readability.",fontSize=12.sp)
+        Button(onClick={candidate?.let(onSelect)},enabled=candidate!=null,modifier=Modifier.fillMaxWidth()){Text("Apply custom colour")}
     }
 }

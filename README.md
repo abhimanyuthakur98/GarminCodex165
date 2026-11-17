@@ -1,3 +1,10 @@
+## 0.17.0 — personal goals and lighter refresh
+
+- Steps and active calories side by side, with an imported sleep-stage timeline below. Brief, clipped goal celebrations can be replayed. Missing values never celebrate.
+- Custom RGB/hex colours persist alongside presets; tile text and UI accents adapt for contrast. Rounded Material Symbols replace the hand-drawn navigation icons (Apache 2.0, see MATERIAL_SYMBOLS_LICENSE.txt).
+- Pull to refresh; compact stage/day progress instead of a large indefinite spinner. Routine sync updates three calendar days, retaining older records and baseline inputs. Full 29-calendar-day reconciliation runs at least daily and after permissions/profile/source changes, with a manual full import in Settings. Historical source edits/deletions outside the routine window appear after that full import.
+- Source: https://developer.android.com/develop/ui/compose/components/pull-to-refresh and https://developer.android.com/health-and-fitness/health-connect/rate-limiting
+
 ## 0.16.0 — daily dashboard redesign
 
 - Fixed top app bar with Settings at the upper right; four primary bottom destinations. Settings returns to the screen you opened it from.
