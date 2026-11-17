@@ -37,14 +37,17 @@ class GoalTilesUiTest {
         compose.onAllNodesWithTag("goal-confetti",useUnmergedTree=true).assertCountEquals(3)
         compose.mainClock.advanceTimeBy(3000)
         compose.onAllNodesWithTag("goal-confetti",useUnmergedTree=true).assertCountEquals(0)
+        compose.mainClock.autoAdvance=true
         compose.onNodeWithContentDescription("Celebrate Steps goal").performClick()
+        try { compose.onNodeWithTag("replay-Steps-1").assertExists() }
+        catch(e:AssertionError){throw AssertionError(compose.onRoot(useUnmergedTree=true).printToString(),e)}
+        compose.mainClock.autoAdvance=false
+        compose.onNodeWithContentDescription("Celebrate Steps goal").performSemanticsAction(androidx.compose.ui.semantics.SemanticsActions.OnClick){it()}
         compose.mainClock.advanceTimeByFrame()
-        compose.waitForIdle()
-        compose.onNodeWithTag("replay-Steps-1").assertExists()
         compose.mainClock.advanceTimeBy(200)
         compose.onAllNodesWithTag("goal-confetti",useUnmergedTree=true).assertCountEquals(1)
         compose.mainClock.advanceTimeBy(3000)
-        compose.onNodeWithContentDescription("Celebrate Sleep goal").performClick()
+        compose.onNodeWithContentDescription("Celebrate Sleep goal").performSemanticsAction(androidx.compose.ui.semantics.SemanticsActions.OnClick){it()}
         compose.mainClock.advanceTimeByFrame()
         compose.waitForIdle()
         compose.mainClock.advanceTimeBy(200)
