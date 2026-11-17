@@ -23,8 +23,8 @@ import java.util.Locale
 import kotlin.math.roundToInt
 
 @Composable internal fun GoalCelebration(complete:Boolean,replay:Int,modifier:Modifier=Modifier) {
-    val progress=remember { Animatable(1f) }
-    LaunchedEffect(complete,replay) { if(complete) {progress.snapTo(0f);progress.animateTo(1f,tween(2600,easing=LinearEasing))} }
+    val progress=remember(complete,replay) { Animatable(if(complete)0f else 1f) }
+    LaunchedEffect(progress) { if(complete) progress.animateTo(1f,tween(2600,easing=LinearEasing)) }
     if(complete && progress.value<1f) Canvas(modifier.testTag("goal-confetti")) {
         val t=progress.value
         val colours=listOf(Color.White,Color(0xFFFFD75E),Color(0xFFFF89C8),Color(0xFF72DFFF))
@@ -50,7 +50,7 @@ import kotlin.math.roundToInt
             LinearProgressIndicator(progress={((value ?: 0.0)/goal.coerceAtLeast(1)).toFloat().coerceIn(0f,1f)*reveal},modifier=Modifier.fillMaxWidth().height(5.dp),color=ink,trackColor=ink.copy(alpha=.15f))
             Text("Goal ${String.format(Locale.getDefault(),"%,d",goal)}",color=ink,fontSize=11.sp)
             Box(Modifier.fillMaxWidth().height(48.dp),contentAlignment=Alignment.CenterStart) {
-                if(complete) TextButton(onClick={replay++},contentPadding=PaddingValues(0.dp),modifier=Modifier.fillMaxHeight().semantics{contentDescription="Celebrate $label goal"}){Text("Goal reached ✦",color=ink,fontSize=11.sp)}
+                if(complete) TextButton(onClick={replay++},contentPadding=PaddingValues(0.dp),modifier=Modifier.fillMaxHeight().testTag("replay-$label-$replay").semantics{contentDescription="Celebrate $label goal"}){Text("Goal reached ✦",color=ink,fontSize=11.sp)}
                 else Text(if(value==null) "No record" else "${(goal-value).coerceAtLeast(0.0).roundToInt()} to go",color=ink,fontSize=11.sp)
             }
             CompositionLocalProvider(LocalContentColor provides ink){footer()}

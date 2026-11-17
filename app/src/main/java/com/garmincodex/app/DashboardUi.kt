@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.platform.testTag
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.activity.compose.BackHandler
@@ -94,7 +95,7 @@ private fun clock(t: Long?) = t?.let { Instant.ofEpochMilli(it).atZone(ZoneId.sy
         if(page!=3 && page!=6) PulseDock(page) { target -> focusManager.clearFocus();if(page==target) { if(target==0){selected=LocalDate.now().toString();expandedToday=false};scope.launch{scrolls[target].animateScrollTo(0)} } else page=target }
     }) { padding ->
         val pullState=androidx.compose.material3.pulltorefresh.rememberPullToRefreshState()
-        androidx.compose.material3.pulltorefresh.PullToRefreshBox(isRefreshing=sync.busy,onRefresh={if(!sync.busy)onSync()},state=pullState,modifier=Modifier.padding(padding).fillMaxSize(),indicator={
+        androidx.compose.material3.pulltorefresh.PullToRefreshBox(isRefreshing=sync.busy,onRefresh={if(!sync.busy)onSync()},state=pullState,modifier=Modifier.padding(padding).fillMaxSize().testTag("refresh-surface"),indicator={
             if(!sync.busy && pullState.distanceFraction>0f) Text("Pull to refresh",modifier=Modifier.align(Alignment.TopCenter).background(Card,RoundedCornerShape(12.dp)).padding(12.dp),color=Blue)
         }) {
         Column(Modifier.fillMaxSize().verticalScroll(scrolls[page]).padding(horizontal = 18.dp, vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(if(page==0 && !expandedToday) 14.dp else 16.dp)) {

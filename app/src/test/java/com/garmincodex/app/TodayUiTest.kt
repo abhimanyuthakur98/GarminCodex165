@@ -21,10 +21,10 @@ class TodayUiTest {
         var calls=0
         var syncing by mutableStateOf(false)
         compose.setContent { PulseTheme { PulseDashboard(listOf(previewDay(LocalDate.now().toString())),SyncState(busy=syncing),DashboardState(),"",null,480,190,55,{},{calls++;syncing=true},{},{},{},{_,_,_->},{},{},{}) } }
-        compose.onRoot().performTouchInput { swipeDown() }
+        compose.onNodeWithTag("refresh-surface").performTouchInput { swipeDown(startY=100f,endY=height*.85f,durationMillis=600) }
         compose.runOnIdle { assertEquals(1,calls) }
         compose.onNodeWithText("Your movement").assertIsDisplayed()
-        compose.onRoot().performTouchInput { swipeDown() }
+        compose.onNodeWithTag("refresh-surface").performTouchInput { swipeDown(startY=100f,endY=height*.85f,durationMillis=600) }
         compose.runOnIdle { assertEquals(1,calls) }
     }
     @Test fun snapshotKeepsDetailsOptionalAndJournalFollowsSelectedDate() {
