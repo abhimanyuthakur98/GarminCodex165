@@ -43,6 +43,12 @@ class GoalTilesUiTest {
         compose.onNodeWithTag("replay-Steps-1").assertExists()
         compose.mainClock.advanceTimeBy(200)
         compose.onAllNodesWithTag("goal-confetti",useUnmergedTree=true).assertCountEquals(1)
+        compose.mainClock.advanceTimeBy(3000)
+        compose.onNodeWithContentDescription("Celebrate Sleep goal").performClick()
+        compose.mainClock.advanceTimeByFrame()
+        compose.waitForIdle()
+        compose.mainClock.advanceTimeBy(200)
+        compose.onAllNodesWithTag("goal-confetti",useUnmergedTree=true).assertCountEquals(1)
         compose.onRoot().captureRoboImage("build/screenshots/goal-tiles-celebration.png")
     }
     @Test fun missingMetricsCannotCelebrate() {

@@ -40,8 +40,9 @@ import kotlin.math.roundToInt
     val ink=tileInk(colour)
     val complete=value!=null && value>=goal && goal>0
     var replay by remember(date){mutableIntStateOf(0)}
-    Box(modifier.clip(RoundedCornerShape(26.dp)).background(Brush.linearGradient(listOf(colour,lerp(colour,if(ink==Color.White)Color.Black else Color.White,.12f)))).testTag(tag).clickable(role=Role.Button,onClick=onClick)) {
+    Box(modifier.clip(RoundedCornerShape(26.dp)).background(Brush.linearGradient(listOf(colour,lerp(colour,if(ink==Color.White)Color.Black else Color.White,.12f))))) {
         Column(Modifier.fillMaxWidth().padding(16.dp),verticalArrangement=Arrangement.spacedBy(10.dp)) {
+            Column(Modifier.fillMaxWidth().testTag(tag).clickable(role=Role.Button,onClick=onClick),verticalArrangement=Arrangement.spacedBy(10.dp)) {
             Row(verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(6.dp)) {
                 Icon(painterResource(icon),null,tint=ink,modifier=Modifier.size(20.dp));Text(label,color=ink,fontSize=13.sp,fontWeight=FontWeight.SemiBold)
             }
@@ -49,11 +50,12 @@ import kotlin.math.roundToInt
             Text(unit,color=ink.copy(alpha=.8f),fontSize=11.sp)
             LinearProgressIndicator(progress={((value ?: 0.0)/goal.coerceAtLeast(1)).toFloat().coerceIn(0f,1f)*reveal},modifier=Modifier.fillMaxWidth().height(5.dp),color=ink,trackColor=ink.copy(alpha=.15f))
             Text("Goal ${String.format(Locale.getDefault(),"%,d",goal)}",color=ink,fontSize=11.sp)
+            }
             Box(Modifier.fillMaxWidth().height(48.dp),contentAlignment=Alignment.CenterStart) {
                 if(complete) TextButton(onClick={replay++},contentPadding=PaddingValues(0.dp),modifier=Modifier.fillMaxHeight().testTag("replay-$label-$replay").semantics{contentDescription="Celebrate $label goal"}){Text("Goal reached ✦",color=ink,fontSize=11.sp)}
                 else Text(if(value==null) "No record" else "${(goal-value).coerceAtLeast(0.0).roundToInt()} to go",color=ink,fontSize=11.sp)
             }
-            CompositionLocalProvider(LocalContentColor provides ink){footer()}
+            Column(Modifier.fillMaxWidth().clickable(role=Role.Button,onClick=onClick)) { CompositionLocalProvider(LocalContentColor provides ink){footer()} }
         }
         GoalCelebration(complete,replay,Modifier.matchParentSize())
     }
@@ -82,8 +84,9 @@ import kotlin.math.roundToInt
     val colours=listOf(Color(0xFF30245F),Color(0xFF7951C6),Color(0xFF166071),Color(0xFF753C22))
     val reveal=chartEntrance(day?.updatedAt ?: 0L)
     fun stamp(t:Long?)=t?.let{Instant.ofEpochMilli(it).atZone(ZoneId.systemDefault()).format(DateTimeFormatter.ofPattern("HH:mm"))} ?: "—"
-    Box(Modifier.fillMaxWidth().clip(RoundedCornerShape(26.dp)).background(colour).clickable(role=Role.Button,onClickLabel="Sleep details",onClick=onClick)) {
+    Box(Modifier.fillMaxWidth().clip(RoundedCornerShape(26.dp)).background(colour)) {
         Column(Modifier.padding(20.dp),verticalArrangement=Arrangement.spacedBy(12.dp)) {
+            Column(Modifier.fillMaxWidth().clickable(role=Role.Button,onClickLabel="Sleep details",onClick=onClick),verticalArrangement=Arrangement.spacedBy(12.dp)) {
             Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween,verticalAlignment=Alignment.CenterVertically) {
                 Row(horizontalArrangement=Arrangement.spacedBy(8.dp)){Icon(painterResource(R.drawable.symbol_bedtime),null,tint=ink,modifier=Modifier.size(22.dp));Text("Sleep",color=ink,fontWeight=FontWeight.SemiBold)}
                 Text("Goal ${need/60}h ${need%60}m",fontSize=11.sp,color=ink)
@@ -104,6 +107,7 @@ import kotlin.math.roundToInt
                 Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween){Text(stamp(day.sleepStart),color=ink,fontSize=11.sp);Text(stamp(day.sleepEnd),color=ink,fontSize=11.sp)}
                 Row(horizontalArrangement=Arrangement.spacedBy(10.dp)){listOf("Deep","Light","REM","Awake").forEachIndexed{i,label->Text("● $label",color=colours[i],fontSize=10.sp)}}
             } else Text(if(day?.sleepStart!=null) "Sleep stages not shared · view session ›" else "Sync after wearing your watch to bed",color=ink,fontSize=12.sp)
+            }
             if(complete) TextButton(onClick={replay++},modifier=Modifier.semantics{contentDescription="Celebrate Sleep goal"}){Text("Sleep goal reached ✦",color=ink)}
         }
         GoalCelebration(complete,replay,Modifier.matchParentSize())
