@@ -49,8 +49,10 @@ import kotlin.math.roundToInt
             Text(unit,color=ink.copy(alpha=.8f),fontSize=11.sp)
             LinearProgressIndicator(progress={((value ?: 0.0)/goal.coerceAtLeast(1)).toFloat().coerceIn(0f,1f)*reveal},modifier=Modifier.fillMaxWidth().height(5.dp),color=ink,trackColor=ink.copy(alpha=.15f))
             Text("Goal ${String.format(Locale.getDefault(),"%,d",goal)}",color=ink,fontSize=11.sp)
-            if(complete) TextButton(onClick={replay++},contentPadding=PaddingValues(0.dp),modifier=Modifier.heightIn(min=48.dp).semantics{contentDescription="Celebrate $label goal"}){Text("Goal reached ✦",color=ink,fontSize=11.sp)}
-            else Text(if(value==null) "No record" else "${(goal-value).coerceAtLeast(0.0).roundToInt()} to go",color=ink,fontSize=11.sp,modifier=Modifier.heightIn(min=48.dp).padding(top=14.dp))
+            Box(Modifier.fillMaxWidth().height(48.dp),contentAlignment=Alignment.CenterStart) {
+                if(complete) TextButton(onClick={replay++},contentPadding=PaddingValues(0.dp),modifier=Modifier.fillMaxHeight().semantics{contentDescription="Celebrate $label goal"}){Text("Goal reached ✦",color=ink,fontSize=11.sp)}
+                else Text(if(value==null) "No record" else "${(goal-value).coerceAtLeast(0.0).roundToInt()} to go",color=ink,fontSize=11.sp)
+            }
             CompositionLocalProvider(LocalContentColor provides ink){footer()}
         }
         GoalCelebration(complete,replay,Modifier.matchParentSize())
@@ -60,7 +62,7 @@ import kotlin.math.roundToInt
 @Composable internal fun ActivityTiles(day:ConnectedDay?,goals:PersonalGoals,reveal:Float,onDetail:(String)->Unit,sync:SyncState) {
     val p=LocalPulseStyle.current
     Text("Your movement",fontSize=18.sp,fontWeight=FontWeight.SemiBold)
-    Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min),horizontalArrangement=Arrangement.spacedBy(12.dp)) {
+    Row(Modifier.fillMaxWidth().height(IntrinsicSize.Max),horizontalArrangement=Arrangement.spacedBy(12.dp)) {
         GoalTile("Steps",day?.steps?.toDouble(),goals.steps,"steps",p.seed,R.drawable.symbol_directions_walk,day?.date ?: "","goal-Steps",reveal,Modifier.weight(1f).fillMaxHeight(),{onDetail("steps")})
         GoalTile("Calories",day?.activeCalories,goals.activeCalories,"active kcal",if(p.name.startsWith("CUSTOM:"))lerp(p.seed,p.warm,.22f) else p.warm,R.drawable.symbol_local_fire_department,day?.date ?: "","goal-Calories",reveal,Modifier.weight(1f).fillMaxHeight(),{onDetail("calories")}) {
             if(day?.activeCalories==null) {

@@ -1,5 +1,6 @@
 package com.garmincodex.app
 import android.app.Application
+import androidx.compose.runtime.*
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createComposeRule
 import com.github.takahirom.roborazzi.captureRoboImage
@@ -16,6 +17,16 @@ import java.time.LocalDate
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 class TodayUiTest {
     @get:Rule val compose=createComposeRule()
+    @Test fun pullRefreshStartsOnceAndKeepsExistingContent() {
+        var calls=0
+        var syncing by mutableStateOf(false)
+        compose.setContent { PulseTheme { PulseDashboard(listOf(previewDay(LocalDate.now().toString())),SyncState(busy=syncing),DashboardState(),"",null,480,190,55,{},{calls++;syncing=true},{},{},{},{_,_,_->},{},{},{}) } }
+        compose.onRoot().performTouchInput { swipeDown() }
+        compose.runOnIdle { assertEquals(1,calls) }
+        compose.onNodeWithText("Your movement").assertIsDisplayed()
+        compose.onRoot().performTouchInput { swipeDown() }
+        compose.runOnIdle { assertEquals(1,calls) }
+    }
     @Test fun snapshotKeepsDetailsOptionalAndJournalFollowsSelectedDate() {
         System.setProperty("roborazzi.test.record","true")
         val today=LocalDate.now();val yesterday=today.minusDays(1).toString()

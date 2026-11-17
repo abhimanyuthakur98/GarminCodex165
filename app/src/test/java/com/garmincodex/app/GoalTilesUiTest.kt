@@ -35,12 +35,12 @@ class GoalTilesUiTest {
         assertEquals(steps.top,calories.top)
         assertTrue(steps.right<calories.left)
         compose.onAllNodesWithTag("goal-confetti",useUnmergedTree=true).assertCountEquals(3)
-        compose.onRoot().captureRoboImage("build/screenshots/goal-tiles-celebration.png")
         compose.mainClock.advanceTimeBy(3000)
         compose.onAllNodesWithTag("goal-confetti",useUnmergedTree=true).assertCountEquals(0)
         compose.onNodeWithContentDescription("Celebrate Steps goal").performClick()
         compose.mainClock.advanceTimeBy(200)
         compose.onAllNodesWithTag("goal-confetti",useUnmergedTree=true).assertCountEquals(1)
+        compose.onRoot().captureRoboImage("build/screenshots/goal-tiles-celebration.png")
     }
     @Test fun missingMetricsCannotCelebrate() {
         compose.setContent{PulseTheme{Column{ActivityTiles(null,PersonalGoals(),1f,{},SyncState());SleepHero(null,480){}}}}

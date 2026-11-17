@@ -59,7 +59,7 @@ class AppearanceUiTest {
     }
     @Test fun exactCustomColourCanBeApplied() {
         var chosen=PulseStyle.NEON_CYAN
-        compose.setContent{PulseTheme{CustomColourPicker(chosen){chosen=it}}}
+        compose.setContent{PulseTheme{androidx.compose.material3.Surface {CustomColourPicker(chosen){chosen=it}}}}
         compose.onNodeWithTag("custom-hex").performTextReplacement("EC245A")
         compose.onNodeWithText("Apply custom colour").performClick()
         compose.runOnIdle{assertEquals("CUSTOM:EC245A",chosen.name)}
