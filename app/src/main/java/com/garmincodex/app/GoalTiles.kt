@@ -37,21 +37,21 @@ import kotlin.math.roundToInt
 }
 
 @Composable private fun GoalTile(label:String,value:Double?,goal:Int,unit:String,colour:Color,icon:Int,date:String,tag:String,reveal:Float,modifier:Modifier,onClick:()->Unit,footer:@Composable ColumnScope.()->Unit={}) {
-    val ink=tileInk(colour)
+    val ink=colour
     val complete=value!=null && value>=goal && goal>0
     var replay by remember(date){mutableIntStateOf(0)}
-    Box(modifier.clip(RoundedCornerShape(26.dp)).background(Brush.linearGradient(listOf(colour,lerp(colour,if(ink==Color.White)Color.Black else Color.White,.12f))))) {
+    Box(modifier.clip(RoundedCornerShape(24.dp)).background(Brush.linearGradient(listOf(Color(0xFF202020),Color(0xFF121212)))).border(1.dp,Color.White.copy(alpha=.035f),RoundedCornerShape(24.dp))) {
         Column(Modifier.fillMaxWidth().padding(16.dp),verticalArrangement=Arrangement.spacedBy(10.dp)) {
             Column(Modifier.fillMaxWidth().testTag(tag).clickable(role=Role.Button,onClick=onClick),verticalArrangement=Arrangement.spacedBy(10.dp)) {
             Row(verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(6.dp)) {
-                Icon(painterResource(icon),null,tint=ink,modifier=Modifier.size(20.dp));Text(label,color=ink,fontSize=13.sp,fontWeight=FontWeight.SemiBold)
+                Icon(painterResource(icon),null,tint=ink,modifier=Modifier.size(18.dp));Text(label,color=Color.White,fontSize=13.sp,fontWeight=FontWeight.SemiBold)
             }
-            androidx.compose.foundation.text.BasicText(value?.let{String.format(Locale.getDefault(),"%,d",it.roundToInt())} ?: "—",maxLines=1,autoSize=androidx.compose.foundation.text.TextAutoSize.StepBased(23.sp,34.sp),style=androidx.compose.ui.text.TextStyle(color=ink,fontWeight=FontWeight.Bold))
-            Text(unit,color=ink.copy(alpha=.8f),fontSize=11.sp)
-            LinearProgressIndicator(progress={((value ?: 0.0)/goal.coerceAtLeast(1)).toFloat().coerceIn(0f,1f)*reveal},modifier=Modifier.fillMaxWidth().height(5.dp),color=ink,trackColor=ink.copy(alpha=.15f))
-            Text("Goal ${String.format(Locale.getDefault(),"%,d",goal)}",color=ink,fontSize=11.sp)
+            androidx.compose.foundation.text.BasicText(value?.let{String.format(Locale.getDefault(),"%,d",it.roundToInt())} ?: "—",maxLines=1,autoSize=androidx.compose.foundation.text.TextAutoSize.StepBased(26.sp,42.sp),style=androidx.compose.ui.text.TextStyle(color=ink,fontWeight=FontWeight.Light,fontFamily=androidx.compose.ui.text.font.FontFamily.Monospace,letterSpacing=(-2).sp))
+            Text(unit,color=Color(0xFFA3A3A3),fontSize=11.sp)
+            LinearProgressIndicator(progress={((value ?: 0.0)/goal.coerceAtLeast(1)).toFloat().coerceIn(0f,1f)*reveal},modifier=Modifier.fillMaxWidth().height(3.dp),color=ink,trackColor=Color.White.copy(alpha=.09f))
+            Text("Goal ${String.format(Locale.getDefault(),"%,d",goal)}",color=Color(0xFFA3A3A3),fontSize=11.sp)
             }
-            Box(Modifier.fillMaxWidth().height(48.dp),contentAlignment=Alignment.CenterStart) {
+            Box(Modifier.fillMaxWidth().height(40.dp),contentAlignment=Alignment.CenterStart) {
                 if(complete) TextButton(onClick={replay++},contentPadding=PaddingValues(0.dp),modifier=Modifier.fillMaxHeight().testTag("replay-$label-$replay").semantics{contentDescription="Celebrate $label goal"}){Text("Goal reached ✦",color=ink,fontSize=11.sp)}
                 else Text(if(value==null) "No record" else "${(goal-value).coerceAtLeast(0.0).roundToInt()} to go",color=ink,fontSize=11.sp)
             }
@@ -63,10 +63,10 @@ import kotlin.math.roundToInt
 
 @Composable internal fun ActivityTiles(day:ConnectedDay?,goals:PersonalGoals,reveal:Float,onDetail:(String)->Unit,sync:SyncState) {
     val p=LocalPulseStyle.current
-    Text("Your movement",fontSize=18.sp,fontWeight=FontWeight.SemiBold)
+    Text("Your movement",fontSize=17.sp,fontWeight=FontWeight.Medium)
     Row(Modifier.fillMaxWidth().height(IntrinsicSize.Max),horizontalArrangement=Arrangement.spacedBy(12.dp)) {
-        GoalTile("Steps",day?.steps?.toDouble(),goals.steps,"steps",p.seed,R.drawable.symbol_directions_walk,day?.date ?: "","goal-Steps",reveal,Modifier.weight(1f).fillMaxHeight(),{onDetail("steps")})
-        GoalTile("Calories",day?.activeCalories,goals.activeCalories,"active kcal",if(p.name.startsWith("CUSTOM:"))lerp(p.seed,p.warm,.22f) else p.warm,R.drawable.symbol_local_fire_department,day?.date ?: "","goal-Calories",reveal,Modifier.weight(1f).fillMaxHeight(),{onDetail("calories")}) {
+        GoalTile("Steps",day?.steps?.toDouble(),goals.steps,"steps",p.primary,R.drawable.symbol_directions_walk,day?.date ?: "","goal-Steps",reveal,Modifier.weight(1f).fillMaxHeight(),{onDetail("steps")})
+        GoalTile("Calories",day?.activeCalories,goals.activeCalories,"active kcal",p.warm,R.drawable.symbol_local_fire_department,day?.date ?: "","goal-Calories",reveal,Modifier.weight(1f).fillMaxHeight(),{onDetail("calories")}) {
             if(day?.activeCalories==null) {
                 day?.calories?.let { Text("Total calories",fontSize=10.sp);Text("${it.roundToInt()} kcal",fontSize=12.sp) }
                 Text(if(activeCaloriesAllowed(sync)) "Active goal unavailable · Fix ›" else "Allow active calories · Fix ›",fontSize=10.sp)
@@ -81,19 +81,19 @@ import kotlin.math.roundToInt
     var replay by remember(day?.date){mutableIntStateOf(0)}
     val complete=day?.asleep?.let{it>=need && need>0} ?: false
     val spans=remember(day?.stages){day?.stages.orEmpty().split(';').mapNotNull { row -> val a=row.split(',');if(a.size==3)runCatching{SleepSpan(a[0].toLong(),a[1].toLong(),a[2].toInt())}.getOrNull() else null }}
-    val colours=listOf(Color(0xFF30245F),Color(0xFF7951C6),Color(0xFF166071),Color(0xFF753C22))
+    val colours=listOf(Color(0xFF8F75E8),colour,LocalPulseStyle.current.secondary,LocalPulseStyle.current.warm)
     val reveal=chartEntrance(day?.updatedAt ?: 0L)
     fun stamp(t:Long?)=t?.let{Instant.ofEpochMilli(it).atZone(ZoneId.systemDefault()).format(DateTimeFormatter.ofPattern("HH:mm"))} ?: "—"
-    Box(Modifier.fillMaxWidth().clip(RoundedCornerShape(26.dp)).background(colour)) {
+    Box(Modifier.fillMaxWidth().clip(RoundedCornerShape(24.dp)).background(Brush.linearGradient(listOf(Color(0xFF202020),Color(0xFF121212))))) {
         Column(Modifier.padding(20.dp),verticalArrangement=Arrangement.spacedBy(12.dp)) {
             Column(Modifier.fillMaxWidth().clickable(role=Role.Button,onClickLabel="Sleep details",onClick=onClick),verticalArrangement=Arrangement.spacedBy(12.dp)) {
             Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween,verticalAlignment=Alignment.CenterVertically) {
-                Row(horizontalArrangement=Arrangement.spacedBy(8.dp)){Icon(painterResource(R.drawable.symbol_bedtime),null,tint=ink,modifier=Modifier.size(22.dp));Text("Sleep",color=ink,fontWeight=FontWeight.SemiBold)}
+                Row(horizontalArrangement=Arrangement.spacedBy(8.dp)){Icon(painterResource(R.drawable.symbol_bedtime),null,tint=ink,modifier=Modifier.size(22.dp));Text("Sleep",color=Color.White,fontWeight=FontWeight.SemiBold)}
                 Text("Goal ${need/60}h ${need%60}m",fontSize=11.sp,color=ink)
             }
-            Text(day?.asleep?.let{"${it/60}h ${it%60}m"} ?: "No sleep total",fontSize=30.sp,fontWeight=FontWeight.Bold,color=ink)
+            Text(day?.asleep?.let{"${it/60}h ${it%60}m"} ?: "No sleep total",fontSize=36.sp,fontWeight=FontWeight.Light,color=ink,fontFamily=androidx.compose.ui.text.font.FontFamily.Monospace)
             if(spans.isNotEmpty() && day?.sleepStart!=null && day.sleepEnd!=null && day.sleepEnd>day.sleepStart) {
-                Canvas(Modifier.fillMaxWidth().height(64.dp).semantics{contentDescription="Sleep timeline ${stamp(day.sleepStart)} to ${stamp(day.sleepEnd)}. Tap for stage details."}) {
+                Canvas(Modifier.fillMaxWidth().height(54.dp).semantics{contentDescription="Sleep timeline ${stamp(day.sleepStart)} to ${stamp(day.sleepEnd)}. Tap for stage details."}) {
                     val start=day.sleepStart;val duration=(day.sleepEnd-start).toFloat()
                     repeat(4){i->drawLine(ink.copy(alpha=.1f),Offset(0f,(i+1)*size.height/4),Offset(size.width,(i+1)*size.height/4))}
                     spans.forEach { s ->

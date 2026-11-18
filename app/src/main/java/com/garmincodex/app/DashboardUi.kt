@@ -48,7 +48,7 @@ private fun clock(t: Long?) = t?.let { Instant.ofEpochMilli(it).atZone(ZoneId.sy
 @OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 @Composable fun PulseDashboard(days: List<ConnectedDay>, sync: SyncState, live: DashboardState, connection: String, message: String?, sleepNeed: Int, maximumHr: Int, restingHr: Int,
     onConnect: () -> Unit, onSync: () -> Unit, onHealthSettings: () -> Unit, onSourceApp: () -> Unit, onBackground: () -> Unit,
-    onProfile: (Int, Int, Int) -> Unit, onClear: () -> Unit, onLive: () -> Unit, onStop: () -> Unit, goals: PersonalGoals = PersonalGoals(), onGoals: (PersonalGoals) -> Unit = {}, preferences: DashboardPreferences = DashboardPreferences(), onPreferences: (DashboardPreferences) -> Unit = {}, workouts: List<Workout> = emptyList(), checkIns: List<WorkoutCheckIn> = emptyList(), onCheckIn: (WorkoutCheckIn) -> Unit = {}, onImportFit: () -> Unit = {}, onRemoveWorkout: (String) -> Unit = {}, workoutMessage: String? = null, importingFit: Boolean = false, journal: List<JournalEntry> = emptyList(), habits: List<HabitTag> = emptyList(), onJournal: (JournalEntry) -> Unit = {}, onHabit: (HabitTag) -> Unit = {}, onDeleteJournal: (String) -> Unit = {}, onClearJournal: () -> Unit = {}, reminder: JournalReminder = JournalReminder(), onReminder: (JournalReminder) -> Unit = {}, miles: Boolean = false, onMiles: (Boolean) -> Unit = {}, onDismissMessage: () -> Unit = {}, onStepSource:(String)->Unit = {}, appearance:PulseStyle=PulseStyle.NEON_CYAN, onAppearance:(PulseStyle)->Unit = {}, onHistorySync:()->Unit = onSync) {
+    onProfile: (Int, Int, Int) -> Unit, onClear: () -> Unit, onLive: () -> Unit, onStop: () -> Unit, goals: PersonalGoals = PersonalGoals(), onGoals: (PersonalGoals) -> Unit = {}, preferences: DashboardPreferences = DashboardPreferences(), onPreferences: (DashboardPreferences) -> Unit = {}, workouts: List<Workout> = emptyList(), checkIns: List<WorkoutCheckIn> = emptyList(), onCheckIn: (WorkoutCheckIn) -> Unit = {}, onImportFit: () -> Unit = {}, onRemoveWorkout: (String) -> Unit = {}, workoutMessage: String? = null, importingFit: Boolean = false, journal: List<JournalEntry> = emptyList(), habits: List<HabitTag> = emptyList(), onJournal: (JournalEntry) -> Unit = {}, onHabit: (HabitTag) -> Unit = {}, onDeleteJournal: (String) -> Unit = {}, onClearJournal: () -> Unit = {}, reminder: JournalReminder = JournalReminder(), onReminder: (JournalReminder) -> Unit = {}, miles: Boolean = false, onMiles: (Boolean) -> Unit = {}, onDismissMessage: () -> Unit = {}, onStepSource:(String)->Unit = {}, appearance:PulseStyle=PulseStyle.NEON_CYAN, onAppearance:(PulseStyle)->Unit = {}, onHistorySync:()->Unit = onSync,foregroundRequest:Int=0,foregroundDate:String=LocalDate.now().toString()) {
     val palette = LocalPulseStyle.current
     val Lime = palette.primary
     val Orange = palette.warm
@@ -69,6 +69,7 @@ private fun clock(t: Long?) = t?.let { Instant.ofEpochMilli(it).atZone(ZoneId.sy
     var settingsReturnPage by rememberSaveable { mutableIntStateOf(0) }
     var selected by rememberSaveable { mutableStateOf(LocalDate.now().toString()) }
     var preview by rememberSaveable { mutableStateOf(false) }
+    LaunchedEffect(foregroundRequest,foregroundDate) { selected=foregroundDate;preview=false }
     val day = if (preview) previewDay(selected) else days.firstOrNull { it.date == selected }
     var profile by remember { mutableStateOf(false) }; var clear by remember { mutableStateOf(false) }
     var needState by remember(sleepNeed) { mutableIntStateOf(sleepNeed) }; var maxState by remember(maximumHr) { mutableIntStateOf(maximumHr) }; var restState by remember(restingHr) { mutableIntStateOf(restingHr) }
@@ -107,7 +108,7 @@ private fun clock(t: Long?) = t?.let { Instant.ofEpochMilli(it).atZone(ZoneId.sy
                 0 -> {
                     TodayDate(selected, { selected = it }, { journalDate=selected;journalRequest++;page=5 })
                     if(!expandedToday) {
-                        TodaySnapshot(day,sync,goals,needState,{detail=it},{page=6})
+                        TodaySnapshot(day,sync,goals,needState,{detail=it},{page=6},history=days)
                         OutlinedButton(onClick={expandedToday=true},modifier=Modifier.fillMaxWidth()){Text("All details")}
                     } else {
                     TextButton(onClick={expandedToday=false}) { Text("‹ Back to snapshot") }

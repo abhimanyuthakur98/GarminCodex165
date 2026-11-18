@@ -27,10 +27,11 @@ private val JournalMuted=Color(0xFFA4B2AB)
     var clear by remember {mutableStateOf(false)}
     var lastRequest by rememberSaveable{mutableIntStateOf(openRequest)}
     LaunchedEffect(openRequest){if(lastRequest!=openRequest){date=initialDate;tab=0;month=YearMonth.from(LocalDate.parse(initialDate)).toString();lastRequest=openRequest}}
-    Text("Small habits.\nYour bigger picture.",fontSize=32.sp,lineHeight=35.sp,fontWeight=FontWeight.Bold)
+    Text("Your journal",fontSize=30.sp,fontWeight=FontWeight.Medium)
     Text("A moment to notice what matters.",color=JournalMuted,fontSize=14.sp)
-    Row(horizontalArrangement=Arrangement.spacedBy(8.dp)) {listOf("Check-in","Patterns","Calendar").forEachIndexed {i,title->FilterChip(tab==i,{tab=i},label={Text(title)})}}
+    Row(Modifier.horizontalScroll(rememberScrollState()),horizontalArrangement=Arrangement.spacedBy(8.dp)) {listOf("Check-in","Patterns","Calendar","Rhythm").forEachIndexed {i,title->FilterChip(tab==i,{tab=i},label={Text(title)})}}
     when(tab) {
+        3 -> JournalRhythm(entries)
         0 -> {
             Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween,verticalAlignment=Alignment.CenterVertically) {TextButton(onClick={date=LocalDate.parse(date).minusDays(1).toString()}){Text("Previous day")};Text(date,fontSize=13.sp);TextButton(enabled=LocalDate.parse(date)<LocalDate.now(),onClick={date=LocalDate.parse(date).plusDays(1).toString()}){Text("Next day")}}
             key(date) { JournalForm(date,entries.firstOrNull{it.date==date},tags,onSave,onTag,onDelete) }

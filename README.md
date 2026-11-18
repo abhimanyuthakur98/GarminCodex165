@@ -1,3 +1,7 @@
+## 0.18.0 — charcoal dashboard
+
+Redesigned from the supplied visual references: black backgrounds, charcoal cards, large accent metrics, a compact navigation bar, visible week selector, real seven-day step bars and a heart-rate spark chart. Journal Rhythm adds a 12-week check-in heatmap and accurate streak/count summaries. Custom accents, goal celebrations, sleep stages and lighter syncing remain. Same update package and signing identity.
+
 ## 0.17.0 — personal goals and lighter refresh
 
 - Steps and active calories side by side, with an imported sleep-stage timeline below. Brief, clipped goal celebrations can be replayed. Missing values never celebrate.

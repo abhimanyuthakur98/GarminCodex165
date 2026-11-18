@@ -37,7 +37,7 @@ private val Lavender=Color(0xFFC0AFF5)
         IconButton(onClick=onSync,enabled=!busy,modifier=Modifier.semantics{contentDescription=if(busy) "Syncing health data" else "Sync health data"}) {
             Icon(painterResource(R.drawable.symbol_refresh),null,tint=if(busy)palette.muted.copy(alpha=.4f) else palette.muted,modifier=Modifier.size(22.dp))
         }
-        if(onBack==null) IconButton(onClick=onSettings,modifier=Modifier.background(palette.surface,RoundedCornerShape(16.dp)).semantics{contentDescription="Open Settings"}) { DockIcon(3,palette.primary) }
+        if(onBack==null) IconButton(onClick=onSettings,modifier=Modifier.background(palette.surface,RoundedCornerShape(50.dp)).semantics{contentDescription="Open Settings"}) { DockIcon(3,palette.primary) }
     }
 }
 @Composable internal fun TodayDate(date:String,onDate:(String)->Unit,onJournal:()->Unit) {
@@ -48,11 +48,12 @@ private val Lavender=Color(0xFFC0AFF5)
     var calendar by remember{mutableStateOf(false)}
     Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically) {
         Column(Modifier.weight(1f).clickable(role=Role.Button,onClickLabel="Show date navigation"){calendar=!calendar}.padding(vertical=6.dp)) {
-            Text(if(d==LocalDate.now()) "Today" else d.format(DateTimeFormatter.ofPattern("EEEE")),fontSize=36.sp,fontWeight=FontWeight.Bold)
+            Text(if(d==LocalDate.now()) "Today" else d.format(DateTimeFormatter.ofPattern("EEEE")),fontSize=28.sp,fontWeight=FontWeight.Medium)
             Text(d.format(DateTimeFormatter.ofPattern("d MMM yyyy"))+"  ▾",fontSize=12.sp,color=Soft)
         }
         JournalAction(false,onJournal)
     }
+    QuickWeek(date,onDate)
     if(calendar) Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.SpaceBetween) {
         TextButton(onClick={onDate(d.minusDays(1).toString())},modifier=Modifier.semantics{contentDescription="Previous day"}){Text("‹ Previous")}
         TextButton(onClick={onDate(LocalDate.now().toString());calendar=false}){Text("Today")}
@@ -64,7 +65,7 @@ private val Lavender=Color(0xFFC0AFF5)
 
     Column(modifier.fillMaxWidth().clip(RoundedCornerShape(24.dp)).background(palette.surface).clickable(role=Role.Button,onClick=onClick).padding(16.dp),verticalArrangement=Arrangement.spacedBy(8.dp),content=content)
 }
-@Composable internal fun TodaySnapshot(day:ConnectedDay?,sync:SyncState,goals:PersonalGoals,sleepNeed:Int,onDetail:(String)->Unit,onConnection:()->Unit) {
+@Composable internal fun TodaySnapshot(day:ConnectedDay?,sync:SyncState,goals:PersonalGoals,sleepNeed:Int,onDetail:(String)->Unit,onConnection:()->Unit,history:List<ConnectedDay> = emptyList()) {
     val palette = LocalPulseStyle.current
     val Lime = palette.primary
     val Orange = palette.warm
@@ -84,6 +85,7 @@ private val Lavender=Color(0xFFC0AFF5)
     }
     val reveal=chartEntrance(day?.updatedAt ?: 0L)
     ActivityTiles(day,goals,reveal,onDetail,sync)
+    WeekActivity(history,day?.date ?: LocalDate.now().toString(),goals)
     SleepHero(day,sleepNeed){onDetail("sleep")}
     val recovery=day?.recovery
     val tint=when{recovery==null->Soft;recovery<34->Color(0xFFFF8791);recovery<67->Color(0xFFF4CA58);else->palette.secondary}
@@ -108,6 +110,7 @@ private val Lavender=Color(0xFFC0AFF5)
     val last=remember(day?.chart){ day?.chart?.split(';')?.mapNotNull{row->val p=row.split(',');if(p.size==2)p[0].toLongOrNull()?.let{t->p[1].toIntOrNull()?.let{t to it}} else null}?.maxByOrNull{it.first} }
     SnapshotCard(onClick={onDetail("hr")}) {
         Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween){Text("Recent heart rate",fontSize=12.sp,color=Soft);Text(last?.let{"${it.second} bpm"} ?: "—",fontWeight=FontWeight.Bold)}
+        HeartSpark(day)
         Text(last?.let{Instant.ofEpochMilli(it.first).atZone(ZoneId.systemDefault()).format(DateTimeFormatter.ofPattern("d MMM · HH:mm"))+" · chart average ›"} ?: "No heart-rate samples yet",fontSize=11.sp,color=Soft)
     }
 }
