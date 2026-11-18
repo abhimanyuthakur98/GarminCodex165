@@ -77,7 +77,7 @@ import kotlin.math.roundToInt
 
 @Composable internal fun SleepHero(day:ConnectedDay?,need:Int,onClick:()->Unit) {
     val colour=LocalPulseStyle.current.violet
-    val ink=tileInk(colour)
+    val ink=colour
     var replay by remember(day?.date){mutableIntStateOf(0)}
     val complete=day?.asleep?.let{it>=need && need>0} ?: false
     val spans=remember(day?.stages){day?.stages.orEmpty().split(';').mapNotNull { row -> val a=row.split(',');if(a.size==3)runCatching{SleepSpan(a[0].toLong(),a[1].toLong(),a[2].toInt())}.getOrNull() else null }}

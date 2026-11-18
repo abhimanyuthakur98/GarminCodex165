@@ -85,8 +85,9 @@ private val Lavender=Color(0xFFC0AFF5)
     }
     val reveal=chartEntrance(day?.updatedAt ?: 0L)
     ActivityTiles(day,goals,reveal,onDetail,sync)
-    WeekActivity(history,day?.date ?: LocalDate.now().toString(),goals)
+
     SleepHero(day,sleepNeed){onDetail("sleep")}
+    WeekActivity(history,day?.date ?: LocalDate.now().toString(),goals)
     val recovery=day?.recovery
     val tint=when{recovery==null->Soft;recovery<34->Color(0xFFFF8791);recovery<67->Color(0xFFF4CA58);else->palette.secondary}
     Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(24.dp)).background(palette.surface).clickable(role=Role.Button,onClickLabel="Recovery details"){onDetail("recovery")}.padding(18.dp),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(14.dp)) {

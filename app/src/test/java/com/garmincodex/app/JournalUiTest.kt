@@ -43,6 +43,6 @@ class JournalUiTest {
         compose.onNodeWithText("Calendar").performScrollTo().performClick()
         compose.onRoot().captureRoboImage("build/screenshots/journal-calendar.png")
         compose.onNodeWithText("Patterns").performScrollTo().performClick()
-        compose.onNodeWithText("PATTERNS, NOT PROOF").assertIsDisplayed()
+        compose.onNodeWithText("PATTERNS, NOT PROOF").performScrollTo().assertIsDisplayed()
     }
 }
