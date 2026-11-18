@@ -29,7 +29,7 @@ private val JournalMuted=Color(0xFFA4B2AB)
     LaunchedEffect(openRequest){if(lastRequest!=openRequest){date=initialDate;tab=0;month=YearMonth.from(LocalDate.parse(initialDate)).toString();lastRequest=openRequest}}
     Text("Your journal",fontSize=30.sp,fontWeight=FontWeight.Medium)
     Text("A moment to notice what matters.",color=JournalMuted,fontSize=14.sp)
-    Row(Modifier.horizontalScroll(rememberScrollState()),horizontalArrangement=Arrangement.spacedBy(8.dp)) {listOf("Check-in","Patterns","Calendar","Rhythm").forEachIndexed {i,title->FilterChip(tab==i,{tab=i},label={Text(title)})}}
+    FlowRow(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(8.dp)) {listOf("Check-in","Patterns","Calendar","Rhythm").forEachIndexed {i,title->FilterChip(tab==i,{tab=i},label={Text(title)})}}
     when(tab) {
         3 -> JournalRhythm(entries)
         0 -> {
