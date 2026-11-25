@@ -70,7 +70,7 @@ class DashboardUiTest {
         compose.onNodeWithText("EXPERIMENTAL FITNESS AGE").assertIsDisplayed()
         compose.onRoot().captureRoboImage("build/screenshots/fitness-age.png")
         compose.onNodeWithText("Today").performClick()
-        compose.onNodeWithText("Recent heart rate").performScrollTo().performClick()
+        compose.onNodeWithText("Heart rate").performScrollTo().performClick()
         compose.onNodeWithText("Every heartbeat.").assertIsDisplayed()
         compose.onNodeWithContentDescription("Select heart-rate sample").performScrollTo().performSemanticsAction(androidx.compose.ui.semantics.SemanticsActions.SetProgress) { it(12f) }
         compose.onNode(isDialog()).captureRoboImage("build/screenshots/heart-detail.png")

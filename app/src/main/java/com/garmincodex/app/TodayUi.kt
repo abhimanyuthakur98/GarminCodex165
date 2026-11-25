@@ -49,7 +49,7 @@ private val Lavender=Color(0xFFC0AFF5)
     Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically) {
         Column(Modifier.weight(1f).clickable(role=Role.Button,onClickLabel="Show date navigation"){calendar=!calendar}.padding(vertical=6.dp)) {
             Text(if(d==LocalDate.now()) "Today" else d.format(DateTimeFormatter.ofPattern("EEEE")),fontSize=24.sp,fontWeight=FontWeight.Bold)
-            Text(d.format(DateTimeFormatter.ofPattern("d MMM"))+"  ▾",fontSize=11.sp,color=Soft)
+            Text(d.format(DateTimeFormatter.ofPattern("d MMM yyyy"))+"  ▾",fontSize=11.sp,color=Soft)
         }
         JournalAction(false,onJournal)
     }

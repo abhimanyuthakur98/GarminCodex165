@@ -1,3 +1,11 @@
+## 0.19.0 — daily overview and Garmin activity
+
+Today now combines compact step/calorie cards, sleep stages and a six-metric health grid with direct detail links. Trends adds completed-day averages; Workouts adds a seven-day summary; Settings separates connections, appearance and layout. The shared card system uses quieter slate surfaces, consistent spacing and readable metric typography.
+
+The update selects Garmin Connect once for steps and active/total/basal energy. Later source choices remain saved. All daily and hourly activity queries filter by that source; unavailable Garmin data is not replaced with another app. Garmin must share records through Health Connect. Source provenance is stored per day, and cached totals from a different/legacy source are hidden until refreshed. Database migration preserves history and journal records. Existing package and signing identity remain unchanged.
+
+Implementation reference: https://developer.android.com/health-and-fitness/health-connect/aggregate-data#filter-by-data-origin
+
 ## 0.18.0 — charcoal dashboard
 
 Redesigned from the supplied visual references: black backgrounds, charcoal cards, large accent metrics, a compact navigation bar, visible week selector, real seven-day step bars and a heart-rate spark chart. Journal Rhythm adds a 12-week check-in heatmap and accurate streak/count summaries. Custom accents, goal celebrations, sleep stages and lighter syncing remain. Same update package and signing identity.

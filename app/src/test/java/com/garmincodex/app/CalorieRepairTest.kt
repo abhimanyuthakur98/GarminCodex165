@@ -20,9 +20,9 @@ class CalorieRepairTest {
   var allowed by mutableStateOf(false);var settings=0;var garmin=0;var imported=0
   val d=previewDay(LocalDate.now().toString()).copy(activeCalories=null,calories=2100.0)
   compose.setContent{PulseTheme{PulseDashboard(listOf(d),SyncState(lastSync=1,granted=if(allowed)setOf(HealthPermission.getReadPermission(ActiveCaloriesBurnedRecord::class)) else emptySet()),DashboardState(),"",null,480,190,55,{allowed=true},{imported++},{settings++},{garmin++},{},{_,_,_->},{},{},{})}}
-  compose.onNodeWithText("Not shared").assertDoesNotExist()
+  compose.onNode(hasText("2,100") and hasAnyAncestor(hasTestTag("goal-Calories"))).assertDoesNotExist()
   compose.onNodeWithText("Total calories").performScrollTo().assertIsDisplayed()
-  compose.onNodeWithText("2100 kcal").assertExists()
+  compose.onAllNodesWithText("2100 kcal").onFirst().assertExists()
   compose.onNodeWithText("Allow active calories · Fix ›").performClick()
   compose.onNodeWithText("Pulse needs read access").performScrollTo().assertIsDisplayed()
   compose.onNodeWithText("1 · Review Pulse access").performScrollTo().performClick()

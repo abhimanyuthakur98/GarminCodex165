@@ -23,7 +23,7 @@ class TodayUiTest {
         compose.setContent { PulseTheme { PulseDashboard(listOf(previewDay(LocalDate.now().toString())),SyncState(busy=syncing),DashboardState(),"",null,480,190,55,{},{calls++;syncing=true},{},{},{},{_,_,_->},{},{},{}) } }
         compose.onNodeWithTag("refresh-surface").performTouchInput { swipeDown(startY=100f,endY=height*.85f,durationMillis=600) }
         compose.runOnIdle { assertEquals(1,calls) }
-        compose.onNodeWithText("Your movement").assertIsDisplayed()
+        compose.onNodeWithText("Daily activity").assertIsDisplayed()
         compose.onNodeWithTag("refresh-surface").performTouchInput { swipeDown(startY=100f,endY=height*.85f,durationMillis=600) }
         compose.runOnIdle { assertEquals(1,calls) }
     }
@@ -37,7 +37,7 @@ class TodayUiTest {
         compose.onNodeWithContentDescription("Sync health data").performClick()
         compose.runOnIdle{assertEquals(1,refresh)}
         compose.onNodeWithText("YOUR MORNING BRIEFING").assertDoesNotExist()
-        compose.onNodeWithText("Your movement").assertIsDisplayed()
+        compose.onNodeWithText("Daily activity").assertIsDisplayed()
         compose.onRoot().captureRoboImage("build/screenshots/today-snapshot.png")
         compose.onNode(hasClickAction() and hasText(today.format(java.time.format.DateTimeFormatter.ofPattern("d MMM yyyy")),substring=true)).performClick()
         compose.onNodeWithContentDescription("Next day").assertIsNotEnabled()
@@ -50,7 +50,7 @@ class TodayUiTest {
         compose.setContent {PulseTheme {PulseDashboard(emptyList(),SyncState(message="Health access changed. Grant permissions and sync again."),DashboardState(),"",null,480,190,55,{},{},{},{},{},{_,_,_->},{},{},{})}}
         compose.onNodeWithText("Sync needs attention · review connection ›").assertIsDisplayed()
         compose.onNodeWithText("Your day starts here").assertIsDisplayed()
-        compose.onNodeWithText("Your movement").assertDoesNotExist()
+        compose.onNodeWithText("Daily activity").assertDoesNotExist()
         compose.onNodeWithText("Connect device ›").performClick()
         compose.onNodeWithText("Connect Health Connect").performScrollTo().assertIsDisplayed()
     }

@@ -25,7 +25,7 @@ class RefinementUiTest {
   compose.onNodeWithText("Trends").performClick();compose.onNodeWithText("Steps ▾").assertIsDisplayed();compose.onNodeWithText("30 days ▾").assertIsDisplayed()
   compose.onNodeWithText("Fitness Age").performClick();compose.onNodeWithContentDescription("Select fitness age date").assertExists()
   compose.runOnIdle{back.onBackPressed()}
-  compose.onNodeWithText("Your movement").assertIsDisplayed()
+  compose.onNodeWithText("Daily activity").assertIsDisplayed()
   compose.onNodeWithText("All details").performScrollTo().performClick()
   compose.runOnIdle{back.onBackPressed()}
   compose.onNodeWithText("All details").assertExists();compose.onNodeWithText("YOUR MORNING BRIEFING").assertDoesNotExist()
