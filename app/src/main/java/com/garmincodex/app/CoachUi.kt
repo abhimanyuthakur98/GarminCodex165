@@ -36,7 +36,8 @@ import kotlin.math.roundToInt
         Text("Based on imported records. Missing coverage can affect comparisons.", color = Color.Gray, fontSize = 11.sp)
     }
 }
-@Composable internal fun SleepPlanner(days: List<ConnectedDay>, goals: PersonalGoals, need: Int, onGoals: (PersonalGoals) -> Unit, date:LocalDate=LocalDate.now()) {
+@Composable internal fun SleepPlanner(days: List<ConnectedDay>, goals: PersonalGoals, need: Int, onGoals: (PersonalGoals) -> Unit) = SleepPlanner(days,goals,need,onGoals,LocalDate.now())
+@Composable internal fun SleepPlanner(days: List<ConnectedDay>, goals: PersonalGoals, need: Int, onGoals: (PersonalGoals) -> Unit, date:LocalDate) {
     val palette = LocalPulseStyle.current
 
     var edit by remember { mutableStateOf(false) }
