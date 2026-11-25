@@ -66,6 +66,7 @@ private fun clock(t: Long?) = t?.let { Instant.ofEpochMilli(it).atZone(ZoneId.sy
     var detail by rememberSaveable { mutableStateOf<String?>(null) }
     var goalEditor by rememberSaveable { mutableStateOf<String?>(null) }
     var page by rememberSaveable { mutableIntStateOf(preferences.startPage.coerceIn(0, 5)) }; var metric by rememberSaveable { mutableIntStateOf(0) }
+    var settingsSection by rememberSaveable { mutableStateOf("Overview") }
     var settingsReturnPage by rememberSaveable { mutableIntStateOf(0) }
     var selected by rememberSaveable { mutableStateOf(LocalDate.now().toString()) }
     var preview by rememberSaveable { mutableStateOf(false) }
@@ -109,7 +110,8 @@ private fun clock(t: Long?) = t?.let { Instant.ofEpochMilli(it).atZone(ZoneId.sy
                     TodayDate(selected, { selected = it }, { journalDate=selected;journalRequest++;page=5 })
                     if(!expandedToday) {
                         TodaySnapshot(day,sync,goals,needState,{detail=it},{page=6},history=days)
-                        OutlinedButton(onClick={expandedToday=true},modifier=Modifier.fillMaxWidth()){Text("All details")}
+                        HomeShortcuts(day,days,goals,workouts,selected,onFitness={page=2},onWorkouts={page=4},onJournal={journalDate=selected;journalRequest++;page=5})
+                        TextButton(onClick={expandedToday=true},modifier=Modifier.fillMaxWidth()){Text("All details")}
                     } else {
                     TextButton(onClick={expandedToday=false}) { Text("‹ Back to snapshot") }
                     WeekStrip(selected) { selected = it }
@@ -154,18 +156,22 @@ private fun clock(t: Long?) = t?.let { Instant.ofEpochMilli(it).atZone(ZoneId.sy
                 3 -> {
                     Text("Settings",fontSize=34.sp,fontWeight=FontWeight.Bold)
                     Text("Your Pulse, your way.",color=Muted,fontSize=14.sp)
-                    AppearancePicker(appearance,onAppearance)
-                    CustomColourPicker(appearance,onAppearance)
+                    SettingsSections(settingsSection,{settingsSection=it})
+                    if(settingsSection=="Appearance") { AppearancePicker(appearance,onAppearance);CustomColourPicker(appearance,onAppearance) }
+                    if(settingsSection=="Overview") {
                     JournalCard("HEALTH & DEVICES") {
                         Text("Connect your health data",fontSize=22.sp)
-                        Text("Manage device sharing, step sources, permissions and imports.",fontSize=13.sp)
+                        Text("Garmin steps and calories, device sharing, permissions and imports.",fontSize=13.sp)
                         Button(onClick={page=6},modifier=Modifier.fillMaxWidth()){Text("Connections & imports")}
                     }
-                    DashboardEditor(preferences,onPreferences)
+                    TextButton(onClick={profile=true}){Text("Sleep & heart-rate targets")}
+                    Row { TextButton(onClick={goalEditor="steps"}){Text("Step goal")};TextButton(onClick={goalEditor="calories"}){Text("Calorie goal")}
+                    }
+                    if(settingsSection=="Layout") DashboardEditor(preferences,onPreferences)
                 }
                 6 -> {
                     TextButton(onClick={page=3}){Text("‹ Settings")}
-                    Text("Your watch.\nYour daily picture.", fontSize = 30.sp, lineHeight = 34.sp, fontWeight = FontWeight.Bold)
+                    Text("Connections", fontSize = 28.sp, lineHeight = 32.sp, fontWeight = FontWeight.Bold)
                     DataStatusCard(day, sync, onConnect, onHealthSettings, days)
                     SetupCard(onConnect, onSourceApp, onHealthSettings)
                     StepSourceCard(sync,onStepSource)

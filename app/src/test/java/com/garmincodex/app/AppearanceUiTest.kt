@@ -33,14 +33,17 @@ class AppearanceUiTest {
         compose.onNodeWithText("Trends").performClick()
         compose.onNodeWithContentDescription("Open Settings").performClick()
         compose.onNodeWithText("Workouts").assertDoesNotExist()
+        compose.onNodeWithText("Appearance").performClick()
         for(choice in PulseStyle.entries) {
             compose.onNodeWithText(choice.title).performScrollTo().performClick()
             compose.runOnIdle { assertEquals(choice.primary,observed) }
             compose.onRoot().captureRoboImage("build/screenshots/theme-${choice.name}.png")
         }
+        compose.onNodeWithText("Overview").performScrollTo().performClick()
         compose.onNodeWithText("Connections & imports").performScrollTo().performClick()
         compose.onNodeWithText("Connect Health Connect").performScrollTo().assertIsDisplayed()
         compose.onNodeWithText("‹ Settings").performScrollTo().performClick()
+        compose.onNodeWithText("Appearance").performClick()
         compose.onNodeWithText("Neon Cyan").assertExists()
         compose.runOnIdle { assertEquals(PulseStyle.MIDNIGHT,style) }
         compose.onNodeWithContentDescription("Back to previous screen").performClick()

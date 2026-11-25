@@ -30,7 +30,7 @@ private val Lavender=Color(0xFFC0AFF5)
     Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically) {
         if(onBack!=null) IconButton(onClick=onBack,modifier=Modifier.semantics{contentDescription="Back to previous screen"}) { Icon(painterResource(R.drawable.symbol_arrow_back),null,tint=palette.primary) }
         Column(Modifier.weight(1f)) {
-            Text("pulse",fontSize=25.sp,fontWeight=FontWeight.Bold,letterSpacing=(-1).sp,modifier=Modifier.semantics{contentDescription="Pulse 165"})
+            Text("pulse",fontSize=20.sp,fontWeight=FontWeight.Bold,letterSpacing=(-1).sp,modifier=Modifier.semantics{contentDescription="Pulse 165"})
             val imported=if(lastSync>0) Instant.ofEpochMilli(lastSync).atZone(ZoneId.systemDefault()) else null
             Text(if(busy) phase.ifEmpty{"Preparing refresh…"} else imported?.let{"Updated "+it.format(DateTimeFormatter.ofPattern(if(it.toLocalDate()==LocalDate.now()) "HH:mm" else "d MMM · HH:mm"))} ?: "Your health, together",fontSize=10.sp,color=palette.muted)
         }
@@ -48,8 +48,8 @@ private val Lavender=Color(0xFFC0AFF5)
     var calendar by remember{mutableStateOf(false)}
     Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically) {
         Column(Modifier.weight(1f).clickable(role=Role.Button,onClickLabel="Show date navigation"){calendar=!calendar}.padding(vertical=6.dp)) {
-            Text(if(d==LocalDate.now()) "Today" else d.format(DateTimeFormatter.ofPattern("EEEE")),fontSize=28.sp,fontWeight=FontWeight.Medium)
-            Text(d.format(DateTimeFormatter.ofPattern("d MMM yyyy"))+"  ▾",fontSize=12.sp,color=Soft)
+            Text(if(d==LocalDate.now()) "Today" else d.format(DateTimeFormatter.ofPattern("EEEE")),fontSize=24.sp,fontWeight=FontWeight.Bold)
+            Text(d.format(DateTimeFormatter.ofPattern("d MMM"))+"  ▾",fontSize=11.sp,color=Soft)
         }
         JournalAction(false,onJournal)
     }
@@ -84,34 +84,13 @@ private val Lavender=Color(0xFFC0AFF5)
         return
     }
     val reveal=chartEntrance(day?.updatedAt ?: 0L)
+    Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically) {
+        Text("Daily activity",fontWeight=FontWeight.SemiBold,modifier=Modifier.weight(1f))
+        TextButton(onClick=onConnection){Text(StepWindows.label(sync.stepSource)+" ›",fontSize=10.sp)}
+    }
     ActivityTiles(day,goals,reveal,onDetail,sync)
-
+    if(day?.steps==null || day.activeCalories==null) Text("Missing activity? Sync "+StepWindows.label(sync.stepSource)+" to Health Connect.",fontSize=11.sp,color=Soft,modifier=Modifier.clickable(onClick=onConnection))
     SleepHero(day,sleepNeed){onDetail("sleep")}
+    VitalGrid(day,onDetail)
     WeekActivity(history,day?.date ?: LocalDate.now().toString(),goals)
-    val recovery=day?.recovery
-    val tint=when{recovery==null->Soft;recovery<34->Color(0xFFFF8791);recovery<67->Color(0xFFF4CA58);else->palette.secondary}
-    Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(24.dp)).background(palette.surface).clickable(role=Role.Button,onClickLabel="Recovery details"){onDetail("recovery")}.padding(18.dp),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(14.dp)) {
-        Box(Modifier.size(58.dp),contentAlignment=Alignment.Center) {
-            Canvas(Modifier.fillMaxSize().padding(3.dp)){drawArc(tint.copy(alpha=.12f),-90f,360f,false,style=Stroke(4.dp.toPx()));drawArc(tint,-90f,(recovery ?: 0)*3.6f*reveal,false,style=Stroke(4.dp.toPx(),cap=StrokeCap.Round))}
-            Text(recovery?.toString() ?: "—",fontSize=20.sp,fontWeight=FontWeight.Bold,color=tint)
-        }
-        Column(Modifier.weight(1f),verticalArrangement=Arrangement.spacedBy(4.dp)) {
-            Text("RECOVERY",fontSize=10.sp,color=tint,letterSpacing=1.sp)
-            Text(when{recovery==null->"Building your baseline";recovery>=67->"Ready for your day";recovery>=34->"Find your balance";else->"Room to recover"},fontSize=17.sp,fontWeight=FontWeight.SemiBold)
-            Text("Daily estimate · explore ›",fontSize=11.sp,color=Soft)
-        }
-    }
-    SnapshotCard(onClick={onDetail("strain")}) {
-        Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween) {
-            Text("Recorded strain",color=Orange,fontSize=13.sp)
-            Text(day?.takeIf{it.coveredMinutes>0}?.let{String.format(Locale.US,"%.1f / 21",Scores.strain(it.load))} ?: "—",fontWeight=FontWeight.Bold)
-        }
-        Text("Your daily cardiovascular load ›",fontSize=11.sp,color=Soft)
-    }
-    val last=remember(day?.chart){ day?.chart?.split(';')?.mapNotNull{row->val p=row.split(',');if(p.size==2)p[0].toLongOrNull()?.let{t->p[1].toIntOrNull()?.let{t to it}} else null}?.maxByOrNull{it.first} }
-    SnapshotCard(onClick={onDetail("hr")}) {
-        Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween){Text("Recent heart rate",fontSize=12.sp,color=Soft);Text(last?.let{"${it.second} bpm"} ?: "—",fontWeight=FontWeight.Bold)}
-        HeartSpark(day)
-        Text(last?.let{Instant.ofEpochMilli(it.first).atZone(ZoneId.systemDefault()).format(DateTimeFormatter.ofPattern("d MMM · HH:mm"))+" · chart average ›"} ?: "No heart-rate samples yet",fontSize=11.sp,color=Soft)
-    }
 }

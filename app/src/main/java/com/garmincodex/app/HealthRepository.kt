@@ -81,7 +81,7 @@ class DashboardViewModel(private val repo: HealthRepository, val sync: HealthCon
             finally { importingFit.value=false }
         }
     }
-    val connected = dao.connected().stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+    val connected = kotlinx.coroutines.flow.combine(dao.connected(),sync.status) { days,state -> days.map { ActivitySource.matching(it,state.stepSource) } }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
     val syncStatus = sync.status.asStateFlow()
     private var syncJob: Job? = null
     private var dayRefreshJob: Job? = null

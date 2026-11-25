@@ -35,6 +35,8 @@ internal enum class TrendMetric(val title:String,val unit:String) {
     var menu by remember{mutableStateOf(false)}
     var periodMenu by remember{mutableStateOf(false)}
     Text("Trends",fontSize=28.sp,fontWeight=FontWeight.Bold)
+    Text("See what is changing over time",color=palette.muted,fontSize=13.sp)
+    TrendOverview(days)
     Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween) {
         Box {OutlinedButton(onClick={menu=true}){Text(metric.title+" ▾")};DropdownMenu(menu,{menu=false}){TrendMetric.entries.forEach{m->DropdownMenuItem(text={Text(m.title)},onClick={metricName=m.name;menu=false})}}}
         if(mode!="Weekly") Box {OutlinedButton(onClick={periodMenu=true}){Text("$period days ▾")};DropdownMenu(periodMenu,{periodMenu=false}){listOf(7,14,30).forEach{n->DropdownMenuItem(text={Text("$n days")},onClick={period=n;periodMenu=false})}}}

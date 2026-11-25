@@ -27,7 +27,7 @@ import java.time.format.DateTimeFormatter
             val ink=if(active)tileInk(p.primary) else if(day>LocalDate.now())p.muted.copy(alpha=.35f) else p.muted
             Column(Modifier.weight(1f).background(if(active)p.primary else Color.Transparent,RoundedCornerShape(16.dp))
                 .selectable(active,enabled=day<=LocalDate.now(),role=Role.Tab,onClick={onDate(day.toString())})
-                .semantics{contentDescription="Choose day $day"}.padding(vertical=12.dp),horizontalAlignment=Alignment.CenterHorizontally,verticalArrangement=Arrangement.spacedBy(8.dp)) {
+                .semantics{contentDescription="Choose day $day"}.padding(vertical=6.dp),horizontalAlignment=Alignment.CenterHorizontally,verticalArrangement=Arrangement.spacedBy(3.dp)) {
                 Text(day.format(DateTimeFormatter.ofPattern("EEE")),fontSize=10.sp,color=ink)
                 Text(day.dayOfMonth.toString(),fontSize=14.sp,color=ink,fontWeight=if(active)FontWeight.Bold else FontWeight.Normal)
             }

@@ -18,7 +18,8 @@ data class ConnectedDay(
     val recovery: Int? = null, val baselineNights: Int = 0, val consistency: Int? = null,
     val updatedAt: Long = 0, val lastSample: Long? = null,
     val activeCalories: Double? = null, val basalCalories: Double? = null,
-    @ColumnInfo(defaultValue = "''") val hourly: String = ""
+    @ColumnInfo(defaultValue = "''") val hourly: String = "",
+    @ColumnInfo(defaultValue = "'legacy'") val activitySource: String = "legacy"
 )
 @Dao
 interface DailyDao {
@@ -52,8 +53,8 @@ interface DailyDao {
     @Upsert suspend fun putConnected(days: List<ConnectedDay>)
     @Transaction suspend fun replaceConnected(since: String, days: List<ConnectedDay>) { deleteConnectedSince(since); putConnected(days) }
 }
-@Database(entities = [DailyRecord::class, ConnectedDay::class, Workout::class, WorkoutCheckIn::class, JournalEntry::class, HabitTag::class], version = 6, exportSchema = true,
-    autoMigrations = [AutoMigration(from = 1, to = 2), AutoMigration(from = 2, to = 3), AutoMigration(from = 3, to = 4), AutoMigration(from = 4, to = 5), AutoMigration(from = 5, to = 6)])
+@Database(entities = [DailyRecord::class, ConnectedDay::class, Workout::class, WorkoutCheckIn::class, JournalEntry::class, HabitTag::class], version = 7, exportSchema = true,
+    autoMigrations = [AutoMigration(from = 1, to = 2), AutoMigration(from = 2, to = 3), AutoMigration(from = 3, to = 4), AutoMigration(from = 4, to = 5), AutoMigration(from = 5, to = 6), AutoMigration(from = 6, to = 7)])
 abstract class PulseDatabase : RoomDatabase() { abstract fun days(): DailyDao }
 
 interface GarminSyncGateway { suspend fun fetchDays(): List<DailyRecord> }

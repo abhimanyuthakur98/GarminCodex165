@@ -25,7 +25,7 @@ private fun decimal(value:Double)=String.format(java.util.Locale.US,"%.1f",value
 @Composable private fun WorkoutCard(content:@Composable ColumnScope.()->Unit) {
     val palette = LocalPulseStyle.current
     val Orange = palette.warm
- Column(Modifier.fillMaxWidth().background(Brush.linearGradient(listOf(Color(0xFF29221D),Color(0xFF171D1A))),RoundedCornerShape(26.dp)).border(1.dp,Orange.copy(alpha=.09f),RoundedCornerShape(26.dp)).padding(20.dp),verticalArrangement=Arrangement.spacedBy(12.dp),content=content) }
+ Column(Modifier.fillMaxWidth().background(palette.surface,RoundedCornerShape(20.dp)).border(1.dp,Orange.copy(alpha=.09f),RoundedCornerShape(26.dp)).padding(20.dp),verticalArrangement=Arrangement.spacedBy(12.dp),content=content) }
 @Composable internal fun WorkoutLibrary(workouts:List<Workout>, checkIns:List<WorkoutCheckIn>, resting:Int, maximum:Int, onCheckIn:(WorkoutCheckIn)->Unit,onImport:()->Unit,onPermissions:()->Unit,onRemove:(String)->Unit,message:String?,busy:Boolean,miles:Boolean=false,onMiles:(Boolean)->Unit={}) {
     val palette = LocalPulseStyle.current
     val Lime = palette.primary
@@ -34,8 +34,8 @@ private fun decimal(value:Double)=String.format(java.util.Locale.US,"%.1f",value
     var selectedId by remember { mutableStateOf<String?>(null) }
     var filter by rememberSaveable { mutableStateOf("All") }
     var window by rememberSaveable { mutableIntStateOf(0) }
-    Text("Your training story.",fontSize=32.sp,fontWeight=FontWeight.Bold)
-    Text("Recorded sessions, not inferred workouts.",color=Color.Gray,fontSize=13.sp)
+    Text("Workouts",fontSize=28.sp,fontWeight=FontWeight.Bold)
+    TrainingSummary(workouts)
     Row { Button(onClick=onImport,enabled=!busy) { Text(if(busy) "Importing…" else "Import FIT") }; TextButton(onClick=onPermissions) { Text("Allow exercise") } }
     Row(horizontalArrangement=Arrangement.spacedBy(8.dp)) { FilterChip(!miles,{onMiles(false)},label={Text("Kilometres")});FilterChip(miles,{onMiles(true)},label={Text("Miles")}) }
     message?.let { Text(it,color=Lime,fontSize=12.sp) }

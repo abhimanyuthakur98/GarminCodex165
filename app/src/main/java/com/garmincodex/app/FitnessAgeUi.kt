@@ -46,8 +46,7 @@ private fun ageNumber(value:Double)=String.format(Locale.US,"%.1f",value)
     key(section) { Column(pageMotion(section),verticalArrangement=Arrangement.spacedBy(10.dp)) {
         when(section) {
             "Overview" -> {
-                Box(Modifier.fillMaxWidth().height(224.dp),contentAlignment=Alignment.Center) {
-                    AuroraOrb(Modifier.size(224.dp))
+                Box(Modifier.fillMaxWidth().background(palette.surface,RoundedCornerShape(20.dp)).padding(20.dp),contentAlignment=Alignment.Center) {
                     Column(Modifier.width(210.dp),horizontalAlignment=Alignment.CenterHorizontally,verticalArrangement=Arrangement.spacedBy(5.dp)) {
                         Text(result.age?.let(::ageNumber) ?: "—",fontSize=54.sp,fontWeight=FontWeight.Bold)
                         Text("EXPERIMENTAL FITNESS AGE",fontSize=9.sp,color=AgeMuted)

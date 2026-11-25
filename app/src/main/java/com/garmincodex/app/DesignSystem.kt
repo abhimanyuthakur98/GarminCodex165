@@ -37,15 +37,15 @@ import androidx.compose.ui.text.font.FontWeight
     val palette = LocalPulseStyle.current
     val Lime = palette.primary
 
-    Surface(Modifier.navigationBarsPadding(),shape=RoundedCornerShape(0.dp),color=palette.background,border=androidx.compose.foundation.BorderStroke(1.dp,Color.White.copy(alpha=.08f)),shadowElevation=4.dp) {
+    Surface(Modifier.navigationBarsPadding(),shape=RoundedCornerShape(0.dp),color=palette.background,border=androidx.compose.foundation.BorderStroke(1.dp,Color.White.copy(alpha=.08f)),shadowElevation=0.dp) {
         Row(Modifier.fillMaxWidth().padding(horizontal=12.dp,vertical=5.dp),horizontalArrangement=Arrangement.SpaceEvenly) {
             listOf(0 to "Today",1 to "Trends",2 to "Fitness Age",4 to "Workouts").forEach { (index,label) ->
-                val selectedBackground by animateColorAsState(if(page==index) Lime.copy(alpha=.055f) else Color.Transparent,label="dock-selection")
+                val selectedBackground by animateColorAsState(if(page==index) Lime.copy(alpha=.13f) else Color.Transparent,label="dock-selection")
                 val tint by animateColorAsState(if(page==index) Lime else palette.muted,label="dock-tint")
-                Column(Modifier.weight(1f).background(selectedBackground,RoundedCornerShape(22.dp)).selectable(page==index,role=Role.Tab,onClick={onPage(index)}).padding(vertical=8.dp),horizontalAlignment=Alignment.CenterHorizontally,verticalArrangement=Arrangement.spacedBy(5.dp)) {
+                Column(Modifier.weight(1f).background(selectedBackground,RoundedCornerShape(16.dp)).selectable(page==index,role=Role.Tab,onClick={onPage(index)}).padding(vertical=8.dp),horizontalAlignment=Alignment.CenterHorizontally,verticalArrangement=Arrangement.spacedBy(5.dp)) {
                     DockIcon(index,tint)
                     BasicText(label,modifier=Modifier.fillMaxWidth(),maxLines=1,autoSize=TextAutoSize.StepBased(10.sp,12.sp),style=TextStyle(color=tint,textAlign=androidx.compose.ui.text.style.TextAlign.Center,fontWeight=if(page==index) FontWeight.Bold else FontWeight.Medium))
-                    Box(Modifier.size(width=14.dp,height=2.dp).background(if(page==index)Lime else Color.Transparent,RoundedCornerShape(2.dp)))
+
                 }
             }
         }
@@ -58,7 +58,7 @@ import androidx.compose.ui.text.font.FontWeight
 @Composable internal fun JournalCard(title:String,accent:Color=LocalPulseStyle.current.primary,content:@Composable ColumnScope.()->Unit) {
     val palette = LocalPulseStyle.current
 
-    Column(Modifier.fillMaxWidth().background(Brush.linearGradient(listOf(Color(0xFF202020),Color(0xFF141414))),RoundedCornerShape(24.dp)).border(1.dp,Color.White.copy(alpha=.035f),RoundedCornerShape(24.dp)).padding(20.dp),verticalArrangement=Arrangement.spacedBy(12.dp)) {
-        Text(title,color=accent,fontSize=11.sp,fontWeight=FontWeight.Bold,letterSpacing=1.3.sp);content()
+    Column(Modifier.fillMaxWidth().background(palette.surface,RoundedCornerShape(20.dp)).border(1.dp,Color.White.copy(alpha=.035f),RoundedCornerShape(20.dp)).padding(16.dp),verticalArrangement=Arrangement.spacedBy(12.dp)) {
+        Text(title,color=accent,fontSize=11.sp,fontWeight=FontWeight.Bold,letterSpacing=.6.sp);content()
     }
 }

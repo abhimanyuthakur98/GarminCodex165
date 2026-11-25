@@ -20,10 +20,13 @@ import java.util.concurrent.TimeUnit
 import kotlin.reflect.KClass
 import kotlin.math.roundToInt
 
-data class SyncState(val busy: Boolean = false, val message: String = "Connect your device through Health Connect", val lastSync: Long = 0, val granted: Set<String> = emptySet(), val background: Boolean = false, val diagnostics: String = "", val sources: List<String> = emptyList(), val stepSource:String="", val stepComparisons:Map<String,Long> = emptyMap(),val phase:String="",val progress:Float=0f)
+data class SyncState(val busy: Boolean = false, val message: String = "Connect your device through Health Connect", val lastSync: Long = 0, val granted: Set<String> = emptySet(), val background: Boolean = false, val diagnostics: String = "", val sources: List<String> = emptyList(), val stepSource:String=ActivitySource.GARMIN, val stepComparisons:Map<String,Long> = emptyMap(),val phase:String="",val progress:Float=0f)
 class HealthConnectSync(private val context: Context, private val dao: DailyDao) {
     private val prefs = context.getSharedPreferences("health_sync", Context.MODE_PRIVATE)
-    val status = MutableStateFlow(SyncState(lastSync = prefs.getLong("lastSync", 0), diagnostics = prefs.getString("diagnostics", "") ?: "", sources = prefs.getStringSet("sources", emptySet())!!.sorted(), stepSource=prefs.getString("stepSource", "") ?: ""))
+    init {
+        if(!prefs.getBoolean("activitySourceV2",false)) prefs.edit().putString("stepSource",ActivitySource.GARMIN).putBoolean("activitySourceV2",true).remove("lastFullSync").apply()
+    }
+    val status = MutableStateFlow(SyncState(lastSync = prefs.getLong("lastSync", 0), diagnostics = prefs.getString("diagnostics", "") ?: "", sources = prefs.getStringSet("sources", emptySet())!!.sorted(), stepSource=prefs.getString("stepSource", ActivitySource.GARMIN) ?: ActivitySource.GARMIN))
     fun saveStepSource(pkg:String) { prefs.edit().putString("stepSource",pkg).remove("lastFullSync").apply();status.value=status.value.copy(stepSource=pkg) }
     val appearance=MutableStateFlow(PulseStyle.fromId(prefs.getString("appearance",null)))
     fun saveAppearance(value:PulseStyle) { prefs.edit().putString("appearance",value.name).apply();appearance.value=value }
@@ -77,7 +80,7 @@ class HealthConnectSync(private val context: Context, private val dao: DailyDao)
         WorkManager.getInstance(context).cancelUniqueWork("garmin-health-sync")
         // Revocation prevents the next app-open sync from restoring a cache the user just deleted.
 
-        status.value = SyncState(message = "Imported data cleared and access disconnected. Source originals are unchanged.")
+        status.value = SyncState(stepSource=prefs.getString("stepSource",ActivitySource.GARMIN) ?: ActivitySource.GARMIN,message = "Imported data cleared and access disconnected. Source originals are unchanged.")
     }
     suspend fun sync(fullHistory:Boolean=false): Boolean = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) { lock.withLock {
         val guard=ImportGuard()
@@ -145,7 +148,7 @@ class HealthConnectSync(private val context: Context, private val dao: DailyDao)
             val result = (0L..daysBack).map { offset ->
                 status.value=status.value.copy(phase="Updating day ${offset+1} of ${daysBack+1}",progress=offset.toFloat()/(daysBack+1))
                 val date = today.minusDays(offset); val dayStart = date.atStartOfDay(zone).toInstant(); val dayEnd = minOf(date.plusDays(1).atStartOfDay(zone).toInstant(), now)
-                val previous=dao.day(date.toString())
+                val previous=dao.day(date.toString())?.let { ActivitySource.matching(it,selectedStepSource) }
                 val stepBounds = StepWindows.bounds(date,zone)
                 val dailySteps = if(HealthPermission.getReadPermission(StepsRecord::class) !in granted) null else guard.query("daily steps",previous?.steps) { client.aggregate(AggregateRequest(setOf(StepsRecord.COUNT_TOTAL),TimeRangeFilter.between(stepBounds.first,stepBounds.second),dataOriginFilter=stepOrigins))[StepsRecord.COUNT_TOTAL] }
                 val coarseSteps = stepRecords.any { (selectedStepSource.isEmpty() || it.metadata.dataOrigin.packageName==selectedStepSource) && it.startTime < stepBounds.second && it.endTime > stepBounds.first && StepWindows.coarse(it.startTime,it.endTime) }
@@ -154,7 +157,7 @@ class HealthConnectSync(private val context: Context, private val dao: DailyDao)
                 suspend fun <T:Any> metric(name:String, type:KClass<out Record>, value:androidx.health.connect.client.aggregate.AggregateMetric<T>, fallback:T?):T? {
                     if(HealthPermission.getReadPermission(type) !in granted) return null
                     return guard.query(name,fallback) {
-                        client.aggregate(AggregateRequest(setOf(value),TimeRangeFilter.between(dayStart,dayEnd))).also { sourcePackages += it.dataOrigins.map { origin -> origin.packageName } }[value]
+                        client.aggregate(AggregateRequest(setOf(value),TimeRangeFilter.between(stepBounds.first,stepBounds.second),dataOriginFilter=stepOrigins)).also { sourcePackages += it.dataOrigins.map { origin -> origin.packageName } }[value]
                     }
                 }
                 val active=metric("active calories",ActiveCaloriesBurnedRecord::class,ActiveCaloriesBurnedRecord.ACTIVE_CALORIES_TOTAL,previous?.activeCalories?.let { androidx.health.connect.client.units.Energy.kilocalories(it) })?.inKilocalories
@@ -168,8 +171,8 @@ class HealthConnectSync(private val context: Context, private val dao: DailyDao)
                     }
                 }
                 val stepHours=if(coarseSteps) emptyMap() else hours("hourly steps",StepsRecord::class,StepsRecord.COUNT_TOTAL,stepOrigins)
-                val activeHours=hours("hourly active calories",ActiveCaloriesBurnedRecord::class,ActiveCaloriesBurnedRecord.ACTIVE_CALORIES_TOTAL)
-                val totalHours=hours("hourly total calories",TotalCaloriesBurnedRecord::class,TotalCaloriesBurnedRecord.ENERGY_TOTAL)
+                val activeHours=hours("hourly active calories",ActiveCaloriesBurnedRecord::class,ActiveCaloriesBurnedRecord.ACTIVE_CALORIES_TOTAL,stepOrigins)
+                val totalHours=hours("hourly total calories",TotalCaloriesBurnedRecord::class,TotalCaloriesBurnedRecord.ENERGY_TOTAL,stepOrigins)
                 val hourly=HourBucket.fill(dayStart.toEpochMilli(),dayEnd.toEpochMilli(),emptyList()).map { it.copy(steps=stepHours[it.start],active=activeHours[it.start]?.inKilocalories,total=totalHours[it.start]?.inKilocalories) }
                 val night = nights[date]
                 val baseline = overnight.filter { (d, value) -> d < date && d >= date.minusDays(7) && value != null }.values.filterNotNull()
@@ -189,7 +192,7 @@ class HealthConnectSync(private val context: Context, private val dao: DailyDao)
                     DailyAnalysis.consistency(wakeTimes, zone), now.toEpochMilli(), load.points.lastOrNull()?.time,
                     active,
                     basal,
-                    hourly.joinToString(";") { it.encode() }).let { fresh -> preserveUnavailableRecords(fresh,previous,guard.unavailable) }
+                    hourly.joinToString(";") { it.encode() },activitySource=selectedStepSource).let { fresh -> preserveUnavailableRecords(fresh,previous,guard.unavailable) }
             }
             status.value=status.value.copy(phase="Updating workouts…",progress=.98f)
             val workouts = exerciseRecords.map { session ->
@@ -204,7 +207,7 @@ class HealthConnectSync(private val context: Context, private val dao: DailyDao)
                     else -> "EXERCISE_${session.exerciseType}"
                 }
                 val calories = if(HealthPermission.getReadPermission(ActiveCaloriesBurnedRecord::class) in granted)
-                    guard.query("workout calories",null as Double?) { client.aggregate(AggregateRequest(setOf(ActiveCaloriesBurnedRecord.ACTIVE_CALORIES_TOTAL),TimeRangeFilter.between(session.startTime, session.endTime)))[ActiveCaloriesBurnedRecord.ACTIVE_CALORIES_TOTAL]?.inKilocalories } else null
+                    guard.query("workout calories",null as Double?) { client.aggregate(AggregateRequest(setOf(ActiveCaloriesBurnedRecord.ACTIVE_CALORIES_TOTAL),TimeRangeFilter.between(session.startTime, session.endTime),dataOriginFilter=setOf(session.metadata.dataOrigin)))[ActiveCaloriesBurnedRecord.ACTIVE_CALORIES_TOTAL]?.inKilocalories } else null
                 Workout("HC:${session.metadata.id}","HEALTH_CONNECT",type,session.title ?: WorkoutAnalysis.title(type),begin,finish,
                     hr.filter { it.time >= begin && it.time < finish }.sortedBy { it.time }.joinToString(";") { "${it.time},${it.bpm}" },calories)
             }
