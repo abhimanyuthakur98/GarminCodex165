@@ -165,7 +165,7 @@ private fun clock(t: Long?) = t?.let { Instant.ofEpochMilli(it).atZone(ZoneId.sy
                         Button(onClick={page=6},modifier=Modifier.fillMaxWidth()){Text("Connections & imports")}
                     }
                     TextButton(onClick={profile=true}){Text("Sleep & heart-rate targets")}
-                    Row { TextButton(onClick={goalEditor="steps"}){Text("Step goal")};TextButton(onClick={goalEditor="calories"}){Text("Calorie goal")}
+                    Row { TextButton(onClick={goalEditor="steps"}){Text("Step goal")};TextButton(onClick={goalEditor="calories"}){Text("Calorie goal")} }
                     }
                     if(settingsSection=="Layout") DashboardEditor(preferences,onPreferences)
                 }

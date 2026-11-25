@@ -157,7 +157,7 @@ class HealthConnectSync(private val context: Context, private val dao: DailyDao)
                 suspend fun <T:Any> metric(name:String, type:KClass<out Record>, value:androidx.health.connect.client.aggregate.AggregateMetric<T>, fallback:T?):T? {
                     if(HealthPermission.getReadPermission(type) !in granted) return null
                     return guard.query(name,fallback) {
-                        client.aggregate(AggregateRequest(setOf(value),TimeRangeFilter.between(stepBounds.first,stepBounds.second),dataOriginFilter=stepOrigins)).also { sourcePackages += it.dataOrigins.map { origin -> origin.packageName } }[value]
+                        client.aggregate(AggregateRequest(setOf(value),TimeRangeFilter.between(dayStart,if(type==BasalMetabolicRateRecord::class)dayEnd else stepBounds.second),dataOriginFilter=stepOrigins)).also { sourcePackages += it.dataOrigins.map { origin -> origin.packageName } }[value]
                     }
                 }
                 val active=metric("active calories",ActiveCaloriesBurnedRecord::class,ActiveCaloriesBurnedRecord.ACTIVE_CALORIES_TOTAL,previous?.activeCalories?.let { androidx.health.connect.client.units.Energy.kilocalories(it) })?.inKilocalories

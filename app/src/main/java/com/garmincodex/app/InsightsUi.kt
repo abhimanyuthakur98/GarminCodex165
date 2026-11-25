@@ -46,7 +46,7 @@ private fun time(t: Long) = Instant.ofEpochMilli(t).atZone(ZoneId.systemDefault(
 @Composable private fun InsightPanel(content: @Composable ColumnScope.() -> Unit) {
     val palette = LocalPulseStyle.current
     val Slate = palette.surface
- Column(Modifier.fillMaxWidth().background(Brush.linearGradient(listOf(Color(0xFF202724), Slate)), RoundedCornerShape(24.dp)).border(1.dp, Color.White.copy(alpha = .06f), RoundedCornerShape(24.dp)).padding(20.dp), verticalArrangement = Arrangement.spacedBy(14.dp), content = content) }
+ Column(Modifier.fillMaxWidth().background(Slate, RoundedCornerShape(24.dp)).border(1.dp, Color.White.copy(alpha = .06f), RoundedCornerShape(24.dp)).padding(20.dp), verticalArrangement = Arrangement.spacedBy(14.dp), content = content) }
 @Composable private fun Caption(text: String) {
     val palette = LocalPulseStyle.current
     val Fog = palette.muted
@@ -120,19 +120,20 @@ private fun time(t: Long) = Instant.ofEpochMilli(t).atZone(ZoneId.systemDefault(
                 when (kind) {
                     "steps", "calories" -> {
                         val steps = kind == "steps"; val color = if (steps) Lime else Orange
+                        Text("Source: "+StepWindows.label(sync.stepSource)+" · via Health Connect",color=Fog,fontSize=12.sp)
                         val showTotal = !steps && d?.activeCalories == null && d?.calories != null
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.Bottom) { Text((if (steps) d?.steps?.toDouble() else if (showTotal) d?.calories else d?.activeCalories)?.roundToInt()?.let { String.format(Locale.US, "%,d", it) } ?: "—", fontSize = 58.sp, fontWeight = FontWeight.Bold, color = color); Text(if (steps) "steps" else if (showTotal) "total kcal" else "active kcal", color = Fog, modifier = Modifier.padding(bottom = 12.dp)) }
                         Text("Daily goal ${if (steps) goals.steps else goals.activeCalories} · tap Edit goal to change", color = Fog, fontSize = 12.sp)
                         if (!steps && d?.activeCalories==null) CalorieRepair(d,sync,onPermissions,onSettings,onSourceApp,onSync)
                         if (!steps) CalorieBreakdown(d)
-                        if (steps) Text("No hourly step limit. Daily totals use the full calendar day to avoid prorating cumulative watch records. For source comparisons and selection, open Connect → Step source.",color=Fog,fontSize=12.sp)
+                        if (steps) Text("No hourly step limit. Daily totals use the full calendar day to avoid prorating cumulative watch records. For source comparisons and selection, open Settings → Connections & imports → Steps & calories.",color=Fog,fontSize=12.sp)
                         InsightPanel {
                             Caption("Hourly ${if (steps) "steps" else if (showTotal) "total energy" else "active energy"}")
                             HourlyChart(HourBucket.decode(d?.hourly ?: ""), steps, color, showTotal)
                             Text("Tap a bar to inspect its hour. Empty intervals mean no timed record, not zero. Step intervals longer than one hour are omitted here: distributing a cumulative daily total would invent an hourly pattern. The full daily count is still shown above.", color = Fog, fontSize = 11.sp)
                         }
                     }
-                    "hr" -> { InsightPanel { Caption("Heart rate • tap or scrub"); InteractiveHeart(d) }; HeartPanel(d); Text("Chart values are five-minute averages; daily low/high use original imported samples. Long gaps are not interpolated.", color = Fog, fontSize = 12.sp) }
+                    "hr" -> { InsightPanel { Caption("Heart rate • tap or scrub"); InteractiveHeart(d) }; HeartPanel(d); InsightPanel { Caption("Resting heart rate & HRV"); Text("Resting HR: ${d?.restingHr?.roundToInt()?.let { "$it bpm" } ?: "Not shared"}"); Text("HRV: ${d?.hrv?.roundToInt()?.let { "$it ms RMSSD" } ?: "Not shared"}"); Text("Imported daily measurements. Availability depends on your device app.",color=Fog,fontSize=12.sp) }; Text("Chart values are five-minute averages; daily low/high use original imported samples. Long gaps are not interpolated.", color = Fog, fontSize = 12.sp) }
                     "sleep" -> { SleepPanel(d, need, false); InsightPanel { Caption("Stage-by-stage"); val spans = (d?.stages ?: "").split(';').mapNotNull { val p = it.split(','); if (p.size == 3) runCatching { SleepSpan(p[0].toLong(), p[1].toLong(), p[2].toInt()) }.getOrNull() else null }; if (spans.isEmpty()) Text("No sleep-stage records yet.", color = Fog); spans.forEach { s -> Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) { Text("${time(s.start)}–${time(s.end)}", color = Fog, fontSize = 12.sp); Text(when (s.stage) { 5 -> "Deep"; 4 -> "Light"; 6 -> "REM"; 1, 3, 7 -> "Awake"; 2 -> "Asleep"; else -> "Unknown" }, fontSize = 12.sp) } } } }
                     "recovery" -> { RecoveryPanel(d); InsightPanel { Caption("How this score is built"); Text("Resting HR: ${d?.restingHr?.roundToInt()?.toString() ?: "Not supplied"} · HRV: ${d?.hrv?.roundToInt()?.toString() ?: "Not supplied"}", color = Fog, fontSize = 12.sp); Text("40% sleep goal completion\n20% sleep efficiency\n40% overnight HR versus your baseline", lineHeight = 27.sp); Text("Requires 3 previous baseline nights. Missing stages or insufficient HR keep the score unavailable. HRV and Body Battery are not fabricated.", color = Fog, fontSize = 12.sp) } }
                     else -> { StrainPanel(d, maximum, resting); InsightPanel { Caption("HR reserve contribution"); Text("Each minute has a zone weight: 0, 1, 2, 3, 5, 8 or 12. Accumulated weighted minutes map onto a bounded 0–21 score.", color = Fog); Text("${d?.coveredMinutes ?: 0} minutes of measured coverage", color = Lime) } }

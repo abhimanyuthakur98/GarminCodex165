@@ -17,6 +17,20 @@ import java.io.File
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk=[35],application=Application::class)
 class ActivityMigrationTest {
+    @Test fun garminDefaultIsAppliedOnceAndLaterChoicesPersist() {
+        val context:Context=RuntimeEnvironment.getApplication()
+        val prefs=context.getSharedPreferences("health_sync",Context.MODE_PRIVATE)
+        prefs.edit().clear().putString("stepSource", "com.sec.android.app.shealth").commit()
+        val db=Room.inMemoryDatabaseBuilder(context,PulseDatabase::class.java).allowMainThreadQueries().build()
+        try {
+            val sync=HealthConnectSync(context,db.days())
+            assertEquals(ActivitySource.GARMIN,sync.status.value.stepSource)
+            sync.saveStepSource("com.sec.android.app.shealth")
+            assertEquals("com.sec.android.app.shealth",HealthConnectSync(context,db.days()).status.value.stepSource)
+            sync.saveStepSource("")
+            assertEquals("",HealthConnectSync(context,db.days()).status.value.stepSource)
+        } finally {db.close();prefs.edit().clear().commit()}
+    }
     @Test fun upgradePreservesDailyHistoryAndJournal()=runBlocking {
         val context:Context=RuntimeEnvironment.getApplication()
         val name="source-migration-test"

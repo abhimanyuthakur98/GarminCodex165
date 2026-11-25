@@ -40,7 +40,7 @@ class WidgetRefreshWorker(context:Context,params:WorkerParameters):CoroutineWork
         val today=LocalDate.now()
         val day=dao.day(today.toString())
         val prefs=applicationContext.getSharedPreferences("health_sync",Context.MODE_PRIVATE)
-        AppWidgetManager.getInstance(applicationContext).updateAppWidget(ComponentName(applicationContext,PulseWidget::class.java),PulseWidget.views(applicationContext,day,prefs.getLong("lastSync",0),today))
+        AppWidgetManager.getInstance(applicationContext).updateAppWidget(ComponentName(applicationContext,PulseWidget::class.java),PulseWidget.views(applicationContext,day?.let { ActivitySource.matching(it,prefs.getString("stepSource",ActivitySource.GARMIN) ?: ActivitySource.GARMIN) },prefs.getLong("lastSync",0),today))
         return Result.success()
     }
 }
