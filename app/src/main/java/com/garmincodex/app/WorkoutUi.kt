@@ -34,10 +34,13 @@ private fun decimal(value:Double)=String.format(java.util.Locale.US,"%.1f",value
     var selectedId by remember { mutableStateOf<String?>(null) }
     var filter by rememberSaveable { mutableStateOf("All") }
     var window by rememberSaveable { mutableIntStateOf(0) }
-    Text("Workouts",fontSize=28.sp,fontWeight=FontWeight.Bold)
+    var toolsOpen by rememberSaveable { mutableStateOf(false) }
+    Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween) { Text("Workouts",fontSize=28.sp,fontWeight=FontWeight.Bold);TextButton(onClick={toolsOpen=!toolsOpen}){Text(if(toolsOpen) "Done" else "Options")} }
     TrainingSummary(workouts)
+    if(toolsOpen || workouts.isEmpty()) {
     Row { Button(onClick=onImport,enabled=!busy) { Text(if(busy) "Importing…" else "Import FIT") }; TextButton(onClick=onPermissions) { Text("Allow exercise") } }
     Row(horizontalArrangement=Arrangement.spacedBy(8.dp)) { FilterChip(!miles,{onMiles(false)},label={Text("Kilometres")});FilterChip(miles,{onMiles(true)},label={Text("Miles")}) }
+    }
     message?.let { Text(it,color=Lime,fontSize=12.sp) }
     Row(Modifier.horizontalScroll(rememberScrollState()),horizontalArrangement=Arrangement.spacedBy(8.dp)) { listOf("All" to 0,"7 days" to 7,"30 days" to 30).forEach { (label,n) -> FilterChip(window==n,{window=n},label={Text(label)}) } }
     Row(Modifier.horizontalScroll(rememberScrollState()),horizontalArrangement=Arrangement.spacedBy(8.dp)) { (listOf("All")+workouts.map {it.type}.distinct().sorted()).forEach { type -> FilterChip(filter==type,{filter=type},label={Text(if(type=="All") "All activities" else WorkoutAnalysis.title(type))}) } }

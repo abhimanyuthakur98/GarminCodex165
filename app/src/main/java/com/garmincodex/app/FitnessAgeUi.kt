@@ -48,14 +48,13 @@ private fun ageNumber(value:Double)=String.format(Locale.US,"%.1f",value)
             "Overview" -> {
                 Box(Modifier.fillMaxWidth().background(palette.surface,RoundedCornerShape(20.dp)).padding(20.dp),contentAlignment=Alignment.Center) {
                     Column(Modifier.width(210.dp),horizontalAlignment=Alignment.CenterHorizontally,verticalArrangement=Arrangement.spacedBy(5.dp)) {
-                        Text(result.age?.let(::ageNumber) ?: "—",fontSize=54.sp,fontWeight=FontWeight.Bold)
+                        Text(result.age?.let(::ageNumber) ?: "Learning",fontSize=if(result.age==null)30.sp else 54.sp,fontWeight=FontWeight.Bold)
                         Text("EXPERIMENTAL FITNESS AGE",fontSize=9.sp,color=AgeMuted)
                         Text(result.age?.let{"${ageNumber(abs(it-goals.age!!))} years ${if(it<=goals.age) "below" else "above"} your age"} ?: "${result.days}/14 qualifying days",fontSize=12.sp,color=AgeMint)
                     }
                 }
                 Text("Wellness estimate · not biological age",fontSize=11.sp,color=AgeMuted)
-                Text(result.reason,fontSize=11.sp,color=AgeMuted)
-                Text("Your recent movement, sleep and cardio habits, compared with fixed references. More consistent habits can improve the estimate; missing records can limit it.",fontSize=12.sp,color=AgeMuted)
+                Text("Based on recent movement, sleep and cardio habits.",fontSize=12.sp,color=AgeMuted)
                 if(result.factors.isNotEmpty()) {
                     FactorChart(result.factors){factorIndex=it;section="Actions"}
                     TextButton(onClick={factorIndex=-1;section="Actions"}){Text("Focus: ${result.factors[FitnessCoaching.focus(result,currentRecovery)].name} ›")}

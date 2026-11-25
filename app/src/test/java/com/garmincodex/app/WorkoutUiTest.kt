@@ -32,7 +32,9 @@ class WorkoutUiTest {
             WorkoutLibrary(listOf(w,w.copy(id="earlier",title="Earlier run",start=start-86400000,end=start-86400000+1500000)),ratings,55,190,{ratings=listOf(it)},{},{},{},null,false,miles,{miles=it})
         } } } }
         compose.onRoot().captureRoboImage("build/screenshots/workouts.png")
+        compose.onNodeWithText("Options").performClick()
         compose.onNodeWithText("Miles").performClick()
+        compose.onNodeWithText("Done").performClick()
         compose.runOnIdle { assertTrue(miles) }
         compose.onNodeWithText("Morning run").performClick()
         compose.onNode(hasText("3.11 mi") and hasAnyAncestor(isDialog())).performScrollTo().assertIsDisplayed()
