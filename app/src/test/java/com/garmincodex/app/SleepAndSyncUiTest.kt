@@ -31,9 +31,9 @@ class SleepAndSyncUiTest {
         System.setProperty("roborazzi.test.record","true")
         var calls=0;var permissions=0;var busy by mutableStateOf(false)
         val day=previewDay(LocalDate.now().toString()).copy(activitySource=ActivitySource.GARMIN)
-        compose.setContent { PulseTheme { Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp)) {
+        compose.setContent { PulseTheme { androidx.compose.material3.Surface { Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp)) {
             DataStatusCard(day,SyncState(busy=busy,lastSync=1,lastError="Interrupted",unavailable=setOf("active calories")),{permissions++},{},onRetry={calls++;busy=true})
-        } } }
+        } } } }
         compose.onNodeWithText("Last refresh failed. Saved records are still shown.").assertIsDisplayed()
         compose.onRoot().captureRoboImage("build/screenshots/sync-confidence.png")
         compose.onNodeWithText("Retry import").performClick()
@@ -45,9 +45,9 @@ class SleepAndSyncUiTest {
     @Test fun sleepRoutineExpandsAndMissingStagesAreNotZeroes() {
         System.setProperty("roborazzi.test.record","true")
         val end=LocalDate.now();val day=previewDay(end.toString()).copy(stages="")
-        compose.setContent { PulseTheme { Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp)) {
+        compose.setContent { PulseTheme { androidx.compose.material3.Surface { Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp)) {
             SleepTimingCard(listOf(day),end);SleepStagesCard(day)
-        } } }
+        } } } }
         compose.onNodeWithText("Show all 7 nights").performScrollTo().performClick()
         compose.onNodeWithText("Show recent nights").assertExists()
         compose.onNodeWithText("YOUR SLEEP ROUTINE").performScrollTo()
