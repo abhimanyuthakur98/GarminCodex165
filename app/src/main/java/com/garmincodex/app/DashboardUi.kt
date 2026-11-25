@@ -181,7 +181,7 @@ private fun clock(t: Long?) = t?.let { Instant.ofEpochMilli(it).atZone(ZoneId.sy
                 6 -> {
                     TextButton(onClick={page=3}){Text("‹ Settings")}
                     Text("Connections", fontSize = 28.sp, lineHeight = 32.sp, fontWeight = FontWeight.Bold)
-                    DataStatusCard(day, sync, onConnect, onHealthSettings, days)
+                    DataStatusCard(day, sync, onConnect, onHealthSettings, days,onRetry=onSync,onDevice=onSourceApp)
                     SetupCard(onConnect, onSourceApp, onHealthSettings)
                     StepSourceCard(sync,onStepSource)
                     Panel {

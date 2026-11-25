@@ -6,7 +6,7 @@ plugins {
 android {
     namespace = "com.garmincodex.app"
     compileSdk = 36
-    defaultConfig { applicationId = "com.garmincodex.app"; minSdk = 26; targetSdk = 36; versionCode = 23; versionName = "0.21.0"; manifestPlaceholders["appLabel"] = "Pulse 165" }
+    defaultConfig { applicationId = "com.garmincodex.app"; minSdk = 26; targetSdk = 36; versionCode = 24; versionName = "0.22.0"; manifestPlaceholders["appLabel"] = "Pulse 165" }
     signingConfigs { getByName("debug") { storeFile = rootProject.file(".signing/pulse-test.jks") } }
     buildTypes { getByName("debug") { applicationIdSuffix = ".testing2"; manifestPlaceholders["appLabel"] = "Pulse" } }
     buildFeatures { compose = true }

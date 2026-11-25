@@ -44,6 +44,8 @@ internal fun metricSource(day:ConnectedDay?,kind:String):String = when(kind) {
     val p=LocalPulseStyle.current
     Column(verticalArrangement=Arrangement.spacedBy(3.dp)) {
         Text(metricSource(day,kind),fontSize=11.sp,color=p.muted)
+        if(sync.lastError.isNotBlank()) Text("Last refresh failed · showing saved records",fontSize=11.sp,color=p.warm)
+        if(unavailableForMetric(sync,kind)) Text("Last import incomplete · saved values may be older",fontSize=11.sp,color=p.warm)
         Text(importStamp(day)+(if(sync.busy)" · refreshing" else ""),fontSize=10.sp,color=p.muted)
         if(kind=="hr") Text(day?.lastSample?.let { "Last recorded sample "+Instant.ofEpochMilli(it).atZone(ZoneId.systemDefault()).format(DateTimeFormatter.ofPattern("d MMM · HH:mm")) } ?: "No recorded sample time",fontSize=10.sp,color=p.muted)
     }
@@ -125,6 +127,8 @@ internal fun metricSource(day:ConnectedDay?,kind:String):String = when(kind) {
     Text("Night ending on $selected",fontSize=12.sp,color=LocalPulseStyle.current.muted)
     DataFreshness(day,sync,"sleep")
     SleepHero(day,need,onClick=onDetail)
+    SleepStagesCard(day)
+    SleepTimingCard(days,LocalDate.parse(selected))
     SleepPlanner(days,goals,need,onGoals,LocalDate.parse(selected))
     OutlinedButton(onClick=onTarget){Text("Adjust sleep goal")}
     val nights=days.filter{it.date<=selected && it.date>=LocalDate.parse(selected).minusDays(6).toString()}.mapNotNull{it.asleep}
@@ -165,7 +169,7 @@ internal fun detailMetric(kind:String):TrendMetric=when(kind){"steps"->TrendMetr
     TextButton(onClick=onConnection,contentPadding=PaddingValues(horizontal=0.dp,vertical=4.dp)) {
         Column(Modifier.fillMaxWidth(),verticalArrangement=Arrangement.spacedBy(2.dp)) {
             Text(if(day==null || day.activitySource=="legacy") "Activity source not confirmed ›" else StepWindows.label(day.activitySource)+" · via Health Connect ›",fontSize=11.sp,color=p.muted)
-            Text(if(sync.busy) "Refreshing · showing saved records" else if(missing) "Missing activity · review sharing" else importStamp(day),fontSize=10.sp,color=if(missing)p.warm else p.muted)
+            Text(if(sync.busy) "Refreshing · showing saved records" else if(sync.lastError.isNotBlank()) "Last refresh failed · review connection" else if(unavailableForMetric(sync,"activity")) "Partial import · saved values may be older" else if(missing) "Missing activity · review sharing" else importStamp(day),fontSize=10.sp,color=if(missing || sync.lastError.isNotBlank() || unavailableForMetric(sync,"activity"))p.warm else p.muted)
         }
     }
 }

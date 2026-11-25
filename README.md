@@ -1,3 +1,9 @@
+## 0.22.0 — sync confidence and sleep routine
+
+Partial-import category warnings and failed-attempt status survive reopening. Today, metric details and Connections distinguish saved values from failed refreshes. Connections offers retry/device-app actions and category buttons that route to permission or sharing settings. A successful import clears the last error; clearing imports removes these diagnostics. Source labels describe imported activity, not a claim about the watch's latest sync.
+
+The Sleep hub adds stage durations with explicit missing-stage handling, seven-night session times, circular clock averages across midnight and average consecutive-night wake-time changes. Missing/invalid sessions are excluded; sparse or widely scattered timings do not receive an average. Dates are wake dates and times use the phone's current time zone. Existing package, signing key, Garmin preference and personal settings are preserved.
+
 ## 0.21.0 — clearer Today and weekly takeaways
 
 Today puts activity and sleep higher with a compact edit action, shorter source/import control and tighter sleep card. Existing favourites, colour choices and Garmin activity preferences are preserved.

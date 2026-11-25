@@ -20,13 +20,13 @@ import java.util.concurrent.TimeUnit
 import kotlin.reflect.KClass
 import kotlin.math.roundToInt
 
-data class SyncState(val busy: Boolean = false, val message: String = "Connect your device through Health Connect", val lastSync: Long = 0, val granted: Set<String> = emptySet(), val background: Boolean = false, val diagnostics: String = "", val sources: List<String> = emptyList(), val stepSource:String=ActivitySource.GARMIN, val stepComparisons:Map<String,Long> = emptyMap(),val phase:String="",val progress:Float=0f)
+data class SyncState(val busy: Boolean = false, val message: String = "Connect your device through Health Connect", val lastSync: Long = 0, val granted: Set<String> = emptySet(), val background: Boolean = false, val diagnostics: String = "", val sources: List<String> = emptyList(), val stepSource:String=ActivitySource.GARMIN, val stepComparisons:Map<String,Long> = emptyMap(),val phase:String="",val progress:Float=0f,val unavailable:Set<String> = emptySet(),val lastError:String="")
 class HealthConnectSync(private val context: Context, private val dao: DailyDao) {
     private val prefs = context.getSharedPreferences("health_sync", Context.MODE_PRIVATE)
     init {
         if(!prefs.getBoolean("activitySourceV2",false)) prefs.edit().putString("stepSource",ActivitySource.GARMIN).putBoolean("activitySourceV2",true).remove("lastFullSync").apply()
     }
-    val status = MutableStateFlow(SyncState(lastSync = prefs.getLong("lastSync", 0), diagnostics = prefs.getString("diagnostics", "") ?: "", sources = prefs.getStringSet("sources", emptySet())!!.sorted(), stepSource=prefs.getString("stepSource", ActivitySource.GARMIN) ?: ActivitySource.GARMIN))
+    val status = MutableStateFlow(SyncState(unavailable=prefs.getStringSet("unavailable",emptySet())!!.toSet(),lastError=prefs.getString("lastImportError","") ?: "",lastSync = prefs.getLong("lastSync", 0), diagnostics = prefs.getString("diagnostics", "") ?: "", sources = prefs.getStringSet("sources", emptySet())!!.sorted(), stepSource=prefs.getString("stepSource", ActivitySource.GARMIN) ?: ActivitySource.GARMIN))
     fun saveStepSource(pkg:String) { prefs.edit().putString("stepSource",pkg).remove("lastFullSync").apply();status.value=status.value.copy(stepSource=pkg) }
     val appearance=MutableStateFlow(PulseStyle.fromId(prefs.getString("appearance",null)))
     fun saveAppearance(value:PulseStyle) { prefs.edit().putString("appearance",value.name).apply();appearance.value=value }
@@ -76,7 +76,7 @@ class HealthConnectSync(private val context: Context, private val dao: DailyDao)
             if (availability() == HealthConnectClient.SDK_AVAILABLE) client().permissionController.revokeAllPermissions()
         } catch (e: CancellationException) { throw e }
         catch (_: Exception) { status.value = status.value.copy(message = "Could not revoke access. Open Health Connect settings to disconnect, then retry clearing."); return@withLock }
-        dao.clearAllImports(); prefs.edit().remove("lastSync").remove("lastFullSync").remove("diagnostics").remove("sources").apply(); PulseWidget.refresh(context)
+        dao.clearAllImports(); prefs.edit().remove("lastSync").remove("lastFullSync").remove("diagnostics").remove("sources").remove("unavailable").remove("lastImportError").apply(); PulseWidget.refresh(context)
         WorkManager.getInstance(context).cancelUniqueWork("garmin-health-sync")
         // Revocation prevents the next app-open sync from restoring a cache the user just deleted.
 
@@ -213,22 +213,26 @@ class HealthConnectSync(private val context: Context, private val dao: DailyDao)
             }
 
             if(guard.unavailable.isNotEmpty() && result.none { it.steps!=null || it.asleep!=null || it.hrCount>0 || it.calories!=null || it.activeCalories!=null || it.restingHr!=null || it.hrv!=null } && workouts.isEmpty()) {
-                status.value=status.value.copy(busy=false,message="Health Connect rejected: "+guard.unavailable.joinToString()+". No import was saved. Update Health Connect and your device app, then retry."); return@withLock false
+                recordImportFailure("Health Connect rejected: "+guard.unavailable.joinToString()+". No import was saved. Update Health Connect and your device app, then retry."); return@withLock false
             }
             status.value=status.value.copy(phase="Saving on your phone…",progress=.99f)
             guard.stage="saving local history"
             dao.replaceHealthImport(first.toString(), start.toEpochMilli(), result, workouts.takeIf { HealthPermission.getReadPermission(ExerciseSessionRecord::class) in granted && "ExerciseSessionRecord" !in guard.unavailable })
             val report = importReport(result, first.toString(), today.toString(), workouts.size) + if(guard.unavailable.isEmpty()) "" else "\nUnavailable in this import (previous values retained where available): " + guard.unavailable.joinToString()
-            prefs.edit().apply { if(full)putLong("lastFullSync",now.toEpochMilli());putString("syncedPermissions",permissionsKey) }.putLong("lastSync", now.toEpochMilli()).putString("diagnostics",report).putStringSet("sources",sourcePackages).apply()
+            prefs.edit().apply { if(full)putLong("lastFullSync",now.toEpochMilli());putString("syncedPermissions",permissionsKey) }.putLong("lastSync", now.toEpochMilli()).putString("diagnostics",report).putStringSet("sources",sourcePackages).putStringSet("unavailable",guard.unavailable.toSet()).remove("lastImportError").apply()
             PulseWidget.refresh(context)
             val hrCount = result.sumOf { it.hrCount }; val sleepCount = result.count { it.sleepStart != null }
-            status.value = status.value.copy(busy = false, stepComparisons=stepComparisons, sources = sourcePackages.toList(), diagnostics = report, lastSync = now.toEpochMilli(), message = if(guard.unavailable.isNotEmpty()) "Imported available health data. Some requests were rejected: " + guard.unavailable.joinToString() + ". See Data status for details." else if (hrCount == 0 && sleepCount == 0 && workouts.isEmpty() && result.none { it.steps != null })
+            status.value = status.value.copy(busy = false, unavailable=guard.unavailable.toSet(),lastError="",stepComparisons=stepComparisons, sources = sourcePackages.toList(), diagnostics = report, lastSync = now.toEpochMilli(), message = if(guard.unavailable.isNotEmpty()) "Imported available health data. Some requests were rejected: " + guard.unavailable.joinToString() + ". See Data status for details." else if (hrCount == 0 && sleepCount == 0 && workouts.isEmpty() && result.none { it.steps != null })
                 "No shared records found. Enable your device app’s write permissions in Health Connect, sync your device in that app, then retry. Some apps only share new data."
                 else "Imported $hrCount HR samples, $sleepCount nights and ${workouts.size} workouts from Health Connect. ${granted.intersect(READ_PERMISSIONS).size}/${READ_PERMISSIONS.size} read permissions granted.")
             true
         } catch (e: CancellationException) { status.value = status.value.copy(busy = false); throw e }
-        catch (e: Exception) { status.value = status.value.copy(busy = false, message = if (e is SecurityException) "Health access changed. Grant permissions and sync again." else "Sync interrupted during ${guard.stage} (${e.javaClass.simpleName}). Your previous import is retained. Update Health Connect and retry."); false }
+        catch (e: Exception) { recordImportFailure(if (e is SecurityException) "Health access changed. Grant permissions and sync again." else "Sync interrupted during ${guard.stage} (${e.javaClass.simpleName}). Your previous import is retained. Update Health Connect and retry."); false }
     }
+    }
+    private fun recordImportFailure(message:String) {
+        prefs.edit().putString("lastImportError",message).apply()
+        status.value=status.value.copy(busy=false,message=message,lastError=message)
     }
     companion object {
         val READ_PERMISSIONS = setOf(ExerciseSessionRecord::class, HeartRateRecord::class, SleepSessionRecord::class, StepsRecord::class, TotalCaloriesBurnedRecord::class, ActiveCaloriesBurnedRecord::class, BasalMetabolicRateRecord::class, RestingHeartRateRecord::class, HeartRateVariabilityRmssdRecord::class).map { HealthPermission.getReadPermission(it) }.toSet()

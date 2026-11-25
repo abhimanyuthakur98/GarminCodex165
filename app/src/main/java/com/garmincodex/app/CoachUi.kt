@@ -108,7 +108,7 @@ import kotlin.math.roundToInt
         Text("${result.currentDays}/7 days · previous ${weeklyValue(kind,result.previous)} (${result.previousDays}/7 days)",fontSize=10.sp,color=p.muted)
     }
 }
-@Composable internal fun DataStatusCard(day: ConnectedDay?, sync: SyncState, onPermissions: () -> Unit, onSettings: () -> Unit, days: List<ConnectedDay> = emptyList()) {
+@Composable internal fun DataStatusCard(day: ConnectedDay?, sync: SyncState, onPermissions: () -> Unit, onSettings: () -> Unit, days: List<ConnectedDay> = emptyList(),onRetry:(()->Unit)?=null,onDevice:(()->Unit)?=null) {
     val palette = LocalPulseStyle.current
     val Lime = palette.primary
     val Orange = palette.warm
@@ -116,6 +116,14 @@ import kotlin.math.roundToInt
     var expanded by remember { mutableStateOf(false) }
     CoachCard("DATA STATUS") {
         Text(if (sync.busy) "Importing shared records…" else if (sync.lastSync == 0L) "No successful import yet" else "Last import: " + Instant.ofEpochMilli(sync.lastSync).atZone(ZoneId.systemDefault()).format(DateTimeFormatter.ofPattern("d MMM, HH:mm")), fontSize = 13.sp)
+        Text("Showing "+(day?.date ?: "a day without saved records"),fontSize=12.sp,color=palette.muted)
+        Text(metricSource(day,"activity"),fontSize=12.sp,color=palette.muted)
+        if(sync.lastError.isNotBlank()) Text("Last refresh failed. Saved records are still shown.",fontSize=13.sp,color=Orange)
+        if(sync.unavailable.isNotEmpty()) Text("Partial import: "+sync.unavailable.map(::importCategoryName).distinct().joinToString()+". Saved values may be older than the import time.",fontSize=13.sp,color=Orange)
+        Row {
+            if(onRetry!=null) TextButton(enabled=!sync.busy,onClick=onRetry){Text(if(sync.busy)"Refreshing…" else "Retry import")}
+            if(onDevice!=null) TextButton(onClick=onDevice){Text("Open device app")}
+        }
         ImportCoverage(days)
         TextButton(onClick = { expanded = !expanded }) { Text(if (expanded) "Hide data categories" else "Check data categories") }
         if (expanded) {
@@ -124,11 +132,16 @@ import kotlin.math.roundToInt
                 Text(sync.diagnostics,fontSize=12.sp,lineHeight=20.sp)
                 Text("Counts describe imported Health Connect data, not permission grants. A zero means no data was read; review the permission rows below. FIT imports are separate.",fontSize=11.sp,color=Color.Gray)
             }
-            val fields = listOf(Triple("Heart rate", HeartRateRecord::class, (day?.hrCount ?: 0) > 0), Triple("Sleep", SleepSessionRecord::class, day?.sleepStart != null), Triple("Steps", StepsRecord::class, day?.steps != null), Triple("Active calories", ActiveCaloriesBurnedRecord::class, day?.activeCalories != null), Triple("Total calories", TotalCaloriesBurnedRecord::class, day?.calories != null), Triple("Basal energy", BasalMetabolicRateRecord::class, day?.basalCalories != null))
+            val fields = listOf(Triple("Heart rate", HeartRateRecord::class, (day?.hrCount ?: 0) > 0), Triple("Sleep", SleepSessionRecord::class, day?.sleepStart != null), Triple("Steps", StepsRecord::class, day?.steps != null), Triple("Active calories", ActiveCaloriesBurnedRecord::class, day?.activeCalories != null), Triple("Total calories", TotalCaloriesBurnedRecord::class, day?.calories != null), Triple("Basal energy", BasalMetabolicRateRecord::class, day?.basalCalories != null), Triple("Resting heart rate",RestingHeartRateRecord::class,day?.restingHr!=null), Triple("HRV",HeartRateVariabilityRmssdRecord::class,day?.hrv!=null))
             fields.forEach { (label, type, present) ->
                 val allowed = HealthPermission.getReadPermission(type) in sync.granted
-                Text("$label · ${if (!allowed) "Permission needed" else if (present) "Imported" else "No shared record for this day"}", fontSize = 12.sp, color = if (!allowed || !present) Orange else Lime)
+                val kind=when(label){"Heart rate"->"hr";"Sleep"->"sleep";"Steps"->"steps";"Active calories"->"calories";"Total calories"->"energy";"Resting heart rate"->"resting";"HRV"->"hrv";else->"basal"}
+                val rejected=if(kind=="basal")"basal energy" in sync.unavailable else unavailableForMetric(sync,kind)
+                TextButton(onClick=if(!allowed)onPermissions else onSettings,contentPadding=PaddingValues(0.dp)) {
+                    Text("$label · "+categoryImportStatus(allowed,present,rejected),fontSize=12.sp,color=if(!allowed || !present || rejected)Orange else Lime)
+                }
             }
+            Text("Tap a category to review its permissions or device sharing. Sync in your device app first, then retry the import here.",fontSize=12.sp)
             Text("A successful import does not guarantee fresh watch measurements. Missing records can mean your device app has not shared that category yet.", fontSize = 11.sp, color = Color.Gray)
             TextButton(onClick = onPermissions) { Text("Review Pulse permissions") }
             TextButton(onClick = onSettings) { Text("Review device sharing") }

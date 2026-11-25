@@ -75,7 +75,7 @@ private val Lavender=Color(0xFFC0AFF5)
     val Lavender = palette.violet
 
     val needsAttention=listOf("Sync interrupted", "Health access changed", "Health Connect is unavailable", "Allow Pulse", "Could not revoke").any{sync.message.startsWith(it)}
-    if(!sync.busy && needsAttention) TextButton(onClick=onConnection){Text("Sync needs attention · review connection ›",color=Orange,fontSize=12.sp)}
+    if(!sync.busy && (needsAttention || sync.lastError.isNotBlank() || sync.unavailable.isNotEmpty())) TextButton(onClick=onConnection){Text("Sync needs attention · review connection ›",color=Orange,fontSize=12.sp)}
     if(day==null || day.hrCount==0 && day.asleep==null && day.steps==null && day.activeCalories==null && day.recovery==null) {
         SnapshotCard(onClick=onConnection) {
             Text(if(sync.lastSync==0L) "Your day starts here" else "No records for this day",fontSize=24.sp,fontWeight=FontWeight.Bold)
