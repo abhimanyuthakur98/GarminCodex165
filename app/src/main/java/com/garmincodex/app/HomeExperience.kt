@@ -23,12 +23,14 @@ import java.time.format.DateTimeFormatter
 import kotlin.math.roundToInt
 
 @Composable internal fun HomeSections(selected:String,onSelect:(String)->Unit,onEdit:()->Unit) {
-    FlowRow(horizontalArrangement=Arrangement.spacedBy(6.dp)) {
+    Column {
+    Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),horizontalArrangement=Arrangement.spacedBy(6.dp)) {
         listOf("Favourites","Activity","Sleep hub","Vitals","Weekly").forEach { name -> FilterChip(selected==name,{onSelect(name)},label={Text(name,fontSize=12.sp)}) }
     }
     if(selected=="Favourites") Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically) {
         Text("Your daily overview",modifier=Modifier.weight(1f),color=LocalPulseStyle.current.muted,fontSize=12.sp)
         TextButton(onClick=onEdit){Text("Edit home")}
+    }
     }
 }
 
