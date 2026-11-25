@@ -39,10 +39,10 @@ class HealthConnectSync(private val context: Context, private val dao: DailyDao)
     val dashboardPreferences = MutableStateFlow(DashboardPreferences(
         prefs.getString("cardOrder", null)?.split(',') ?: DashboardPreferences.CARDS,
         prefs.getString("hiddenCards", "")!!.split(',').filter { it.isNotBlank() }.toSet(),
-        prefs.getInt("startPage", 0)).normalized())
+        prefs.getInt("startPage", 0),prefs.getString("homeOrder",null)?.split(',') ?: DashboardPreferences.HOME_CARDS,prefs.getString("homeHidden","")!!.split(',').filter{it.isNotBlank()}.toSet()).normalized())
     fun saveDashboard(value: DashboardPreferences) {
         val normalized = value.normalized()
-        prefs.edit().putString("cardOrder", normalized.order.joinToString(",")).putString("hiddenCards", normalized.hidden.joinToString(",")).putInt("startPage", normalized.startPage).apply()
+        prefs.edit().putString("cardOrder", normalized.order.joinToString(",")).putString("hiddenCards", normalized.hidden.joinToString(",")).putInt("startPage", normalized.startPage).putString("homeOrder",normalized.homeOrder.joinToString(",")).putString("homeHidden",normalized.homeHidden.joinToString(",")).apply()
         dashboardPreferences.value = normalized
     }
     val distanceMiles = MutableStateFlow(prefs.getBoolean("distanceMiles", false))

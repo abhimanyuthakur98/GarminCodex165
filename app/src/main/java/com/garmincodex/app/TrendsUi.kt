@@ -20,8 +20,8 @@ import java.time.format.DateTimeFormatter
 import kotlin.math.roundToInt
 
 internal enum class TrendMetric(val title:String,val unit:String) {
-    SLEEP("Sleep","min"),RECOVERY("Recovery","%"),STRAIN("Strain","/21"),STEPS("Steps","steps"),CALORIES("Active calories","kcal"),HR("Overnight HR","bpm");
-    fun value(d:ConnectedDay):Double?=when(this){SLEEP->d.asleep?.toDouble();RECOVERY->d.recovery?.toDouble();STRAIN->if(d.coveredMinutes>0)Scores.strain(d.load) else null;STEPS->d.steps?.toDouble();CALORIES->d.activeCalories;HR->d.overnightHr}
+    SLEEP("Sleep","min"),RECOVERY("Recovery","%"),STRAIN("Strain","/21"),STEPS("Steps","steps"),CALORIES("Active calories","kcal"),HR("Overnight HR","bpm"),DAILY_HR("Heart rate","bpm"),RESTING_HR("Resting HR","bpm"),HRV("HRV","ms"),ENERGY("Total energy","kcal");
+    fun value(d:ConnectedDay):Double?=when(this){SLEEP->d.asleep?.toDouble();RECOVERY->d.recovery?.toDouble();STRAIN->if(d.coveredMinutes>0)Scores.strain(d.load) else null;STEPS->d.steps?.toDouble();CALORIES->d.activeCalories;HR->d.overnightHr;DAILY_HR->d.hrAverage?.toDouble();RESTING_HR->d.restingHr;HRV->d.hrv;ENERGY->d.calories}
     fun format(value:Double?):String=if(value==null) "No record" else when(this){SLEEP->"${value.toInt()/60}h ${value.toInt()%60}m";STRAIN->String.format(java.util.Locale.US,"%.1f /21",value);else->"${value.roundToInt()} $unit"}
 }
 @Composable internal fun TrendsExplorer(days:List<ConnectedDay>,onDay:(String)->Unit) {
@@ -59,12 +59,12 @@ internal enum class TrendMetric(val title:String,val unit:String) {
         }
     }
 }
-@Composable private fun TrendPlot(days:List<ConnectedDay>,metric:TrendMetric,period:Int,baseline:Boolean,onDay:(String)->Unit) {
+@Composable internal fun TrendPlot(days:List<ConnectedDay>,metric:TrendMetric,period:Int,baseline:Boolean,onDay:(String)->Unit,endDate:LocalDate=LocalDate.now()) {
     val palette = LocalPulseStyle.current
     val Lime = palette.primary
 
     val today=LocalDate.now()
-    val dates=remember(today,period){(period-1 downTo 0).map{today.minusDays(it.toLong())}}
+    val dates=remember(endDate,period){(period-1 downTo 0).map{endDate.minusDays(it.toLong())}}
     val byDate=remember(days){days.associateBy{it.date}}
     val values=remember(byDate,dates,metric){dates.map{byDate[it.toString()]?.let(metric::value)}}
     val bands=remember(days,dates,metric,baseline){dates.map{if(baseline)PersonalBaseline.calculate(days,it,metric::value) else null}}
@@ -91,7 +91,7 @@ internal enum class TrendMetric(val title:String,val unit:String) {
                 }
             }
         }
-        Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween){Text(dates.first().format(DateTimeFormatter.ofPattern("d MMM")),fontSize=11.sp,color=Color.Gray);Text("Today",fontSize=11.sp,color=Color.Gray)}
+        Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween){Text(dates.first().format(DateTimeFormatter.ofPattern("d MMM")),fontSize=11.sp,color=Color.Gray);Text(if(endDate==today)"Today" else endDate.format(DateTimeFormatter.ofPattern("d MMM")),fontSize=11.sp,color=Color.Gray)}
         Slider(selected.toFloat(),{selected=it.roundToInt()},valueRange=0f..(period-1).toFloat(),steps=period-2,modifier=Modifier.semantics{contentDescription="Select trend date"})
         if(baseline) Text(bands[selected]?.let{"Usual: ${metric.format(it.lower)} – ${metric.format(it.upper)}"} ?: "Needs 7 prior recorded days",fontSize=12.sp,color=palette.violet)
         else Text("${known.size}/$period days · average ${metric.format(known.takeIf{it.isNotEmpty()}?.average())}",fontSize=12.sp,color=Color.Gray)

@@ -103,21 +103,30 @@ private fun time(t: Long) = Instant.ofEpochMilli(t).atZone(ZoneId.systemDefault(
         }
     }
 }
-@Composable internal fun MetricDetails(kind: String, d: ConnectedDay?, goals: PersonalGoals, need: Int, maximum: Int, resting: Int, onGoals: (PersonalGoals) -> Unit, sync:SyncState=SyncState(), onPermissions:()->Unit={}, onSettings:()->Unit={}, onSourceApp:()->Unit={}, onSync:()->Unit={}, onClose: () -> Unit) {
+@Composable internal fun MetricDetails(kind: String, d: ConnectedDay?, goals: PersonalGoals, need: Int, maximum: Int, resting: Int, onGoals: (PersonalGoals) -> Unit, sync:SyncState=SyncState(), onPermissions:()->Unit={}, onSettings:()->Unit={}, onSourceApp:()->Unit={}, onSync:()->Unit={}, history:List<ConnectedDay> = emptyList(), initialDate:String=d?.date ?: java.time.LocalDate.now().toString(), onClose: () -> Unit) {
     val palette = LocalPulseStyle.current
     val Lime = palette.primary
     val Orange = palette.warm
     val Fog = palette.muted
 
+    var selectedDate by rememberSaveable(kind,initialDate){mutableStateOf(initialDate)}
+    var range by rememberSaveable(kind){mutableIntStateOf(1)}
+    val original=d
+    val detailHistory=if(history.isEmpty())listOfNotNull(original) else history
+    val shown=detailHistory.firstOrNull{it.date==selectedDate}
     var edit by remember { mutableStateOf(false) }
 
     Dialog(onDismissRequest = onClose, properties = DialogProperties(usePlatformDefaultWidth = false)) {
         Surface(Modifier.fillMaxSize(), color = palette.background) {
             Column(Modifier.then(pageMotion(kind)).safeDrawingPadding().imePadding().verticalScroll(rememberScrollState()).padding(20.dp), verticalArrangement = Arrangement.spacedBy(20.dp)) {
+                val d=shown
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) { TextButton(onClick = onClose) { Text("‹ Back") }; Caption(d?.date ?: "No imported day"); if (kind == "steps" || kind == "calories") TextButton(onClick = { edit = true }) { Text("Edit goal") } }
                 if (edit) InlineGoalForm(kind, goals, onGoals) { edit = false }
-                Text(when (kind) { "hr" -> "Every heartbeat."; "steps" -> "Keep moving."; "calories" -> "Energy, unpacked."; "sleep" -> "Inside your night."; "recovery" -> "Your recovery."; else -> "Your effort." }, fontSize = 34.sp, fontWeight = FontWeight.Bold, lineHeight = 38.sp)
-                when (kind) {
+                Text(when (kind) { "resting" -> "Resting heart rate"; "hrv" -> "Heart rate variability"; "energy" -> "Total energy"; "hr" -> "Every heartbeat."; "steps" -> "Keep moving."; "calories" -> "Energy, unpacked."; "sleep" -> "Inside your night."; "recovery" -> "Your recovery."; else -> "Your effort." }, fontSize = 34.sp, fontWeight = FontWeight.Bold, lineHeight = 38.sp)
+                MetricNavigation(selectedDate,{selectedDate=it},range,{range=it})
+                DataFreshness(d,sync,kind)
+                if(range>1) TrendPlot(detailHistory,detailMetric(kind),range,false,{selectedDate=it;range=1},java.time.LocalDate.parse(selectedDate))
+                else when (kind) {
                     "steps", "calories" -> {
                         val steps = kind == "steps"; val color = if (steps) Lime else Orange
                         Text("Source: "+StepWindows.label(sync.stepSource)+" · via Health Connect",color=Fog,fontSize=12.sp)
@@ -133,6 +142,7 @@ private fun time(t: Long) = Instant.ofEpochMilli(t).atZone(ZoneId.systemDefault(
                             Text("Tap a bar to inspect its hour. Empty intervals mean no timed record, not zero. Step intervals longer than one hour are omitted here: distributing a cumulative daily total would invent an hourly pattern. The full daily count is still shown above.", color = Fog, fontSize = 11.sp)
                         }
                     }
+                    "resting", "hrv", "energy" -> { val metric=detailMetric(kind);InsightPanel { Caption(metric.title);Text(metric.format(d?.let(metric::value)),fontSize=32.sp);Text("Imported daily measurement",color=Fog) } }
                     "hr" -> { InsightPanel { Caption("Heart rate • tap or scrub"); InteractiveHeart(d) }; HeartPanel(d); InsightPanel { Caption("Resting heart rate & HRV"); Text("Resting HR: ${d?.restingHr?.roundToInt()?.let { "$it bpm" } ?: "Not shared"}"); Text("HRV: ${d?.hrv?.roundToInt()?.let { "$it ms RMSSD" } ?: "Not shared"}"); Text("Imported daily measurements. Availability depends on your device app.",color=Fog,fontSize=12.sp) }; Text("Chart values are five-minute averages; daily low/high use original imported samples. Long gaps are not interpolated.", color = Fog, fontSize = 12.sp) }
                     "sleep" -> { SleepPanel(d, need, false); InsightPanel { Caption("Stage-by-stage"); val spans = (d?.stages ?: "").split(';').mapNotNull { val p = it.split(','); if (p.size == 3) runCatching { SleepSpan(p[0].toLong(), p[1].toLong(), p[2].toInt()) }.getOrNull() else null }; if (spans.isEmpty()) Text("No sleep-stage records yet.", color = Fog); spans.forEach { s -> Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) { Text("${time(s.start)}–${time(s.end)}", color = Fog, fontSize = 12.sp); Text(when (s.stage) { 5 -> "Deep"; 4 -> "Light"; 6 -> "REM"; 1, 3, 7 -> "Awake"; 2 -> "Asleep"; else -> "Unknown" }, fontSize = 12.sp) } } } }
                     "recovery" -> { RecoveryPanel(d); InsightPanel { Caption("How this score is built"); Text("Resting HR: ${d?.restingHr?.roundToInt()?.toString() ?: "Not supplied"} · HRV: ${d?.hrv?.roundToInt()?.toString() ?: "Not supplied"}", color = Fog, fontSize = 12.sp); Text("40% sleep goal completion\n20% sleep efficiency\n40% overnight HR versus your baseline", lineHeight = 27.sp); Text("Requires 3 previous baseline nights. Missing stages or insufficient HR keep the score unavailable. HRV and Body Battery are not fabricated.", color = Fog, fontSize = 12.sp) } }

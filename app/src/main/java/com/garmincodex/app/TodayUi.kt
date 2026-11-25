@@ -65,7 +65,7 @@ private val Lavender=Color(0xFFC0AFF5)
 
     Column(modifier.fillMaxWidth().clip(RoundedCornerShape(24.dp)).background(palette.surface).clickable(role=Role.Button,onClick=onClick).padding(16.dp),verticalArrangement=Arrangement.spacedBy(8.dp),content=content)
 }
-@Composable internal fun TodaySnapshot(day:ConnectedDay?,sync:SyncState,goals:PersonalGoals,sleepNeed:Int,onDetail:(String)->Unit,onConnection:()->Unit,history:List<ConnectedDay> = emptyList()) {
+@Composable internal fun TodaySnapshot(day:ConnectedDay?,sync:SyncState,goals:PersonalGoals,sleepNeed:Int,onDetail:(String)->Unit,onConnection:()->Unit,history:List<ConnectedDay> = emptyList(),preferences:DashboardPreferences=DashboardPreferences()) {
     val palette = LocalPulseStyle.current
     val Lime = palette.primary
     val Orange = palette.warm
@@ -83,14 +83,5 @@ private val Lavender=Color(0xFFC0AFF5)
         }
         return
     }
-    val reveal=chartEntrance(day?.updatedAt ?: 0L)
-    Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically) {
-        Text("Daily activity",fontWeight=FontWeight.SemiBold,modifier=Modifier.weight(1f))
-        TextButton(onClick=onConnection){Text(StepWindows.label(sync.stepSource)+" ›",fontSize=10.sp)}
-    }
-    ActivityTiles(day,goals,reveal,onDetail,sync)
-    if(day?.steps==null || day.activeCalories==null) Text("Missing activity? Sync "+StepWindows.label(sync.stepSource)+" to Health Connect.",fontSize=11.sp,color=Soft,modifier=Modifier.clickable(onClick=onConnection))
-    SleepHero(day,sleepNeed){onDetail("sleep")}
-    VitalGrid(day,onDetail)
-    WeekActivity(history,day?.date ?: LocalDate.now().toString(),goals)
+    FavouriteCards(day,sync,goals,sleepNeed,onDetail,onConnection,history,preferences)
 }

@@ -60,6 +60,8 @@ private fun clock(t: Long?) = t?.let { Instant.ofEpochMilli(it).atZone(ZoneId.sy
     val Purple = palette.violet
     val Line = palette.line
 
+    var homeSection by rememberSaveable { mutableStateOf("Favourites") }
+    var editHome by rememberSaveable { mutableStateOf(false) }
     var expandedToday by rememberSaveable { mutableStateOf(false) }
     var journalRequest by rememberSaveable { mutableIntStateOf(0) }
     var journalDate by rememberSaveable { mutableStateOf(LocalDate.now().toString()) }
@@ -94,7 +96,7 @@ private fun clock(t: Long?) = t?.let { Instant.ofEpochMilli(it).atZone(ZoneId.sy
             if(sync.busy) LinearProgressIndicator(progress={sync.progress},modifier=Modifier.fillMaxWidth().height(2.dp),color=Blue,trackColor=Card)
         }
     }, snackbarHost={SnackbarHost(notices)}, bottomBar = {
-        if(page!=3 && page!=6) PulseDock(page) { target -> focusManager.clearFocus();if(page==target) { if(target==0){selected=LocalDate.now().toString();expandedToday=false};scope.launch{scrolls[target].animateScrollTo(0)} } else page=target }
+        if(page!=3 && page!=6) PulseDock(page) { target -> focusManager.clearFocus();if(page==target) { if(target==0){selected=LocalDate.now().toString();expandedToday=false;homeSection="Favourites"};scope.launch{scrolls[target].animateScrollTo(0)} } else page=target }
     }) { padding ->
         val pullState=androidx.compose.material3.pulltorefresh.rememberPullToRefreshState()
         androidx.compose.material3.pulltorefresh.PullToRefreshBox(isRefreshing=sync.busy,onRefresh={if(!sync.busy)onSync()},state=pullState,modifier=Modifier.padding(padding).fillMaxSize().testTag("refresh-surface"),indicator={
@@ -109,7 +111,14 @@ private fun clock(t: Long?) = t?.let { Instant.ofEpochMilli(it).atZone(ZoneId.sy
                 0 -> {
                     TodayDate(selected, { selected = it }, { journalDate=selected;journalRequest++;page=5 })
                     if(!expandedToday) {
-                        TodaySnapshot(day,sync,goals,needState,{detail=it},{page=6},history=days)
+                        HomeSections(homeSection,{homeSection=it},onEdit={editHome=true})
+                        when(homeSection) {
+                            "Favourites" -> TodaySnapshot(day,sync,goals,needState,{detail=it},{page=6},history=days,preferences=preferences)
+                            "Activity" -> { DataFreshness(day,sync,"activity");ActivityTiles(day,goals,chartEntrance(day?.updatedAt ?: 0L),{detail=it},sync);WeekActivity(days,selected,goals);TimelineCard(day){detail="sleep"};TrainingSummary(workouts) }
+                            "Sleep hub" -> SleepHub(day,days,selected,goals,needState,onGoals,sync,{detail="sleep"},{profile=true})
+                            "Vitals" -> { DataFreshness(day,sync,"health");VitalGrid(day){detail=it};BaselineCard(days) }
+                            "Weekly" -> WeeklyHub(days,workouts,goals,needState)
+                        }
                         HomeShortcuts(day,days,goals,workouts,selected,onFitness={page=2},onWorkouts={page=4},onJournal={journalDate=selected;journalRequest++;page=5})
                         TextButton(onClick={expandedToday=true},modifier=Modifier.fillMaxWidth()){Text("All details")}
                     } else {
@@ -211,7 +220,8 @@ private fun clock(t: Long?) = t?.let { Instant.ofEpochMilli(it).atZone(ZoneId.sy
     }
     }
     }
-    detail?.let { MetricDetails(it, day, goals, needState, maxState, restState, onGoals, sync, onConnect, onHealthSettings, onSourceApp, onSync) { detail = null } }
+    if(editHome) HomeEditor(preferences,onPreferences){editHome=false}
+    detail?.let { MetricDetails(it, day, goals, needState, maxState, restState, onGoals, sync, onConnect, onHealthSettings, onSourceApp, onSync,history=days,initialDate=selected) { detail = null } }
     goalEditor?.let { GoalEditor(it, goals, { goalEditor = null }, onGoals) }
     if (profile) ProfileDialog(needState, maxState, restState, { profile = false }) { n, m, r -> needState = n; maxState = m; restState = r; onProfile(n, m, r); profile = false }
     if (clear) AlertDialog(onDismissRequest = { clear = false }, title = { Text("Clear imported data?") }, text = { Text("Removes imported history and revokes Pulse’s Health Connect access. Source originals and separate BLE recordings are unchanged.") }, confirmButton = { TextButton(onClick = { onClear(); clear = false }) { Text("Clear & disconnect") } }, dismissButton = { TextButton(onClick = { clear = false }) { Text("Cancel") } })

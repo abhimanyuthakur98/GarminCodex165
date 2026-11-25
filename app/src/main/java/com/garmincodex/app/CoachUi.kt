@@ -36,37 +36,36 @@ import kotlin.math.roundToInt
         Text("Based on imported records. Missing coverage can affect comparisons.", color = Color.Gray, fontSize = 11.sp)
     }
 }
-@Composable internal fun SleepPlanner(days: List<ConnectedDay>, goals: PersonalGoals, need: Int, onGoals: (PersonalGoals) -> Unit) {
+@Composable internal fun SleepPlanner(days: List<ConnectedDay>, goals: PersonalGoals, need: Int, onGoals: (PersonalGoals) -> Unit, date:LocalDate=LocalDate.now()) {
     val palette = LocalPulseStyle.current
 
     var edit by remember { mutableStateOf(false) }
     var input by remember(goals.wakeMinute) { mutableStateOf("%02d:%02d".format(goals.wakeMinute / 60, goals.wakeMinute % 60)) }
     val parsed = DailyCoach.parseWake(input)
-    val shortage = DailyCoach.shortfall(days, LocalDate.now(), need)
+    val shortage = DailyCoach.shortfall(days, date, need)
     CoachCard("SLEEP PLANNER") {
         Text("Make room for rest.", fontSize = 24.sp, fontWeight = FontWeight.Bold)
         Text("Bedtime ${DailyCoach.bedtime(goals.wakeMinute, need)}  →  Wake ${LocalTime.of(goals.wakeMinute / 60, goals.wakeMinute % 60)}", fontSize = 20.sp, color = palette.violet)
         Text("Allows ${need / 60}h ${need % 60}m for your sleep goal. Plan extra time to wind down and fall asleep.", fontSize = 13.sp)
-        WeekSleepChart(days,LocalDate.now(),need)
+        WeekSleepChart(days,date,need)
         Text("${shortage.first / 60}h ${shortage.first % 60}m below goal · ${shortage.second}/7 recorded nights", color = Color.Gray, fontSize = 12.sp)
-        val consistency = days.firstOrNull { it.date == LocalDate.now().toString() }?.consistency
+        val consistency = days.firstOrNull { it.date == date.toString() }?.consistency
         Text("Wake consistency: ${consistency?.let { "$it%" } ?: "more nights needed"}", fontSize = 13.sp)
         if (edit) {
             OutlinedTextField(input, { input = it.take(5) }, label = { Text("Wake time (24-hour HH:mm)") }, modifier = Modifier.fillMaxWidth().testTag("wake-input"), keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text), singleLine = true, isError = parsed == null)
             Row { Button(enabled = parsed != null, onClick = { parsed?.let { onGoals(goals.copy(wakeMinute = it.hour * 60 + it.minute)) }; edit = false }) { Text("Save wake time") }; TextButton(onClick = { edit = false }) { Text("Cancel") } }
         } else TextButton(onClick = { edit = true }) { Text("Change wake time") }
-        ChartExplanation("Missing nights are excluded. This is a goal shortfall, not a clinical sleep-debt estimate. Planning only; no alarm is scheduled. Change your sleep goal in Connect → Your targets.")
+        ChartExplanation("Missing nights are excluded. This is a goal shortfall, not a clinical sleep-debt estimate. Planning only; no alarm is scheduled. Change your sleep goal in Settings → Sleep & heart-rate targets.")
     }
 }
-@Composable internal fun WeeklyReport(days: List<ConnectedDay>, need: Int) {
+@Composable internal fun WeeklyReport(days: List<ConnectedDay>, need: Int, end:LocalDate=LocalDate.now()) {
     val palette = LocalPulseStyle.current
     val Lime = palette.primary
 
-    val end = LocalDate.now()
     CoachCard("YOUR WEEKLY REPORT") {
         Text("Seven days in perspective.", fontSize = 24.sp, fontWeight = FontWeight.Bold)
         Text("${end.minusDays(7)} – ${end.minusDays(1)} vs the previous 7 days. Today is excluded.", fontSize = 12.sp, color = Color.Gray)
-        val metrics: List<Pair<String, (ConnectedDay) -> Double?>> = listOf("Sleep · min/night" to { it.asleep?.toDouble() }, "Steps · per day" to { it.steps?.toDouble() }, "Recovery · %" to { it.recovery?.toDouble() }, "Strain · /21" to { it.takeIf { d -> d.coveredMinutes > 0 }?.let { d -> Scores.strain(d.load) } })
+        val metrics: List<Pair<String, (ConnectedDay) -> Double?>> = listOf("Sleep · min/night" to { it.asleep?.toDouble() }, "Steps · per day" to { it.steps?.toDouble() }, "Active calories · kcal/day" to { it.activeCalories }, "Recovery · %" to { it.recovery?.toDouble() }, "Strain · /21" to { it.takeIf { d -> d.coveredMinutes > 0 }?.let { d -> Scores.strain(d.load) } })
         metrics.forEach { (label, value) ->
             val result = DailyCoach.weekly(days, end, value)
             Text(label, fontWeight = FontWeight.Bold)

@@ -3,15 +3,23 @@ package com.garmincodex.app
 import java.time.*
 import kotlin.math.*
 
-data class DashboardPreferences(val order: List<String> = CARDS, val hidden: Set<String> = emptySet(), val startPage: Int = 0) {
-    fun normalized() = copy(order = (order.filter { it in CARDS } + CARDS).distinct(), hidden = hidden.intersect(CARDS.toSet()), startPage = startPage.coerceIn(0, 5))
+data class DashboardPreferences(val order: List<String> = CARDS, val hidden: Set<String> = emptySet(), val startPage: Int = 0, val homeOrder:List<String> = HOME_CARDS, val homeHidden:Set<String> = emptySet()) {
+    fun normalized() = copy(order = (order.filter { it in CARDS } + CARDS).distinct(), hidden = hidden.intersect(CARDS.toSet()), startPage = startPage.coerceIn(0, 5), homeOrder=(homeOrder.filter{it in HOME_CARDS}+HOME_CARDS).distinct(),homeHidden=homeHidden.intersect(HOME_CARDS.toSet()))
     fun move(id: String, delta: Int): DashboardPreferences {
         val list = normalized().order.toMutableList(); val index = list.indexOf(id)
         if (index < 0 || index + delta !in list.indices) return this
         java.util.Collections.swap(list, index, index + delta)
         return copy(order = list)
     }
+    fun moveHome(id:String,delta:Int):DashboardPreferences {
+        val list=normalized().homeOrder.toMutableList();val index=list.indexOf(id)
+        if(index<0 || index+delta !in list.indices)return this
+        java.util.Collections.swap(list,index,index+delta);return copy(homeOrder=list)
+    }
     companion object {
+        val HOME_CARDS=listOf("activity","sleep","recovery","heart","resting","hrv","strain","energy","week")
+        val HOME_NAMES=listOf("Steps & calories","Sleep","Recovery","Heart rate","Resting HR","HRV","Cardio strain","Total energy","Weekly activity")
+        fun homeName(id:String)=HOME_NAMES[HOME_CARDS.indexOf(id)]
         val CARDS = listOf("briefing", "recovery", "activity", "timeline", "sleep", "heart", "fitness")
         val NAMES = listOf("Morning briefing", "Recovery", "Steps & calories", "Activity timeline", "Sleep", "Heart rate", "Fitness Age")
         fun name(id: String) = NAMES[CARDS.indexOf(id)]
