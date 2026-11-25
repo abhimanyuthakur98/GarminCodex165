@@ -109,9 +109,9 @@ private fun clock(t: Long?) = t?.let { Instant.ofEpochMilli(it).atZone(ZoneId.sy
             Column(pageMotion(page),verticalArrangement=Arrangement.spacedBy(if(page==0 && !expandedToday) 10.dp else 14.dp)) {
             when (page) {
                 0 -> {
-                    TodayDate(selected, { selected = it }, { journalDate=selected;journalRequest++;page=5 })
+                    TodayDate(selected, { selected = it }, { journalDate=selected;journalRequest++;page=5 }, if(!expandedToday && homeSection=="Favourites") ({editHome=true}) else null)
                     if(!expandedToday) {
-                        HomeSections(homeSection,{homeSection=it;scope.launch{scrolls[0].scrollTo(0)}},onEdit={editHome=true})
+                        HomeSections(homeSection,{homeSection=it;scope.launch{scrolls[0].scrollTo(0)}})
                         when(homeSection) {
                             "Favourites" -> TodaySnapshot(day,sync,goals,needState,{detail=it},{page=6},history=days,preferences=preferences)
                             "Activity" -> { DataFreshness(day,sync,"activity");ActivityTiles(day,goals,chartEntrance(day?.updatedAt ?: 0L),{detail=it},sync);WeekActivity(days,selected,goals);TimelineCard(day){detail="sleep"};TrainingSummary(workouts) }

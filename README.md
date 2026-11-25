@@ -1,3 +1,11 @@
+## 0.21.0 — clearer Today and weekly takeaways
+
+Today puts activity and sleep higher with a compact edit action, shorter source/import control and tighter sleep card. Existing favourites, colour choices and Garmin activity preferences are preserved.
+
+Weekly reports lead with step, active-calorie and sleep goal days, followed by compact daily averages. Goal strips distinguish met, below-goal and missing records. Complete weeks show absolute changes; incomplete coverage does not claim improvement. Sleep uses hours/minutes. Recovery and strain remain available under an expandable section. Today is excluded, duplicate dates count once, and goals use the current saved targets.
+
+Same application ID and signing identity as 0.20.0; install as an update.
+
 ## 0.20.0 — favourites, sleep and weekly insights
 
 Home now has saved, reorderable favourites plus Activity, Sleep hub, Vitals and Weekly views. Hold a favourite handle to drag it, or use the accessible move buttons. Hiding a favourite does not remove its category. Settings → Layout also opens the favourites editor.

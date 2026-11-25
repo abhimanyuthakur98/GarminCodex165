@@ -40,7 +40,7 @@ private val Lavender=Color(0xFFC0AFF5)
         if(onBack==null) IconButton(onClick=onSettings,modifier=Modifier.background(palette.surface,RoundedCornerShape(50.dp)).semantics{contentDescription="Open Settings"}) { DockIcon(3,palette.primary) }
     }
 }
-@Composable internal fun TodayDate(date:String,onDate:(String)->Unit,onJournal:()->Unit) {
+@Composable internal fun TodayDate(date:String,onDate:(String)->Unit,onJournal:()->Unit,onEdit:(()->Unit)?=null) {
     val palette = LocalPulseStyle.current
     val Soft = palette.muted
 
@@ -51,6 +51,7 @@ private val Lavender=Color(0xFFC0AFF5)
             Text(if(d==LocalDate.now()) "Today" else d.format(DateTimeFormatter.ofPattern("EEEE")),fontSize=24.sp,fontWeight=FontWeight.Bold)
             Text(d.format(DateTimeFormatter.ofPattern("d MMM yyyy"))+"  ▾",fontSize=11.sp,color=Soft)
         }
+        if(onEdit!=null) TextButton(onClick=onEdit){Text("Edit home",fontSize=11.sp)}
         JournalAction(false,onJournal)
     }
     QuickWeek(date,onDate)

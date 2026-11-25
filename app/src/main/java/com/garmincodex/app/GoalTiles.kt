@@ -74,7 +74,7 @@ import kotlin.math.roundToInt
     }
 }
 
-@Composable internal fun SleepHero(day:ConnectedDay?,need:Int,onClick:()->Unit) {
+@Composable internal fun SleepHero(day:ConnectedDay?,need:Int,compact:Boolean=false,onClick:()->Unit) {
     val colour=LocalPulseStyle.current.violet
     val ink=colour
     var replay by remember(day?.date){mutableIntStateOf(0)}
@@ -84,13 +84,13 @@ import kotlin.math.roundToInt
     val reveal=chartEntrance(day?.updatedAt ?: 0L)
     fun stamp(t:Long?)=t?.let{Instant.ofEpochMilli(it).atZone(ZoneId.systemDefault()).format(DateTimeFormatter.ofPattern("HH:mm"))} ?: "—"
     Box(Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(LocalPulseStyle.current.surface)) {
-        Column(Modifier.padding(16.dp),verticalArrangement=Arrangement.spacedBy(8.dp)) {
+        Column(Modifier.padding(if(compact)14.dp else 16.dp),verticalArrangement=Arrangement.spacedBy(if(compact)4.dp else 8.dp)) {
             Column(Modifier.fillMaxWidth().clickable(role=Role.Button,onClickLabel="Sleep details",onClick=onClick),verticalArrangement=Arrangement.spacedBy(8.dp)) {
             Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween,verticalAlignment=Alignment.CenterVertically) {
                 Row(horizontalArrangement=Arrangement.spacedBy(8.dp)){Icon(painterResource(R.drawable.symbol_bedtime),null,tint=ink,modifier=Modifier.size(22.dp));Text("Sleep",color=Color.White,fontWeight=FontWeight.SemiBold)}
                 Text("Goal ${need/60}h ${need%60}m",fontSize=11.sp,color=ink)
             }
-            Text(day?.asleep?.let{"${it/60}h ${it%60}m"} ?: "No sleep total",fontSize=27.sp,fontWeight=FontWeight.Bold,color=Color.White)
+            Text(day?.asleep?.let{"${it/60}h ${it%60}m"} ?: "No sleep total",fontSize=(if(compact)23 else 27).sp,fontWeight=FontWeight.Bold,color=Color.White)
             if(spans.isNotEmpty() && day?.sleepStart!=null && day.sleepEnd!=null && day.sleepEnd>day.sleepStart) {
                 Canvas(Modifier.fillMaxWidth().height(32.dp).semantics{contentDescription="Sleep timeline ${stamp(day.sleepStart)} to ${stamp(day.sleepEnd)}. Tap for stage details."}) {
                     val start=day.sleepStart;val duration=(day.sleepEnd-start).toFloat()

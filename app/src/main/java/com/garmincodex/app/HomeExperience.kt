@@ -22,14 +22,10 @@ import java.time.*
 import java.time.format.DateTimeFormatter
 import kotlin.math.roundToInt
 
-@Composable internal fun HomeSections(selected:String,onSelect:(String)->Unit,onEdit:()->Unit) {
+@Composable internal fun HomeSections(selected:String,onSelect:(String)->Unit) {
     Column(Modifier.testTag("home-sections")) {
     Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),horizontalArrangement=Arrangement.spacedBy(6.dp)) {
         listOf("Favourites","Activity","Sleep hub","Vitals","Weekly").forEach { name -> FilterChip(selected==name,{onSelect(name)},label={Text(name,fontSize=12.sp)}) }
-    }
-    if(selected=="Favourites") Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically) {
-        Text("Your daily overview",modifier=Modifier.weight(1f),color=LocalPulseStyle.current.muted,fontSize=12.sp)
-        TextButton(onClick=onEdit){Text("Edit home")}
     }
     }
 }
@@ -63,15 +59,11 @@ internal fun metricSource(day:ConnectedDay?,kind:String):String = when(kind) {
         if(id in setOf("activity","sleep","week")) {
             when(id) {
                 "activity" -> {
-                    Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically) {
-                        Text("Daily activity",fontWeight=FontWeight.SemiBold,modifier=Modifier.weight(1f))
-                        TextButton(onClick=onConnection){Text(StepWindows.label(sync.stepSource)+" ›",fontSize=10.sp)}
-                    }
+                    Text("Daily activity",fontWeight=FontWeight.SemiBold)
                     ActivityTiles(day,goals,chartEntrance(day?.updatedAt ?: 0L),onDetail,sync)
-                    DataFreshness(day,sync,"activity")
-                    if(day?.steps==null || day.activeCalories==null) TextButton(onClick=onConnection){Text("Missing activity? Review source sharing",fontSize=11.sp)}
+                    ActivityImportStatus(day,sync,onConnection)
                 }
-                "sleep" -> SleepHero(day,need){onDetail("sleep")}
+                "sleep" -> SleepHero(day,need,compact=true){onDetail("sleep")}
                 "week" -> WeekActivity(history,day?.date ?: LocalDate.now().toString(),goals)
             }
             position++
@@ -132,7 +124,7 @@ internal fun metricSource(day:ConnectedDay?,kind:String):String = when(kind) {
     Text("Your sleep",fontSize=24.sp,fontWeight=FontWeight.Bold)
     Text("Night ending on $selected",fontSize=12.sp,color=LocalPulseStyle.current.muted)
     DataFreshness(day,sync,"sleep")
-    SleepHero(day,need,onDetail)
+    SleepHero(day,need,onClick=onDetail)
     SleepPlanner(days,goals,need,onGoals,LocalDate.parse(selected))
     OutlinedButton(onClick=onTarget){Text("Adjust sleep goal")}
     val nights=days.filter{it.date<=selected && it.date>=LocalDate.parse(selected).minusDays(6).toString()}.mapNotNull{it.asleep}
@@ -147,12 +139,9 @@ internal fun metricSource(day:ConnectedDay?,kind:String):String = when(kind) {
     var offset by rememberSaveable { mutableIntStateOf(0) }
     val end=LocalDate.now().minusWeeks(offset.toLong())
     Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween){TextButton(onClick={offset++}){Text("Previous week")};TextButton(enabled=offset>0,onClick={offset--}){Text("Next week")}}
-    WeeklyReport(days,need,end)
-    val recent=days.distinctBy{it.date}.filter{it.date>=end.minusDays(7).toString() && it.date<end.toString()}
+    WeeklyReport(days,need,end,goals)
     val sessions=workouts.filter{val date=Instant.ofEpochMilli(it.start).atZone(ZoneId.systemDefault()).toLocalDate();date>=end.minusDays(7) && date<end}
     JournalCard("GOALS & TRAINING") {
-        val recorded=recent.filter{it.steps!=null}
-        Text("Step goal: ${recorded.count{it.steps!!>=goals.steps}}/${recorded.size} recorded days",fontSize=17.sp)
         Text("${sessions.size} workout records · ${sessions.sumOf{(it.end-it.start).coerceAtLeast(0)/60000}} minutes elapsed",fontSize=15.sp)
         Text("FIT and Health Connect records are listed separately; duplicate sessions can affect this workout summary.",fontSize=11.sp,color=LocalPulseStyle.current.muted)
     }
@@ -168,4 +157,15 @@ internal fun detailMetric(kind:String):TrendMetric=when(kind){"steps"->TrendMetr
         TextButton(enabled=selected<LocalDate.now(),onClick={onDate(minOf(selected.plusDays(range.toLong()),LocalDate.now()).toString())},modifier=Modifier.semantics{contentDescription="Next metric period"}){Text("›")}
     }
     Row(horizontalArrangement=Arrangement.spacedBy(8.dp)) {listOf("Day" to 1,"Week" to 7,"Month" to 30).forEach{(title,n)->FilterChip(range==n,{onRange(n)},label={Text(title)})}}
+}
+
+@Composable internal fun ActivityImportStatus(day:ConnectedDay?,sync:SyncState,onConnection:()->Unit) {
+    val p=LocalPulseStyle.current
+    val missing=day?.steps==null || day.activeCalories==null
+    TextButton(onClick=onConnection,contentPadding=PaddingValues(horizontal=0.dp,vertical=4.dp)) {
+        Column(Modifier.fillMaxWidth(),verticalArrangement=Arrangement.spacedBy(2.dp)) {
+            Text(if(day==null || day.activitySource=="legacy") "Activity source not confirmed ›" else StepWindows.label(day.activitySource)+" · via Health Connect ›",fontSize=11.sp,color=p.muted)
+            Text(if(sync.busy) "Refreshing · showing saved records" else if(missing) "Missing activity · review sharing" else importStamp(day),fontSize=10.sp,color=if(missing)p.warm else p.muted)
+        }
+    }
 }

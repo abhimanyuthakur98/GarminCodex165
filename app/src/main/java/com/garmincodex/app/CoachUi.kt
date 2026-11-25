@@ -7,6 +7,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.*
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -59,23 +60,52 @@ import kotlin.math.roundToInt
         ChartExplanation("Missing nights are excluded. This is a goal shortfall, not a clinical sleep-debt estimate. Planning only; no alarm is scheduled. Change your sleep goal in Settings → Sleep & heart-rate targets.")
     }
 }
-@Composable internal fun WeeklyReport(days: List<ConnectedDay>, need: Int, end:LocalDate=LocalDate.now()) {
-    val palette = LocalPulseStyle.current
-    val Lime = palette.primary
-
+@Composable internal fun WeeklyReport(days: List<ConnectedDay>, need: Int, end:LocalDate=LocalDate.now(), goals:PersonalGoals=PersonalGoals()) {
+    val p=LocalPulseStyle.current
+    val goalsWeek=weeklyGoals(days,end,goals,need)
     CoachCard("YOUR WEEKLY REPORT") {
-        Text("Seven days in perspective.", fontSize = 24.sp, fontWeight = FontWeight.Bold)
-        Text("${end.minusDays(7)} – ${end.minusDays(1)} vs the previous 7 days. Today is excluded.", fontSize = 12.sp, color = Color.Gray)
-        val metrics: List<Pair<String, (ConnectedDay) -> Double?>> = listOf("Sleep · min/night" to { it.asleep?.toDouble() }, "Steps · per day" to { it.steps?.toDouble() }, "Active calories · kcal/day" to { it.activeCalories }, "Recovery · %" to { it.recovery?.toDouble() }, "Strain · /21" to { it.takeIf { d -> d.coveredMinutes > 0 }?.let { d -> Scores.strain(d.load) } })
-        metrics.forEach { (label, value) ->
-            val result = DailyCoach.weekly(days, end, value)
-            Text(label, fontWeight = FontWeight.Bold)
-            MetricBars(listOf(Triple("This week",result.current,result.current?.let{String.format(java.util.Locale.US,"%.1f",it)} ?: "No records"),Triple("Previous",result.previous,result.previous?.let{String.format(java.util.Locale.US,"%.1f",it)} ?: "No records")))
-            Text("${result.currentDays}/7 days · previous ${result.previousDays}/7 days" + (if (result.currentDays == 7 && result.previousDays == 7) " · ${String.format(java.util.Locale.US, "%+.1f", result.current!! - result.previous!!)} change" else " · comparison waits for complete weeks"), color = Color.Gray, fontSize = 11.sp)
-            HorizontalDivider(color = Color.White.copy(alpha = .08f))
+        Text("Your week at a glance",fontSize=22.sp,fontWeight=FontWeight.Bold)
+        val fmt=DateTimeFormatter.ofPattern("d MMM")
+        Text("${end.minusDays(7).format(fmt)} – ${end.minusDays(1).format(fmt)} · completed days",fontSize=12.sp,color=p.muted)
+        goalsWeek.forEach { goal ->
+            Column(verticalArrangement=Arrangement.spacedBy(5.dp)) {
+                Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween) {
+                    Text(goal.label,fontSize=13.sp,fontWeight=FontWeight.SemiBold)
+                    Text(goal.summary,fontSize=11.sp,color=p.muted)
+                }
+                Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(5.dp)) {
+                    goal.values.forEachIndexed { index,value ->
+                        val hit=value!=null && value>=goal.goal
+                        val date=end.minusDays(7-index.toLong())
+                        Box(Modifier.weight(1f).height(8.dp).background(if(hit)p.primary else if(value!=null)p.muted.copy(alpha=.4f) else p.muted.copy(alpha=.1f),RoundedCornerShape(4.dp)).semantics{contentDescription="${goal.label} $date: ${if(value==null) "no record" else if(hit) "goal met" else "below goal"}"})
+                    }
+                }
+            }
         }
-        val nights = days.distinctBy { it.date }.filter { it.date >= end.minusDays(7).toString() && it.date < end.toString() }.mapNotNull { it.asleep }
-        Text("Sleep goal met on ${nights.count { it >= need }}/${nights.size} recorded nights.", color = Lime, fontSize = 13.sp)
+        Text("Bright: goal met · grey: below goal · faint: missing",fontSize=10.sp,color=p.muted)
+        HorizontalDivider(color=p.muted.copy(alpha=.15f))
+        Text("Daily averages",fontSize=16.sp,fontWeight=FontWeight.SemiBold)
+        val metrics:List<Triple<String,String,(ConnectedDay)->Double?>> = listOf(
+            Triple("Steps","steps",{it.steps?.toDouble()}), Triple("Active calories","calories",{it.activeCalories}), Triple("Sleep","sleep",{it.asleep?.toDouble()}))
+        metrics.forEach { (label,kind,value) -> WeeklyComparison(label,kind,DailyCoach.weekly(days,end,value)) }
+        var more by remember { mutableStateOf(false) }
+        TextButton(onClick={more=!more}){Text(if(more)"Fewer metrics" else "Recovery & strain")}
+        if(more) {
+            WeeklyComparison("Recovery · Pulse estimate","recovery",DailyCoach.weekly(days,end){it.recovery?.toDouble()})
+            WeeklyComparison("Strain · Pulse estimate","strain",DailyCoach.weekly(days,end){it.takeIf{d->d.coveredMinutes>0}?.let{d->Scores.strain(d.load)}})
+        }
+        Text("Missing days are excluded from averages. Goal counts use your current targets. Comparisons require 7 recorded days in each week.",fontSize=11.sp,color=p.muted)
+    }
+}
+@Composable private fun WeeklyComparison(label:String,kind:String,result:ReportValue) {
+    val p=LocalPulseStyle.current
+    Column(Modifier.fillMaxWidth(),verticalArrangement=Arrangement.spacedBy(3.dp)) {
+        Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween) {
+            Text(label,fontSize=13.sp)
+            Text(weeklyValue(kind,result.current)+(if(kind=="calories" && result.current!=null)" kcal" else if(kind=="recovery" && result.current!=null)"%" else ""),fontSize=18.sp,fontWeight=FontWeight.Bold,color=p.primary)
+        }
+        Text(weeklyChange(result,kind),fontSize=12.sp,color=p.muted)
+        Text("${result.currentDays}/7 days · previous ${weeklyValue(kind,result.previous)} (${result.previousDays}/7 days)",fontSize=10.sp,color=p.muted)
     }
 }
 @Composable internal fun DataStatusCard(day: ConnectedDay?, sync: SyncState, onPermissions: () -> Unit, onSettings: () -> Unit, days: List<ConnectedDay> = emptyList()) {
