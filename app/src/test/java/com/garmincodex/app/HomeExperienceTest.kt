@@ -67,6 +67,7 @@ class HomeExperienceTest {
         compose.onNodeWithText("Your sleep").assertIsDisplayed()
         compose.onNodeWithText("Change wake time").performScrollTo().assertIsDisplayed()
         compose.onRoot().captureRoboImage("build/screenshots/sleep-hub.png")
+        compose.onNodeWithTag("home-sections").performScrollTo()
         compose.onNodeWithText("Weekly").performScrollTo().performClick()
         compose.onNodeWithText("YOUR WEEKLY REPORT").assertIsDisplayed()
         compose.onRoot().captureRoboImage("build/screenshots/weekly-hub.png")
