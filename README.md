@@ -1,3 +1,11 @@
+## 0.20.0 — favourites, sleep and weekly insights
+
+Home now has saved, reorderable favourites plus Activity, Sleep hub, Vitals and Weekly views. Hold a favourite handle to drag it, or use the accessible move buttons. Hiding a favourite does not remove its category. Settings → Layout also opens the favourites editor.
+
+Metric details share Day/Week/Month controls and historical navigation; Month shows a rolling 30-day window. Missing dates stay empty. Sleep combines the stage timeline, bedtime plan, wake-time consistency and recorded-night goal summary. Weekly reports compare completed days with the preceding week and include goal progress and workout records.
+
+Activity details identify the imported source; other measurements identify Health Connect, and derived recovery/strain identify Pulse estimates. Import time is separate from the last heart-rate sample time. Garmin activity preference and the existing package/signing identity are preserved.
+
 ## 0.19.0 — daily overview and Garmin activity
 
 Today now combines compact step/calorie cards, sleep stages and a six-metric health grid with direct detail links. Trends adds completed-day averages; Workouts adds a seven-day summary; Settings separates connections, appearance and layout. The shared card system uses quieter slate surfaces, consistent spacing and readable metric typography.

@@ -22,6 +22,18 @@ import java.time.LocalDate
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 class HomeExperienceTest {
     @get:Rule val compose=createComposeRule()
+    @Test fun hidingSleepOnlyRemovesItsFavouriteNotTheSleepHub() {
+        var prefs by mutableStateOf(DashboardPreferences())
+        val day=previewDay(LocalDate.now().toString())
+        compose.setContent{PulseTheme{PulseDashboard(listOf(day),SyncState(lastSync=1),DashboardState(),"",null,480,190,55,{},{},{},{},{},{_,_,_->},{},{},{},preferences=prefs,onPreferences={prefs=it})}}
+        compose.onNodeWithText("Edit home").performClick()
+        compose.onNodeWithContentDescription("Pin Sleep").performClick()
+        compose.onNodeWithText("Done").performClick()
+        compose.onNodeWithText("Sleep").assertDoesNotExist()
+        compose.onNodeWithText("Sleep hub").performClick()
+        compose.onNodeWithText("Your sleep").assertIsDisplayed()
+        compose.onNodeWithText("7h 55m").assertExists()
+    }
     @Test fun favouritesCanBeHiddenReorderedAndPersisted() {
         var prefs by mutableStateOf(DashboardPreferences())
         compose.setContent{PulseTheme{HomeEditor(prefs,{prefs=it}){}}}
