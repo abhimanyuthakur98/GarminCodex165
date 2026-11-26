@@ -24,6 +24,10 @@ class VisualRefreshTest {
         val days=(0L..28L).map { previewDay(today.minusDays(it).toString()).copy(activitySource=ActivitySource.GARMIN,updatedAt=now) }
         val workout=Workout("visual","FIT","RUNNING","Morning run",now-3600000,now-1800000,"",250.0,distanceMeters=5000.0,timerSeconds=1800.0)
         compose.setContent { PulseTheme { PulseDashboard(days,SyncState(lastSync=now,granted=HealthConnectSync.READ_PERMISSIONS),DashboardState(),"",null,480,190,55,{},{},{},{},{},{_,_,_->},{},{},{},goals=PersonalGoals(age=30),workouts=listOf(workout)) } }
+        compose.onNodeWithContentDescription("Edit home").assertIsDisplayed()
+        compose.onNodeWithContentDescription("Journal").assertIsDisplayed()
+        compose.onNodeWithText("Edit home").assertDoesNotExist()
+        compose.onNodeWithText("Journal").assertDoesNotExist()
         compose.onNodeWithTag("goal-Steps").assertIsDisplayed()
         compose.onNodeWithTag("goal-Calories").assertIsDisplayed()
         compose.onRoot().captureRoboImage("build/screenshots/overhaul-home.png")

@@ -51,7 +51,7 @@ private val Lavender=Color(0xFFC0AFF5)
             Text(if(d==LocalDate.now()) "Today" else d.format(DateTimeFormatter.ofPattern("EEEE")),fontSize=30.sp,fontWeight=FontWeight.SemiBold,letterSpacing=(-1).sp)
             Text(d.format(DateTimeFormatter.ofPattern("d MMM yyyy"))+"  ▾",fontSize=11.sp,color=Soft)
         }
-        if(onEdit!=null) TextButton(onClick=onEdit){Text("Edit home",fontSize=11.sp)}
+        if(onEdit!=null) IconButton(onClick=onEdit,modifier=Modifier.size(48.dp)){Icon(painterResource(R.drawable.symbol_edit),contentDescription="Edit home",tint=palette.primary,modifier=Modifier.size(23.dp))}
         JournalAction(false,onJournal)
     }
     if(calendar) QuickWeek(date,onDate)

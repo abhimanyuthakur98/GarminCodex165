@@ -48,7 +48,7 @@ internal fun calorieTileValue(day:ConnectedDay?):CalorieTileValue {
     val complete=value!=null && goal!=null && goal>0 && value>=goal
     var replay by remember(date){mutableIntStateOf(0)}
     val numberHeight=with(androidx.compose.ui.platform.LocalDensity.current){44.sp.toDp()}
-    Box(modifier.testTag("card-$label").clip(RoundedCornerShape(24.dp)).background(Brush.linearGradient(listOf(ink.copy(alpha=.25f).compositeOver(LocalPulseStyle.current.surface),ink.copy(alpha=.07f).compositeOver(LocalPulseStyle.current.surface)))).border(1.dp,ink.copy(alpha=.3f),RoundedCornerShape(24.dp))) {
+    Box(modifier.testTag("card-$label").clip(RoundedCornerShape(24.dp)).background(Brush.linearGradient(listOf(ink.copy(alpha=.32f).compositeOver(LocalPulseStyle.current.surface),ink.copy(alpha=.12f).compositeOver(LocalPulseStyle.current.surface)))).border(1.dp,ink.copy(alpha=.42f),RoundedCornerShape(24.dp))) {
         Column(Modifier.fillMaxWidth().padding(14.dp),verticalArrangement=Arrangement.spacedBy(8.dp)) {
             Column(Modifier.fillMaxWidth().testTag(tag).clickable(role=Role.Button,onClick=onClick),verticalArrangement=Arrangement.spacedBy(8.dp)) {
                 Row(verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(6.dp)) {
@@ -89,7 +89,7 @@ internal fun calorieTileValue(day:ConnectedDay?):CalorieTileValue {
     val colours=listOf(Color(0xFF8F75E8),colour,LocalPulseStyle.current.secondary,LocalPulseStyle.current.warm)
     val reveal=chartEntrance(day?.date ?: "")
     fun stamp(t:Long?)=t?.let{Instant.ofEpochMilli(it).atZone(ZoneId.systemDefault()).format(DateTimeFormatter.ofPattern("HH:mm"))} ?: "—"
-    Box(Modifier.fillMaxWidth().clip(RoundedCornerShape(24.dp)).background(Brush.verticalGradient(listOf(ink.copy(alpha=.18f).compositeOver(LocalPulseStyle.current.surface),ink.copy(alpha=.04f).compositeOver(LocalPulseStyle.current.surface)))).border(1.dp,ink.copy(alpha=.22f),RoundedCornerShape(24.dp))) {
+    Box(Modifier.fillMaxWidth().clip(RoundedCornerShape(24.dp)).background(Brush.verticalGradient(listOf(ink.copy(alpha=.26f).compositeOver(LocalPulseStyle.current.surface),ink.copy(alpha=.10f).compositeOver(LocalPulseStyle.current.surface)))).border(1.dp,ink.copy(alpha=.34f),RoundedCornerShape(24.dp))) {
         Column(Modifier.padding(if(compact)14.dp else 16.dp),verticalArrangement=Arrangement.spacedBy(if(compact)4.dp else 8.dp)) {
             Column(Modifier.fillMaxWidth().clickable(role=Role.Button,onClickLabel="Sleep details",onClick=onClick),verticalArrangement=Arrangement.spacedBy(if(compact)4.dp else 8.dp)) {
             Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween,verticalAlignment=Alignment.CenterVertically) {

@@ -43,7 +43,7 @@ class TodayUiTest {
         compose.onNodeWithContentDescription("Next day").assertIsNotEnabled()
         compose.onNodeWithContentDescription("Previous day").performClick()
         compose.onNodeWithContentDescription("Next day").assertIsEnabled()
-        compose.onNodeWithText("Journal").performClick()
+        compose.onNodeWithContentDescription("Journal").performClick()
         compose.onNodeWithText(yesterday).performScrollTo().assertIsDisplayed()
     }
     @Test fun emptySnapshotOffersConnectionWithoutFakeMetrics() {

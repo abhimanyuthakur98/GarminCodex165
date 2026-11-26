@@ -7,7 +7,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.*
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -17,7 +17,7 @@ import kotlin.math.roundToInt
 
 @Composable internal fun OverviewStat(label:String,value:String,caption:String,modifier:Modifier=Modifier,onClick:(()->Unit)?=null) {
     val p=LocalPulseStyle.current
-    Column(modifier.background(p.surface,RoundedCornerShape(22.dp)).border(1.dp,Color.White.copy(alpha=.045f),RoundedCornerShape(22.dp)).then(if(onClick!=null)Modifier.clickable(role=Role.Button,onClick=onClick) else Modifier).padding(14.dp),verticalArrangement=Arrangement.spacedBy(4.dp)) {
+    Column(modifier.background(Brush.verticalGradient(listOf(p.primary.copy(alpha=.10f).compositeOver(p.surface),Color.White.copy(alpha=.035f).compositeOver(p.surface))),RoundedCornerShape(22.dp)).border(1.dp,p.primary.copy(alpha=.18f),RoundedCornerShape(22.dp)).then(if(onClick!=null)Modifier.clickable(role=Role.Button,onClick=onClick) else Modifier).padding(14.dp),verticalArrangement=Arrangement.spacedBy(4.dp)) {
         Text(label,color=p.muted,fontSize=12.sp)
         androidx.compose.foundation.text.BasicText(value,maxLines=1,autoSize=androidx.compose.foundation.text.TextAutoSize.StepBased(18.sp,28.sp),style=androidx.compose.ui.text.TextStyle(color=Color.White,fontWeight=FontWeight.Medium,letterSpacing=(-.7).sp))
         Text(caption,color=p.muted,fontSize=10.sp)

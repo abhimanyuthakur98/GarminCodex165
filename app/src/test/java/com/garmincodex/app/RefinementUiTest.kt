@@ -32,10 +32,10 @@ class RefinementUiTest {
  }
  @Test fun explicitJournalOpenUsesSelectedDayEvenAfterTabRestoration(){
   app();val today=LocalDate.now()
-  compose.onNodeWithText("Journal").performClick();compose.onNodeWithText("Previous day").performScrollTo().performClick()
+  compose.onNodeWithContentDescription("Journal").performClick();compose.onNodeWithText("Previous day").performScrollTo().performClick()
   compose.onNodeWithText(today.minusDays(1).toString()).assertIsDisplayed()
   compose.runOnIdle{back.onBackPressed()}
-  compose.onNodeWithText("Journal").performClick();compose.onNodeWithText(today.toString()).assertIsDisplayed()
+  compose.onNodeWithContentDescription("Journal").performClick();compose.onNodeWithText(today.toString()).assertIsDisplayed()
  }
  @Test fun reselectTodayReturnsFromHistoryToCurrentDay(){
   app();val today=LocalDate.now()

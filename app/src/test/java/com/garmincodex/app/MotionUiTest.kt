@@ -55,7 +55,7 @@ class MotionUiTest {
             JournalAction(false){opened=true}
             androidx.compose.material3.TextButton({}){androidx.compose.material3.Text("SYNC")}
         } } }
-        compose.onNodeWithText("Journal").assertIsDisplayed().performClick()
+        compose.onNodeWithContentDescription("Journal").assertIsDisplayed().performClick()
         compose.runOnIdle{assertTrue(opened)}
         compose.onRoot().captureRoboImage("build/screenshots/journal-header-320dp.png")
     }

@@ -24,9 +24,8 @@ import androidx.compose.ui.text.font.FontWeight
 @Composable internal fun JournalAction(selected:Boolean,onClick:()->Unit) {
     val palette = LocalPulseStyle.current
 
-    TextButton(onClick=onClick,contentPadding=PaddingValues(horizontal=8.dp),modifier=Modifier.heightIn(min=48.dp)) {
-        Icon(androidx.compose.ui.res.painterResource(R.drawable.symbol_book),null,tint=palette.muted,modifier=Modifier.size(16.dp))
-        Spacer(Modifier.width(5.dp));Text("Journal",fontSize=11.sp,color=palette.muted,maxLines=1)
+    IconButton(onClick=onClick,modifier=Modifier.size(48.dp)) {
+        Icon(androidx.compose.ui.res.painterResource(R.drawable.symbol_book),contentDescription="Journal",tint=palette.muted,modifier=Modifier.size(23.dp))
     }
 }
 

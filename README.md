@@ -1,6 +1,6 @@
 ## 0.26.0 — colourful cards and icon categories
 
-Home categories use five accessible icon tabs. Activity cards share equal dimensions, stronger accent gradients and readable goal states; sleep gains a richer violet tint. Calories prefer recorded active energy, then show explicitly labelled total energy when active energy is unavailable. Total energy never advances or celebrates the active-calorie goal. Missing data still links to sharing and permission diagnostics. Garmin source filtering is preserved.
+Home categories use five accessible icon tabs; Edit home and Journal use labelled icon buttons. Summary cards have brighter surfaces and accent borders to separate them from the background. Activity cards share equal dimensions, stronger accent gradients and readable goal states; sleep gains a richer violet tint. Calories prefer recorded active energy, then show explicitly labelled total energy when active energy is unavailable. Total energy never advances or celebrates the active-calorie goal. Missing data still links to sharing and permission diagnostics. Garmin source filtering is preserved.
 
 Same package and signing identity as 0.25.0; install as an update.
 
