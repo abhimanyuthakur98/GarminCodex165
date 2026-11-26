@@ -1,3 +1,9 @@
+## 0.26.0 — colourful cards and icon categories
+
+Home categories use five accessible icon tabs. Activity cards share equal dimensions, stronger accent gradients and readable goal states; sleep gains a richer violet tint. Calories prefer recorded active energy, then show explicitly labelled total energy when active energy is unavailable. Total energy never advances or celebrates the active-calorie goal. Missing data still links to sharing and permission diagnostics. Garmin source filtering is preserved.
+
+Same package and signing identity as 0.25.0; install as an update.
+
 ## 0.25.0 — visual overhaul
 
 Home now leads with larger white activity totals on softly tinted cards, paired steps and calories, and a compact sleep timeline. The calendar opens from the date, leaving more room for stats. Navigation uses a compact icon dock and consistent underlined section tabs. Neutral near-black surfaces and restrained accent colours retain every personal colour option.

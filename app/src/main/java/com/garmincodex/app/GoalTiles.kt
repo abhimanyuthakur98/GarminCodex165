@@ -36,26 +36,36 @@ import kotlin.math.roundToInt
     }
 }
 
-@Composable private fun GoalTile(label:String,value:Double?,goal:Int,unit:String,colour:Color,icon:Int,date:String,tag:String,reveal:Float,modifier:Modifier,onClick:()->Unit,footer:@Composable ColumnScope.()->Unit={}) {
+/** Total energy is a labelled fallback, never progress toward an active-energy goal. */
+internal data class CalorieTileValue(val value:Double?,val isActive:Boolean)
+internal fun calorieTileValue(day:ConnectedDay?):CalorieTileValue {
+    val active=day?.activeCalories?.takeIf{it.isFinite() && it>=0}
+    return if(active!=null) CalorieTileValue(active,true) else CalorieTileValue(day?.calories?.takeIf{it.isFinite() && it>=0},false)
+}
+
+@Composable private fun GoalTile(label:String,value:Double?,goal:Int?,unit:String,colour:Color,icon:Int,date:String,tag:String,reveal:Float,modifier:Modifier,onClick:()->Unit,unavailable:String="No record · view details") {
     val ink=colour
-    val complete=value!=null && value>=goal && goal>0
+    val complete=value!=null && goal!=null && goal>0 && value>=goal
     var replay by remember(date){mutableIntStateOf(0)}
-    Box(modifier.clip(RoundedCornerShape(24.dp)).background(Brush.verticalGradient(listOf(ink.copy(alpha=.09f).compositeOver(LocalPulseStyle.current.surface),LocalPulseStyle.current.surface))).border(1.dp,ink.copy(alpha=.12f),RoundedCornerShape(24.dp))) {
-        Column(Modifier.fillMaxWidth().padding(14.dp),verticalArrangement=Arrangement.spacedBy(6.dp)) {
-            Column(Modifier.fillMaxWidth().testTag(tag).clickable(role=Role.Button,onClick=onClick),verticalArrangement=Arrangement.spacedBy(6.dp)) {
-            Row(verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(6.dp)) {
-                Text(label,color=Color.White,fontSize=13.sp,fontWeight=FontWeight.Medium,modifier=Modifier.weight(1f))
-                Box(Modifier.size(26.dp).background(ink.copy(alpha=.12f),RoundedCornerShape(9.dp)),contentAlignment=Alignment.Center){Icon(painterResource(icon),null,tint=ink,modifier=Modifier.size(17.dp))}
+    val numberHeight=with(androidx.compose.ui.platform.LocalDensity.current){44.sp.toDp()}
+    Box(modifier.testTag("card-$label").clip(RoundedCornerShape(24.dp)).background(Brush.linearGradient(listOf(ink.copy(alpha=.25f).compositeOver(LocalPulseStyle.current.surface),ink.copy(alpha=.07f).compositeOver(LocalPulseStyle.current.surface)))).border(1.dp,ink.copy(alpha=.3f),RoundedCornerShape(24.dp))) {
+        Column(Modifier.fillMaxWidth().padding(14.dp),verticalArrangement=Arrangement.spacedBy(8.dp)) {
+            Column(Modifier.fillMaxWidth().testTag(tag).clickable(role=Role.Button,onClick=onClick),verticalArrangement=Arrangement.spacedBy(8.dp)) {
+                Row(verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(6.dp)) {
+                    Text(label,color=Color.White,fontSize=13.sp,fontWeight=FontWeight.Medium,modifier=Modifier.weight(1f))
+                    Box(Modifier.size(28.dp).background(ink.copy(alpha=.22f),RoundedCornerShape(10.dp)),contentAlignment=Alignment.Center){Icon(painterResource(icon),null,tint=ink,modifier=Modifier.size(18.dp))}
+                }
+                Box(Modifier.fillMaxWidth().height(numberHeight),contentAlignment=Alignment.CenterStart) {
+                    androidx.compose.foundation.text.BasicText(value?.let{String.format(Locale.getDefault(),"%,d",it.roundToInt())} ?: "—",maxLines=1,autoSize=androidx.compose.foundation.text.TextAutoSize.StepBased(24.sp,36.sp),style=androidx.compose.ui.text.TextStyle(color=Color.White,fontWeight=FontWeight.SemiBold,letterSpacing=(-1.5).sp))
+                }
+                Text(unit+if(goal!=null) " · goal "+String.format(Locale.getDefault(),"%,d",goal) else " · active + resting",color=ink,fontSize=10.sp,minLines=2,maxLines=2)
+                if(goal!=null && value!=null) LinearProgressIndicator(progress={(value/goal.coerceAtLeast(1)).toFloat().coerceIn(0f,1f)*reveal},modifier=Modifier.fillMaxWidth().height(4.dp),color=ink,trackColor=Color.White.copy(alpha=.12f))
+                else Box(Modifier.fillMaxWidth().height(4.dp).background(ink.copy(alpha=.12f),RoundedCornerShape(4.dp)))
             }
-            androidx.compose.foundation.text.BasicText(value?.let{String.format(Locale.getDefault(),"%,d",it.roundToInt())} ?: "—",maxLines=1,autoSize=androidx.compose.foundation.text.TextAutoSize.StepBased(24.sp,36.sp),style=androidx.compose.ui.text.TextStyle(color=Color.White,fontWeight=FontWeight.SemiBold,letterSpacing=(-1.5).sp))
-            Text(unit+" · goal "+String.format(Locale.getDefault(),"%,d",goal),color=LocalPulseStyle.current.muted,fontSize=10.sp)
-            LinearProgressIndicator(progress={((value ?: 0.0)/goal.coerceAtLeast(1)).toFloat().coerceIn(0f,1f)*reveal},modifier=Modifier.fillMaxWidth().height(3.dp),color=ink,trackColor=Color.White.copy(alpha=.09f))
+            Box(Modifier.fillMaxWidth().heightIn(min=48.dp),contentAlignment=Alignment.CenterStart) {
+                if(complete) TextButton(onClick={replay++},contentPadding=PaddingValues(0.dp),modifier=Modifier.testTag("replay-$label-$replay").semantics{contentDescription="Celebrate $label goal"}){Text("Goal reached ✦",color=ink,fontSize=11.sp)}
+                else Text(if(value==null || goal==null)unavailable else "${(goal-value).coerceAtLeast(0.0).roundToInt()} to go",modifier=Modifier.fillMaxWidth().clickable(role=Role.Button,onClick=onClick),color=ink,fontSize=11.sp,minLines=2)
             }
-            Box(Modifier.fillMaxWidth().height(32.dp),contentAlignment=Alignment.CenterStart) {
-                if(complete) TextButton(onClick={replay++},contentPadding=PaddingValues(0.dp),modifier=Modifier.fillMaxHeight().testTag("replay-$label-$replay").semantics{contentDescription="Celebrate $label goal"}){Text("Goal reached ✦",color=ink,fontSize=11.sp)}
-                else Text(if(value==null) "No record" else "${(goal-value).coerceAtLeast(0.0).roundToInt()} to go",color=ink,fontSize=11.sp)
-            }
-            Column(Modifier.fillMaxWidth().clickable(role=Role.Button,onClick=onClick)) { CompositionLocalProvider(LocalContentColor provides ink){footer()} }
         }
         GoalCelebration(complete,replay,Modifier.matchParentSize())
     }
@@ -63,15 +73,10 @@ import kotlin.math.roundToInt
 
 @Composable internal fun ActivityTiles(day:ConnectedDay?,goals:PersonalGoals,reveal:Float,onDetail:(String)->Unit,sync:SyncState) {
     val p=LocalPulseStyle.current
-
-    Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(8.dp)) {
-        GoalTile("Steps",day?.steps?.toDouble(),goals.steps,"steps",p.primary,R.drawable.symbol_directions_walk,day?.date ?: "","goal-Steps",reveal,Modifier.weight(1f),{onDetail("steps")})
-        GoalTile("Calories",day?.activeCalories,goals.activeCalories,"active kcal",p.warm,R.drawable.symbol_local_fire_department,day?.date ?: "","goal-Calories",reveal,Modifier.weight(1f),{onDetail("calories")}) {
-            if(day?.activeCalories==null) {
-                day?.calories?.let { Text("Total calories",fontSize=10.sp);Text("${it.roundToInt()} kcal",fontSize=12.sp) }
-                Text(if(activeCaloriesAllowed(sync)) "Active goal unavailable · Fix ›" else "Allow active calories · Fix ›",fontSize=10.sp)
-            }
-        }
+    val energy=calorieTileValue(day)
+    Row(Modifier.fillMaxWidth().height(IntrinsicSize.Max),horizontalArrangement=Arrangement.spacedBy(8.dp)) {
+        GoalTile("Steps",day?.steps?.toDouble(),goals.steps,"steps",p.primary,R.drawable.symbol_directions_walk,day?.date ?: "","goal-Steps",reveal,Modifier.weight(1f).fillMaxHeight(),{onDetail("steps")})
+        GoalTile("Calories",energy.value,if(energy.isActive)goals.activeCalories else null,if(energy.isActive)"active kcal" else "total kcal",p.warm,R.drawable.symbol_local_fire_department,day?.date ?: "","goal-Calories",reveal,Modifier.weight(1f).fillMaxHeight(),{onDetail("calories")},if(!activeCaloriesAllowed(sync))"Allow active calories ›" else if(energy.value!=null)"Active not shared · details ›" else "No calorie record · details ›")
     }
 }
 
@@ -84,7 +89,7 @@ import kotlin.math.roundToInt
     val colours=listOf(Color(0xFF8F75E8),colour,LocalPulseStyle.current.secondary,LocalPulseStyle.current.warm)
     val reveal=chartEntrance(day?.date ?: "")
     fun stamp(t:Long?)=t?.let{Instant.ofEpochMilli(it).atZone(ZoneId.systemDefault()).format(DateTimeFormatter.ofPattern("HH:mm"))} ?: "—"
-    Box(Modifier.fillMaxWidth().clip(RoundedCornerShape(24.dp)).background(Brush.verticalGradient(listOf(ink.copy(alpha=.055f).compositeOver(LocalPulseStyle.current.surface),LocalPulseStyle.current.surface))).border(1.dp,Color.White.copy(alpha=.05f),RoundedCornerShape(24.dp))) {
+    Box(Modifier.fillMaxWidth().clip(RoundedCornerShape(24.dp)).background(Brush.verticalGradient(listOf(ink.copy(alpha=.18f).compositeOver(LocalPulseStyle.current.surface),ink.copy(alpha=.04f).compositeOver(LocalPulseStyle.current.surface)))).border(1.dp,ink.copy(alpha=.22f),RoundedCornerShape(24.dp))) {
         Column(Modifier.padding(if(compact)14.dp else 16.dp),verticalArrangement=Arrangement.spacedBy(if(compact)4.dp else 8.dp)) {
             Column(Modifier.fillMaxWidth().clickable(role=Role.Button,onClickLabel="Sleep details",onClick=onClick),verticalArrangement=Arrangement.spacedBy(if(compact)4.dp else 8.dp)) {
             Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween,verticalAlignment=Alignment.CenterVertically) {

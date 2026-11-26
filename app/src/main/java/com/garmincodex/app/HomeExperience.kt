@@ -1,6 +1,8 @@
 package com.garmincodex.app
 
 import androidx.compose.foundation.*
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -27,8 +29,16 @@ import java.time.format.DateTimeFormatter
 import kotlin.math.roundToInt
 
 @Composable internal fun HomeSections(selected:String,onSelect:(String)->Unit) {
-    Column(Modifier.testTag("home-sections")) {
-    PulseTabs(listOf("Favourites","Activity","Sleep hub","Vitals","Weekly"),selected,onSelect)
+    val p=LocalPulseStyle.current
+    val tabs=listOf("Favourites" to R.drawable.symbol_star,"Activity" to R.drawable.symbol_directions_walk,"Sleep hub" to R.drawable.symbol_bedtime,"Vitals" to R.drawable.symbol_favorite,"Weekly" to R.drawable.symbol_calendar)
+    Row(Modifier.fillMaxWidth().testTag("home-sections"),horizontalArrangement=Arrangement.spacedBy(8.dp)) {
+        tabs.forEach { (label,icon) ->
+            val active=selected==label
+            val tint by androidx.compose.animation.animateColorAsState(if(active)p.primary else p.muted,label="home-category")
+            Box(Modifier.weight(1f).height(48.dp).clip(RoundedCornerShape(16.dp)).background(if(active)p.primary.copy(alpha=.18f) else p.surface).selectable(active,role=Role.Tab,onClick={onSelect(label)}).semantics{contentDescription=label},contentAlignment=Alignment.Center) {
+                Icon(androidx.compose.ui.res.painterResource(icon),null,tint=tint,modifier=Modifier.size(24.dp))
+            }
+        }
     }
 }
 

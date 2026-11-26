@@ -30,7 +30,7 @@ class HomeExperienceTest {
         compose.onNodeWithContentDescription("Pin Sleep").performClick()
         compose.onNodeWithText("Done").performClick()
         compose.onNodeWithText("Sleep").assertDoesNotExist()
-        compose.onNodeWithText("Sleep hub").performClick()
+        compose.onNodeWithContentDescription("Sleep hub").performClick()
         compose.onNodeWithText("Your sleep").assertIsDisplayed()
         compose.onNodeWithText("7h 55m").assertExists()
     }
@@ -64,12 +64,12 @@ class HomeExperienceTest {
         val today=LocalDate.now()
         val days=(0L..15L).map{previewDay(today.minusDays(it).toString()).copy(updatedAt=1,activitySource=ActivitySource.GARMIN)}
         compose.setContent{PulseTheme{PulseDashboard(days,SyncState(lastSync=1),DashboardState(),"",null,480,190,55,{},{},{},{},{},{_,_,_->},{},{},{})}}
-        compose.onNodeWithText("Sleep hub").performClick()
+        compose.onNodeWithContentDescription("Sleep hub").performClick()
         compose.onNodeWithText("Your sleep").assertIsDisplayed()
         compose.onNodeWithText("Change wake time").performScrollTo().assertIsDisplayed()
         compose.onRoot().captureRoboImage("build/screenshots/sleep-hub.png")
         compose.onNodeWithTag("home-sections").performScrollTo()
-        compose.onNodeWithText("Weekly").performScrollTo().performClick()
+        compose.onNodeWithContentDescription("Weekly").performScrollTo().performClick()
         compose.onNodeWithText("YOUR WEEKLY REPORT").assertIsDisplayed()
         compose.onRoot().captureRoboImage("build/screenshots/weekly-hub.png")
     }

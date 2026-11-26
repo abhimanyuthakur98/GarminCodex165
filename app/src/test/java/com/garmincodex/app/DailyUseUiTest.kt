@@ -53,7 +53,7 @@ class DailyUseUiTest {
         lateinit var back:OnBackPressedDispatcher
         val day=previewDay(LocalDate.now().toString())
         compose.setContent{back=LocalOnBackPressedDispatcherOwner.current!!.onBackPressedDispatcher;PulseTheme{PulseDashboard(listOf(day),SyncState(lastSync=1),DashboardState(),"",null,480,190,55,{},{},{},{},{},{_,_,_->},{},{},{})}}
-        compose.onNodeWithText("Sleep hub").performScrollTo().performClick()
+        compose.onNodeWithContentDescription("Sleep hub").performScrollTo().performClick()
         compose.onNodeWithText("Your sleep").assertExists()
         compose.runOnIdle{back.onBackPressed()}
         compose.onNodeWithText("Daily activity").assertIsDisplayed()
