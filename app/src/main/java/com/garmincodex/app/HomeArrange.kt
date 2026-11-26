@@ -94,11 +94,25 @@ internal fun DashboardPreferences.placeHome(id:String,target:String):DashboardPr
                 Box(Modifier.weight(1f).fillMaxWidth()) {
                     LazyVerticalGrid(columns=GridCells.Fixed(2),state=grid,userScrollEnabled=dragging==null,
                         modifier=Modifier.fillMaxSize().testTag("arrange-grid").pointerInput(Unit) {
-                            detectDragGestures(onDragStart={position->
-                                val item=grid.layoutInfo.visibleItemsInfo.firstOrNull { position.x>=it.offset.x && position.x<=it.offset.x+it.size.width && position.y>=it.offset.y && position.y<=it.offset.y+it.size.height }
-                                if(item!=null){dragging=item.key as String;pointer=position;anchor=position-Offset(item.offset.x.toFloat(),item.offset.y.toFloat());dragWidth=item.size.width;haptic.performHapticFeedback(HapticFeedbackType.LongPress)}
-                            },onDragEnd={val id=dragging;val to=target;if(id!=null && to!=null)save(latest.placeHome(id,to));finish()},onDragCancel={finish()}) { change,amount ->
-                                if(dragging!=null){change.consume();pointer+=amount;target=targetAt(pointer)}
+                            awaitEachGesture {
+                                val down=awaitFirstDown(requireUnconsumed=false,pass=PointerEventPass.Initial)
+                                val item=grid.layoutInfo.visibleItemsInfo.firstOrNull { down.position.x>=it.offset.x && down.position.x<=it.offset.x+it.size.width && down.position.y>=it.offset.y && down.position.y<=it.offset.y+it.size.height }
+                                try {
+                                    while(true) {
+                                        val event=awaitPointerEvent(PointerEventPass.Initial)
+                                        val change=event.changes.firstOrNull{it.id==down.id} ?: break
+                                        if(!change.pressed) {
+                                            val id=dragging;val to=target
+                                            if(id!=null){change.consume();if(to!=null)save(latest.placeHome(id,to))}
+                                            break
+                                        }
+                                        if(dragging==null && item!=null && (change.position-down.position).getDistance()>viewConfiguration.touchSlop) {
+                                            dragging=item.key as String;anchor=down.position-Offset(item.offset.x.toFloat(),item.offset.y.toFloat());dragWidth=item.size.width
+                                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                        }
+                                        if(dragging!=null){change.consume();pointer=change.position;target=targetAt(pointer)}
+                                    }
+                                } finally { finish() }
                             }
                         },contentPadding=PaddingValues(5.dp),horizontalArrangement=Arrangement.spacedBy(12.dp),verticalArrangement=Arrangement.spacedBy(12.dp)) {
                         items(cards,key={it}) { id ->

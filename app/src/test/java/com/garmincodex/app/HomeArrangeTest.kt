@@ -51,4 +51,15 @@ class HomeArrangeTest {
         grid.performTouchInput { down(first);moveBy(Offset(60f,0f));cancel() }
         compose.runOnIdle { assertEquals(DashboardPreferences.HOME_CARDS,prefs.homeOrder) }
     }
+
+    @Test fun verticalDragReordersRatherThanScrollingTheGrid() {
+        var prefs by mutableStateOf(DashboardPreferences())
+        compose.setContent { PulseTheme { HomeArrange(prefs,null,{prefs=it},{},{}) } }
+        val grid=compose.onNodeWithTag("arrange-grid")
+        val origin=grid.fetchSemanticsNode().boundsInRoot.topLeft
+        val from=compose.onNodeWithTag("arrange-activity").fetchSemanticsNode().boundsInRoot.center-origin
+        val to=compose.onNodeWithTag("arrange-recovery").fetchSemanticsNode().boundsInRoot.center-origin
+        grid.performTouchInput { swipe(from,to,600) }
+        compose.runOnIdle { assertEquals("activity",prefs.homeOrder[2]) }
+    }
 }
