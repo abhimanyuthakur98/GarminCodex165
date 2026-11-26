@@ -115,7 +115,7 @@ private fun clock(t: Long?) = t?.let { Instant.ofEpochMilli(it).atZone(ZoneId.sy
                     if(!expandedToday) {
                         HomeSections(homeSection,{homeSection=it;scope.launch{scrolls[0].scrollTo(0)}})
                         when(homeSection) {
-                            "Favourites" -> HoldToArrange({arrangeHome=true}) { TodaySnapshot(day,sync,goals,needState,{detail=it},{page=6},history=days,preferences=preferences,cacheLoading=cacheLoading) }
+                            "Favourites" -> HoldToArrange({arrangeHome=true}) { TodaySnapshot(day,sync,goals,needState,{if(!arrangeHome)detail=it},{if(!arrangeHome)page=6},history=days,preferences=preferences,cacheLoading=cacheLoading) }
                             "Activity" -> { DataFreshness(day,sync,"activity");ActivityTiles(day,goals,chartEntrance(day?.updatedAt ?: 0L),{detail=it},sync);WeekActivity(days,selected,goals);TimelineCard(day){detail="sleep"};TrainingSummary(workouts) }
                             "Sleep hub" -> SleepHub(day,days,selected,goals,needState,onGoals,sync,{detail="sleep"},{profile=true})
                             "Vitals" -> { DataFreshness(day,sync,"health");VitalGrid(day){detail=it};BaselineCard(days) }

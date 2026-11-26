@@ -14,6 +14,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.*
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.platform.*
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.*
@@ -40,7 +41,16 @@ internal fun DashboardPreferences.placeHome(id:String,target:String):DashboardPr
     Column(Modifier.fillMaxWidth().semantics {
         customActions=listOf(CustomAccessibilityAction("Arrange Home"){arrange();true})
     }.pointerInput(Unit) {
-        detectDragGesturesAfterLongPress(onDragStart={haptic.performHapticFeedback(HapticFeedbackType.LongPress);arrange()},onDrag={change,_->change.consume()})
+        awaitEachGesture {
+            val down=awaitFirstDown(requireUnconsumed=false,pass=PointerEventPass.Initial)
+            if(awaitLongPressOrCancellation(down.id)!=null) {
+                haptic.performHapticFeedback(HapticFeedbackType.LongPress);arrange()
+                do {
+                    val event=awaitPointerEvent(PointerEventPass.Initial)
+                    event.changes.forEach{it.consume()}
+                } while(event.changes.any{it.pressed})
+            }
+        }
     },verticalArrangement=Arrangement.spacedBy(8.dp),content=content)
 }
 
