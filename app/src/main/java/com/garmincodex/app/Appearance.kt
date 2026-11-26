@@ -18,13 +18,13 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
 data class PulseStyle(val name:String,val title:String,val primary:Color,val secondary:Color,val violet:Color,val warm:Color,val background:Color,val surface:Color,val seed:Color=primary) {
-    val muted:Color get()=Color(0xFFA3A3A3)
+    val muted:Color get()=Color(0xFFA5ADB8)
     val line:Color get()=primary.copy(alpha=.18f)
     companion object {
-        val NEON_CYAN=PulseStyle("NEON_CYAN","Neon Cyan",Color(0xFF3DEBFF),Color(0xFF7AFFB2),Color(0xFFC0A0FF),Color(0xFFFFAA70),Color(0xFF0B0E14),Color(0xFF171C25))
-        val NEON_LIME=PulseStyle("NEON_LIME","Neon Lime",Color(0xFFC6FF42),Color(0xFF40F5CA),Color(0xFFE1A0FF),Color(0xFFFFA477),Color(0xFF0B0E14),Color(0xFF171C25))
-        val NEON_VIOLET=PulseStyle("NEON_VIOLET","Neon Violet",Color(0xFFD0A0FF),Color(0xFF62E9FF),Color(0xFFFF8DD7),Color(0xFFFFB381),Color(0xFF0B0E14),Color(0xFF171C25))
-        val MIDNIGHT=PulseStyle("MIDNIGHT","Midnight Blue",Color(0xFF88B5FF),Color(0xFF8FD8CE),Color(0xFFC0AFF5),Color(0xFFFFB28D),Color(0xFF0B0E14),Color(0xFF171C25))
+        val NEON_CYAN=PulseStyle("NEON_CYAN","Neon Cyan",Color(0xFF3DEBFF),Color(0xFF7AFFB2),Color(0xFFC0A0FF),Color(0xFFFFAA70),Color(0xFF090B0F),Color(0xFF171A20))
+        val NEON_LIME=PulseStyle("NEON_LIME","Neon Lime",Color(0xFFC6FF42),Color(0xFF40F5CA),Color(0xFFE1A0FF),Color(0xFFFFA477),Color(0xFF090B0F),Color(0xFF171A20))
+        val NEON_VIOLET=PulseStyle("NEON_VIOLET","Neon Violet",Color(0xFFD0A0FF),Color(0xFF62E9FF),Color(0xFFFF8DD7),Color(0xFFFFB381),Color(0xFF090B0F),Color(0xFF171A20))
+        val MIDNIGHT=PulseStyle("MIDNIGHT","Midnight Blue",Color(0xFF88B5FF),Color(0xFF8FD8CE),Color(0xFFC0AFF5),Color(0xFFFFB28D),Color(0xFF090B0F),Color(0xFF171A20))
         val entries=listOf(NEON_CYAN,NEON_LIME,NEON_VIOLET,MIDNIGHT)
         fun custom(hex:String):PulseStyle? {
             val clean=hex.removePrefix("#").uppercase()
@@ -32,7 +32,7 @@ data class PulseStyle(val name:String,val title:String,val primary:Color,val sec
             val seed=Color(0xFF000000 or clean.toLong(16))
             var accent=seed
             repeat(12){if(accent.luminance()<.4f) accent=lerp(accent,Color.White,.12f)}
-            return PulseStyle("CUSTOM:"+clean,"Custom colour",accent,lerp(accent,Color(0xFF7AFFB2),.3f),lerp(accent,Color(0xFFD5A7FF),.5f),lerp(accent,Color(0xFFFFAA70),.65f),Color(0xFF0B0E14),Color(0xFF171C25),seed)
+            return PulseStyle("CUSTOM:"+clean,"Custom colour",accent,lerp(accent,Color(0xFF7AFFB2),.3f),lerp(accent,Color(0xFFD5A7FF),.5f),lerp(accent,Color(0xFFFFAA70),.65f),Color(0xFF090B0F),Color(0xFF171A20),seed)
         }
         fun fromId(id:String?)=entries.firstOrNull{it.name==id} ?: id?.takeIf{it.startsWith("CUSTOM:")}?.let{custom(it.substringAfter(':'))} ?: NEON_CYAN
     }

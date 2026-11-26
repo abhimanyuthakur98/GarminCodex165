@@ -25,7 +25,7 @@ private fun decimal(value:Double)=String.format(java.util.Locale.US,"%.1f",value
 @Composable private fun WorkoutCard(content:@Composable ColumnScope.()->Unit) {
     val palette = LocalPulseStyle.current
     val Orange = palette.warm
- Column(Modifier.fillMaxWidth().background(palette.surface,RoundedCornerShape(20.dp)).border(1.dp,Orange.copy(alpha=.09f),RoundedCornerShape(26.dp)).padding(20.dp),verticalArrangement=Arrangement.spacedBy(12.dp),content=content) }
+ Column(Modifier.fillMaxWidth().background(palette.surface,RoundedCornerShape(24.dp)).border(1.dp,Color.White.copy(alpha=.06f),RoundedCornerShape(24.dp)).padding(18.dp),verticalArrangement=Arrangement.spacedBy(12.dp),content=content) }
 @Composable internal fun WorkoutLibrary(workouts:List<Workout>, checkIns:List<WorkoutCheckIn>, resting:Int, maximum:Int, onCheckIn:(WorkoutCheckIn)->Unit,onImport:()->Unit,onPermissions:()->Unit,onRemove:(String)->Unit,message:String?,busy:Boolean,miles:Boolean=false,onMiles:(Boolean)->Unit={}) {
     val palette = LocalPulseStyle.current
     val Lime = palette.primary
@@ -35,7 +35,7 @@ private fun decimal(value:Double)=String.format(java.util.Locale.US,"%.1f",value
     var filter by rememberSaveable { mutableStateOf("All") }
     var window by rememberSaveable { mutableIntStateOf(0) }
     var toolsOpen by rememberSaveable { mutableStateOf(false) }
-    Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween) { Text("Workouts",fontSize=28.sp,fontWeight=FontWeight.Bold);TextButton(onClick={toolsOpen=!toolsOpen}){Text(if(toolsOpen) "Done" else "Options")} }
+    Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween) { PageHeading("Workouts","YOUR TRAINING",modifier=Modifier.weight(1f));TextButton(onClick={toolsOpen=!toolsOpen}){Text(if(toolsOpen) "Done" else "Options")} }
     TrainingSummary(workouts)
     if(toolsOpen || workouts.isEmpty()) {
     Row { Button(onClick=onImport,enabled=!busy) { Text(if(busy) "Importing…" else "Import FIT") }; TextButton(onClick=onPermissions) { Text("Allow exercise") } }
@@ -49,8 +49,8 @@ private fun decimal(value:Double)=String.format(java.util.Locale.US,"%.1f",value
     if(filtered.isEmpty()) WorkoutCard { Text("No workouts in this view",fontWeight=FontWeight.Bold); Text("Allow Pulse to read Exercise in Health Connect, then sync your device app. If your device app does not share sessions, export an original .fit activity file from that app and use Import FIT. Unzip downloaded archives first.",fontSize=13.sp,color=Color.Gray) }
     if(filtered.isEmpty() && (filter!="All" || window!=0)) TextButton(onClick={filter="All";window=0}){Text("Reset workout filters")}
     filtered.forEach { w -> Box(Modifier.clickable(onClickLabel="Open ${w.title}"){selectedId=w.id}) { WorkoutCard {
-        Text(w.title,fontSize=22.sp,fontWeight=FontWeight.Bold)
-        Text(workoutTime(w.start),color=Lime,fontSize=12.sp)
+        Text(w.title,fontSize=20.sp,fontWeight=FontWeight.SemiBold)
+        Text(workoutTime(w.start),color=palette.muted,fontSize=11.sp)
         w.distanceMeters?.let { Text(RunningMetrics.distance(it,miles),color=Orange,fontWeight=FontWeight.Bold) }
         Text("${decimal(minutes(w))} min elapsed · ${if(w.source=="FIT") "FIT file" else "Health Connect"}",fontSize=12.sp)
         checkIns.firstOrNull {it.workoutId==w.id}?.let { Text("Effort ${it.effort}/10 · soreness ${it.soreness}/10",color=Color.Gray,fontSize=12.sp) }

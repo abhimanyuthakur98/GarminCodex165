@@ -41,16 +41,26 @@ private fun ageNumber(value:Double)=String.format(Locale.US,"%.1f",value)
     var factorIndex by rememberSaveable{mutableIntStateOf(-1)}
     val currentRecovery=days.firstOrNull{it.date==today.toString()}?.recovery
     val index=if(factorIndex<0)FitnessCoaching.focus(result,currentRecovery) else factorIndex.coerceIn(0,3)
-    Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.SpaceBetween){Text("Fitness age",fontSize=28.sp,fontWeight=FontWeight.Bold);TextButton(onAge){Text(goals.age?.let{"Age $it"} ?: "Set age")}}
-    Row(horizontalArrangement=Arrangement.spacedBy(8.dp)){listOf("Overview","Progress","Actions").forEach{tab->FilterChip(section==tab,{section=tab},label={Text(tab)})}}
+    Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.SpaceBetween){PageHeading("Fitness age","YOUR HABITS",modifier=Modifier.weight(1f));TextButton(onAge){Text(goals.age?.let{"Age $it"} ?: "Set age")}}
+    PulseTabs(listOf("Overview","Progress","Actions"),section,{section=it},scrollable=false)
     key(section) { Column(pageMotion(section),verticalArrangement=Arrangement.spacedBy(10.dp)) {
         when(section) {
             "Overview" -> {
-                Box(Modifier.fillMaxWidth().background(palette.surface,RoundedCornerShape(20.dp)).padding(20.dp),contentAlignment=Alignment.Center) {
-                    Column(Modifier.width(210.dp),horizontalAlignment=Alignment.CenterHorizontally,verticalArrangement=Arrangement.spacedBy(5.dp)) {
-                        Text(result.age?.let(::ageNumber) ?: "Learning",fontSize=if(result.age==null)30.sp else 54.sp,fontWeight=FontWeight.Bold)
-                        Text("EXPERIMENTAL FITNESS AGE",fontSize=9.sp,color=AgeMuted)
+                Row(Modifier.fillMaxWidth().background(Brush.horizontalGradient(listOf(palette.primary.copy(alpha=.08f).compositeOver(palette.surface),palette.surface)),RoundedCornerShape(26.dp)).border(1.dp,Color.White.copy(alpha=.06f),RoundedCornerShape(26.dp)).padding(20.dp),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(16.dp)) {
+                    Column(Modifier.weight(1f),verticalArrangement=Arrangement.spacedBy(8.dp)) {
+                        Text("EXPERIMENTAL FITNESS AGE",fontSize=9.sp,color=AgeMuted,letterSpacing=1.sp)
+                        androidx.compose.foundation.text.BasicText(result.age?.let(::ageNumber) ?: "Learning",maxLines=1,autoSize=androidx.compose.foundation.text.TextAutoSize.StepBased(24.sp,48.sp),style=androidx.compose.ui.text.TextStyle(color=Color.White,fontWeight=FontWeight.Medium))
                         Text(result.age?.let{"${ageNumber(abs(it-goals.age!!))} years ${if(it<=goals.age) "below" else "above"} your age"} ?: "${result.days}/14 qualifying days",fontSize=12.sp,color=AgeMint)
+                    }
+                    Column(horizontalAlignment=Alignment.CenterHorizontally,verticalArrangement=Arrangement.spacedBy(8.dp)) {
+                        Box(Modifier.size(76.dp),contentAlignment=Alignment.Center) {
+                            Canvas(Modifier.fillMaxSize().padding(5.dp)) {
+                                drawArc(AgeMint.copy(alpha=.12f),-90f,360f,false,style=Stroke(5.dp.toPx()))
+                                drawArc(AgeMint,-90f,360f*(result.days/14f).coerceIn(0f,1f),false,style=Stroke(5.dp.toPx(),cap=StrokeCap.Round))
+                            }
+                            Text("${result.days}",fontSize=23.sp,color=AgeMint)
+                        }
+                        Text("Recorded days",fontSize=9.sp,color=AgeMuted)
                     }
                 }
                 Text("Wellness estimate · not biological age",fontSize=11.sp,color=AgeMuted)

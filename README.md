@@ -1,3 +1,9 @@
+## 0.25.0 — visual overhaul
+
+Home now leads with larger white activity totals on softly tinted cards, paired steps and calories, and a compact sleep timeline. The calendar opens from the date, leaving more room for stats. Navigation uses a compact icon dock and consistent underlined section tabs. Neutral near-black surfaces and restrained accent colours retain every personal colour option.
+
+Trends, Fitness Age, Workouts and Settings share clearer headings, quieter cards and consistent spacing. Fitness Age separates the estimate from a recorded-day readiness ring. Settings groups connections, targets, colours and Home arrangement into direct rows. Existing data calculations, Garmin preference, package ID and signing identity are preserved; install over 0.24.0.
+
 ## 0.24.0 — everyday polish
 
 Saved health history starts loading with the ViewModel and remains cached while it lives. Sync progress updates no longer remap that history; only database or activity-source changes do. The initial local-read state is distinct from an empty account, and a same-day foreground refresh already in progress is not queued again. New-day follow-up refreshes remain supported. Refresh wording stays steady while saved stats remain usable.

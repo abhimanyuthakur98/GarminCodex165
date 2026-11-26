@@ -24,12 +24,9 @@ import androidx.compose.ui.text.font.FontWeight
 @Composable internal fun JournalAction(selected:Boolean,onClick:()->Unit) {
     val palette = LocalPulseStyle.current
 
-    OutlinedButton(onClick=onClick,modifier=Modifier.heightIn(min=48.dp),shape=RoundedCornerShape(16.dp),
-        contentPadding=PaddingValues(horizontal=10.dp,vertical=8.dp),
-        border=BorderStroke(1.dp,Color.White.copy(alpha=.1f)),
-        colors=ButtonDefaults.outlinedButtonColors(containerColor=palette.surface,contentColor=palette.primary)) {
-        Icon(androidx.compose.ui.res.painterResource(R.drawable.symbol_book),null,tint=palette.primary,modifier=Modifier.size(18.dp))
-        Spacer(Modifier.width(6.dp));Text("Journal",fontSize=12.sp,fontWeight=FontWeight.SemiBold,maxLines=1)
+    TextButton(onClick=onClick,contentPadding=PaddingValues(horizontal=8.dp),modifier=Modifier.heightIn(min=48.dp)) {
+        Icon(androidx.compose.ui.res.painterResource(R.drawable.symbol_book),null,tint=palette.muted,modifier=Modifier.size(16.dp))
+        Spacer(Modifier.width(5.dp));Text("Journal",fontSize=11.sp,color=palette.muted,maxLines=1)
     }
 }
 
@@ -37,13 +34,13 @@ import androidx.compose.ui.text.font.FontWeight
     val palette = LocalPulseStyle.current
     val Lime = palette.primary
 
-    Surface(Modifier.navigationBarsPadding(),shape=RoundedCornerShape(0.dp),color=palette.background,border=androidx.compose.foundation.BorderStroke(1.dp,Color.White.copy(alpha=.08f)),shadowElevation=0.dp) {
-        Row(Modifier.fillMaxWidth().padding(horizontal=12.dp,vertical=5.dp),horizontalArrangement=Arrangement.SpaceEvenly) {
+    Surface(Modifier.navigationBarsPadding(),color=palette.background,shadowElevation=0.dp) {
+        Row(Modifier.fillMaxWidth().padding(horizontal=8.dp,vertical=6.dp),horizontalArrangement=Arrangement.SpaceEvenly) {
             listOf(0 to "Today",1 to "Trends",2 to "Fitness Age",4 to "Workouts").forEach { (index,label) ->
                 val selectedBackground by animateColorAsState(if(page==index) Lime.copy(alpha=.13f) else Color.Transparent,label="dock-selection")
                 val tint by animateColorAsState(if(page==index) Lime else palette.muted,label="dock-tint")
-                Column(Modifier.weight(1f).background(selectedBackground,RoundedCornerShape(16.dp)).selectable(page==index,role=Role.Tab,onClick={onPage(index)}).padding(vertical=8.dp),horizontalAlignment=Alignment.CenterHorizontally,verticalArrangement=Arrangement.spacedBy(5.dp)) {
-                    DockIcon(index,tint)
+                Column(Modifier.weight(1f).selectable(page==index,role=Role.Tab,onClick={onPage(index)}).padding(vertical=5.dp),horizontalAlignment=Alignment.CenterHorizontally,verticalArrangement=Arrangement.spacedBy(5.dp)) {
+                    Box(Modifier.width(48.dp).height(28.dp).background(selectedBackground,RoundedCornerShape(12.dp)),contentAlignment=Alignment.Center){DockIcon(index,tint)}
                     BasicText(label,modifier=Modifier.fillMaxWidth(),maxLines=1,autoSize=TextAutoSize.StepBased(10.sp,12.sp),style=TextStyle(color=tint,textAlign=androidx.compose.ui.text.style.TextAlign.Center,fontWeight=if(page==index) FontWeight.Bold else FontWeight.Medium))
 
                 }
@@ -58,7 +55,10 @@ import androidx.compose.ui.text.font.FontWeight
 @Composable internal fun JournalCard(title:String,accent:Color=LocalPulseStyle.current.primary,content:@Composable ColumnScope.()->Unit) {
     val palette = LocalPulseStyle.current
 
-    Column(Modifier.fillMaxWidth().background(palette.surface,RoundedCornerShape(20.dp)).border(1.dp,Color.White.copy(alpha=.035f),RoundedCornerShape(20.dp)).padding(16.dp),verticalArrangement=Arrangement.spacedBy(12.dp)) {
-        Text(title,color=accent,fontSize=11.sp,fontWeight=FontWeight.Bold,letterSpacing=.6.sp);content()
+    Column(Modifier.fillMaxWidth().background(palette.surface,RoundedCornerShape(24.dp)).border(1.dp,Color.White.copy(alpha=.055f),RoundedCornerShape(24.dp)).padding(18.dp),verticalArrangement=Arrangement.spacedBy(12.dp)) {
+        Row(verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(8.dp)) {
+            Box(Modifier.size(5.dp).background(accent,RoundedCornerShape(4.dp)))
+            Text(title,color=palette.muted,fontSize=10.sp,fontWeight=FontWeight.SemiBold,letterSpacing=1.sp)
+        };content()
     }
 }

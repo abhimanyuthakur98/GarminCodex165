@@ -17,10 +17,10 @@ import kotlin.math.roundToInt
 
 @Composable internal fun OverviewStat(label:String,value:String,caption:String,modifier:Modifier=Modifier,onClick:(()->Unit)?=null) {
     val p=LocalPulseStyle.current
-    Column(modifier.background(p.surface,RoundedCornerShape(18.dp)).then(if(onClick!=null)Modifier.clickable(role=Role.Button,onClick=onClick) else Modifier).padding(14.dp),verticalArrangement=Arrangement.spacedBy(4.dp)) {
-        Text(label,color=p.muted,fontSize=11.sp)
-        Text(value,fontSize=22.sp,fontWeight=FontWeight.SemiBold,color=Color.White)
-        Text(caption,color=p.primary,fontSize=10.sp)
+    Column(modifier.background(p.surface,RoundedCornerShape(22.dp)).border(1.dp,Color.White.copy(alpha=.045f),RoundedCornerShape(22.dp)).then(if(onClick!=null)Modifier.clickable(role=Role.Button,onClick=onClick) else Modifier).padding(14.dp),verticalArrangement=Arrangement.spacedBy(4.dp)) {
+        Text(label,color=p.muted,fontSize=12.sp)
+        androidx.compose.foundation.text.BasicText(value,maxLines=1,autoSize=androidx.compose.foundation.text.TextAutoSize.StepBased(18.sp,28.sp),style=androidx.compose.ui.text.TextStyle(color=Color.White,fontWeight=FontWeight.Medium,letterSpacing=(-.7).sp))
+        Text(caption,color=p.muted,fontSize=10.sp)
     }
 }
 
@@ -72,7 +72,5 @@ import kotlin.math.roundToInt
 }
 
 @Composable internal fun SettingsSections(selected:String,onSelect:(String)->Unit) {
-    FlowRow(horizontalArrangement=Arrangement.spacedBy(8.dp)) {
-        listOf("Overview","Appearance","Layout").forEach{section->FilterChip(selected==section,{onSelect(section)},label={Text(section)})}
-    }
+    PulseTabs(listOf("Overview","Appearance","Layout"),selected,onSelect,scrollable=false)
 }

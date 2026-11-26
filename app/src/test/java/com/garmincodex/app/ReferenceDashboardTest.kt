@@ -26,6 +26,7 @@ class ReferenceDashboardTest {
         var request by mutableIntStateOf(0)
         var currentDay by mutableStateOf(yesterday.toString())
         compose.setContent { PulseTheme { PulseDashboard(listOf(previewDay(yesterday.toString())),SyncState(lastSync=1),DashboardState(),"",null,480,190,55,{},{},{},{},{},{_,_,_->},{},{},{},foregroundRequest=request,foregroundDate=currentDay) } }
+        compose.onNode(hasClickAction() and hasText(yesterday.format(java.time.format.DateTimeFormatter.ofPattern("d MMM yyyy")),substring=true)).performClick()
         compose.onNodeWithContentDescription("Choose day $yesterday").assertIsSelected()
         compose.runOnIdle {currentDay=today.toString();request++}
         compose.onNodeWithContentDescription("Choose day $today").assertIsSelected()

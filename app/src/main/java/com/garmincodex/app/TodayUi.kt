@@ -30,14 +30,14 @@ private val Lavender=Color(0xFFC0AFF5)
     Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically) {
         if(onBack!=null) IconButton(onClick=onBack,modifier=Modifier.semantics{contentDescription="Back to previous screen"}) { Icon(painterResource(R.drawable.symbol_arrow_back),null,tint=palette.primary) }
         Column(Modifier.weight(1f)) {
-            Text("pulse",fontSize=20.sp,fontWeight=FontWeight.Bold,letterSpacing=(-1).sp,modifier=Modifier.semantics{contentDescription="Pulse 165"})
+            Text("PULSE",fontSize=16.sp,fontWeight=FontWeight.SemiBold,letterSpacing=3.sp,modifier=Modifier.semantics{contentDescription="Pulse 165"})
             val imported=if(lastSync>0) Instant.ofEpochMilli(lastSync).atZone(ZoneId.systemDefault()) else null
             Text(if(busy) (if(lastSync>0) "Refreshing · saved stats available" else "Importing health data…") else imported?.let{"Updated "+it.format(DateTimeFormatter.ofPattern(if(it.toLocalDate()==LocalDate.now()) "HH:mm" else "d MMM · HH:mm"))} ?: "Your health, together",fontSize=10.sp,color=palette.muted)
         }
         IconButton(onClick=onSync,enabled=!busy,modifier=Modifier.semantics{contentDescription=if(busy) "Syncing health data" else "Sync health data"}) {
             Icon(painterResource(R.drawable.symbol_refresh),null,tint=if(busy)palette.muted.copy(alpha=.4f) else palette.muted,modifier=Modifier.size(22.dp))
         }
-        if(onBack==null) IconButton(onClick=onSettings,modifier=Modifier.background(palette.surface,RoundedCornerShape(50.dp)).semantics{contentDescription="Open Settings"}) { DockIcon(3,palette.primary) }
+        if(onBack==null) IconButton(onClick=onSettings,modifier=Modifier.semantics{contentDescription="Open Settings"}) { DockIcon(3,palette.primary) }
     }
 }
 @Composable internal fun TodayDate(date:String,onDate:(String)->Unit,onJournal:()->Unit,onEdit:(()->Unit)?=null) {
@@ -48,13 +48,13 @@ private val Lavender=Color(0xFFC0AFF5)
     var calendar by remember{mutableStateOf(false)}
     Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically) {
         Column(Modifier.weight(1f).clickable(role=Role.Button,onClickLabel="Show date navigation"){calendar=!calendar}.padding(vertical=6.dp)) {
-            Text(if(d==LocalDate.now()) "Today" else d.format(DateTimeFormatter.ofPattern("EEEE")),fontSize=24.sp,fontWeight=FontWeight.Bold)
+            Text(if(d==LocalDate.now()) "Today" else d.format(DateTimeFormatter.ofPattern("EEEE")),fontSize=30.sp,fontWeight=FontWeight.SemiBold,letterSpacing=(-1).sp)
             Text(d.format(DateTimeFormatter.ofPattern("d MMM yyyy"))+"  ▾",fontSize=11.sp,color=Soft)
         }
         if(onEdit!=null) TextButton(onClick=onEdit){Text("Edit home",fontSize=11.sp)}
         JournalAction(false,onJournal)
     }
-    QuickWeek(date,onDate)
+    if(calendar) QuickWeek(date,onDate)
     if(calendar) Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.SpaceBetween) {
         TextButton(onClick={onDate(d.minusDays(1).toString())},modifier=Modifier.semantics{contentDescription="Previous day"}){Text("‹ Previous")}
         TextButton(onClick={onDate(LocalDate.now().toString());calendar=false}){Text("Today")}

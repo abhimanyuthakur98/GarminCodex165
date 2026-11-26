@@ -40,14 +40,15 @@ import kotlin.math.roundToInt
     val ink=colour
     val complete=value!=null && value>=goal && goal>0
     var replay by remember(date){mutableIntStateOf(0)}
-    Box(modifier.clip(RoundedCornerShape(20.dp)).background(LocalPulseStyle.current.surface).border(1.dp,Color.White.copy(alpha=.035f),RoundedCornerShape(20.dp))) {
-        Column(Modifier.fillMaxWidth().padding(16.dp),verticalArrangement=Arrangement.spacedBy(6.dp)) {
+    Box(modifier.clip(RoundedCornerShape(24.dp)).background(Brush.verticalGradient(listOf(ink.copy(alpha=.09f).compositeOver(LocalPulseStyle.current.surface),LocalPulseStyle.current.surface))).border(1.dp,ink.copy(alpha=.12f),RoundedCornerShape(24.dp))) {
+        Column(Modifier.fillMaxWidth().padding(14.dp),verticalArrangement=Arrangement.spacedBy(6.dp)) {
             Column(Modifier.fillMaxWidth().testTag(tag).clickable(role=Role.Button,onClick=onClick),verticalArrangement=Arrangement.spacedBy(6.dp)) {
             Row(verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(6.dp)) {
-                Icon(painterResource(icon),null,tint=ink,modifier=Modifier.size(18.dp));Text(label,color=Color.White,fontSize=13.sp,fontWeight=FontWeight.SemiBold)
+                Text(label,color=Color.White,fontSize=13.sp,fontWeight=FontWeight.Medium,modifier=Modifier.weight(1f))
+                Box(Modifier.size(26.dp).background(ink.copy(alpha=.12f),RoundedCornerShape(9.dp)),contentAlignment=Alignment.Center){Icon(painterResource(icon),null,tint=ink,modifier=Modifier.size(17.dp))}
             }
-            androidx.compose.foundation.text.BasicText(value?.let{String.format(Locale.getDefault(),"%,d",it.roundToInt())} ?: "—",maxLines=1,autoSize=androidx.compose.foundation.text.TextAutoSize.StepBased(24.sp,32.sp),style=androidx.compose.ui.text.TextStyle(color=ink,fontWeight=FontWeight.Bold,letterSpacing=(-1).sp))
-            Text(unit+" · goal "+String.format(Locale.getDefault(),"%,d",goal),color=Color(0xFFA3A3A3),fontSize=10.sp)
+            androidx.compose.foundation.text.BasicText(value?.let{String.format(Locale.getDefault(),"%,d",it.roundToInt())} ?: "—",maxLines=1,autoSize=androidx.compose.foundation.text.TextAutoSize.StepBased(24.sp,36.sp),style=androidx.compose.ui.text.TextStyle(color=Color.White,fontWeight=FontWeight.SemiBold,letterSpacing=(-1.5).sp))
+            Text(unit+" · goal "+String.format(Locale.getDefault(),"%,d",goal),color=LocalPulseStyle.current.muted,fontSize=10.sp)
             LinearProgressIndicator(progress={((value ?: 0.0)/goal.coerceAtLeast(1)).toFloat().coerceIn(0f,1f)*reveal},modifier=Modifier.fillMaxWidth().height(3.dp),color=ink,trackColor=Color.White.copy(alpha=.09f))
             }
             Box(Modifier.fillMaxWidth().height(32.dp),contentAlignment=Alignment.CenterStart) {
@@ -83,16 +84,16 @@ import kotlin.math.roundToInt
     val colours=listOf(Color(0xFF8F75E8),colour,LocalPulseStyle.current.secondary,LocalPulseStyle.current.warm)
     val reveal=chartEntrance(day?.date ?: "")
     fun stamp(t:Long?)=t?.let{Instant.ofEpochMilli(it).atZone(ZoneId.systemDefault()).format(DateTimeFormatter.ofPattern("HH:mm"))} ?: "—"
-    Box(Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(LocalPulseStyle.current.surface)) {
+    Box(Modifier.fillMaxWidth().clip(RoundedCornerShape(24.dp)).background(Brush.verticalGradient(listOf(ink.copy(alpha=.055f).compositeOver(LocalPulseStyle.current.surface),LocalPulseStyle.current.surface))).border(1.dp,Color.White.copy(alpha=.05f),RoundedCornerShape(24.dp))) {
         Column(Modifier.padding(if(compact)14.dp else 16.dp),verticalArrangement=Arrangement.spacedBy(if(compact)4.dp else 8.dp)) {
-            Column(Modifier.fillMaxWidth().clickable(role=Role.Button,onClickLabel="Sleep details",onClick=onClick),verticalArrangement=Arrangement.spacedBy(8.dp)) {
+            Column(Modifier.fillMaxWidth().clickable(role=Role.Button,onClickLabel="Sleep details",onClick=onClick),verticalArrangement=Arrangement.spacedBy(if(compact)4.dp else 8.dp)) {
             Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween,verticalAlignment=Alignment.CenterVertically) {
                 Row(horizontalArrangement=Arrangement.spacedBy(8.dp)){Icon(painterResource(R.drawable.symbol_bedtime),null,tint=ink,modifier=Modifier.size(22.dp));Text("Sleep",color=Color.White,fontWeight=FontWeight.SemiBold)}
                 Text("Goal ${need/60}h ${need%60}m",fontSize=11.sp,color=ink)
             }
-            Text(day?.asleep?.let{"${it/60}h ${it%60}m"} ?: "No sleep total",fontSize=(if(compact)23 else 27).sp,fontWeight=FontWeight.Bold,color=Color.White)
+            Text(day?.asleep?.let{"${it/60}h ${it%60}m"} ?: "No sleep total",fontSize=(if(compact)28 else 32).sp,fontWeight=FontWeight.Medium,color=Color.White)
             if(spans.isNotEmpty() && day?.sleepStart!=null && day.sleepEnd!=null && day.sleepEnd>day.sleepStart) {
-                Canvas(Modifier.fillMaxWidth().height(32.dp).semantics{contentDescription="Sleep timeline ${stamp(day.sleepStart)} to ${stamp(day.sleepEnd)}. Tap for stage details."}) {
+                Canvas(Modifier.fillMaxWidth().height(if(compact)24.dp else 32.dp).semantics{contentDescription="Sleep timeline ${stamp(day.sleepStart)} to ${stamp(day.sleepEnd)}. Tap for stage details."}) {
                     val start=day.sleepStart;val duration=(day.sleepEnd-start).toFloat()
                     repeat(4){i->drawLine(ink.copy(alpha=.1f),Offset(0f,(i+1)*size.height/4),Offset(size.width,(i+1)*size.height/4))}
                     spans.forEach { s ->
@@ -104,7 +105,7 @@ import kotlin.math.roundToInt
                     }
                 }
                 Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween){Text(stamp(day.sleepStart),color=ink,fontSize=11.sp);Text(stamp(day.sleepEnd),color=ink,fontSize=11.sp)}
-                Row(horizontalArrangement=Arrangement.spacedBy(6.dp)){listOf("Deep","Light","REM","Awake").forEachIndexed{i,label->Text("● $label",color=colours[i],fontSize=10.sp)}}
+                FlowRow(horizontalArrangement=Arrangement.spacedBy(6.dp)){listOf("Deep","Light","REM","Awake").forEachIndexed{i,label->Text("● $label",color=colours[i],fontSize=10.sp)}}
             } else Text(if(day?.sleepStart!=null) "Sleep stages not shared · view session ›" else "Sync after wearing your watch to bed",color=ink,fontSize=12.sp)
             }
             if(complete) TextButton(onClick={replay++},modifier=Modifier.testTag("replay-Sleep-$replay").semantics{contentDescription="Celebrate Sleep goal"}){Text("Sleep goal reached ✦",color=ink)}

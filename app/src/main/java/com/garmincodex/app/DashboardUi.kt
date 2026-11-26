@@ -107,7 +107,7 @@ private fun clock(t: Long?) = t?.let { Instant.ofEpochMilli(it).atZone(ZoneId.sy
 
             if (preview) Row(Modifier.fillMaxWidth().background(Color(0xFF483F21), RoundedCornerShape(8.dp)).padding(12.dp), horizontalArrangement = Arrangement.SpaceBetween) { Text("PREVIEW • synthetic data", fontSize = 11.sp); Text("Exit", Modifier.clickable { preview = false }, color = Blue) }
             tabState.SaveableStateProvider(page) {
-            Column(pageMotion(page),verticalArrangement=Arrangement.spacedBy(if(page==0 && !expandedToday) 10.dp else 14.dp)) {
+            Column(pageMotion(page),verticalArrangement=Arrangement.spacedBy(if(page==0 && !expandedToday) 8.dp else 14.dp)) {
             when (page) {
                 0 -> {
                     TodayDate(selected, { selected = it }, { journalDate=selected;journalRequest++;page=5 }, if(!expandedToday && homeSection=="Favourites") ({editHome=true}) else null)
@@ -164,24 +164,24 @@ private fun clock(t: Long?) = t?.let { Instant.ofEpochMilli(it).atZone(ZoneId.sy
                 5 -> JournalPage(journal, habits, days, workouts, onJournal, onHabit, onDeleteJournal, onClearJournal, reminder, onReminder, journalDate, journalRequest)
                 4 -> WorkoutLibrary(workouts, checkIns, restState, maxState, onCheckIn, onImportFit, onConnect, onRemoveWorkout, workoutMessage, importingFit, miles, onMiles)
                 3 -> {
-                    Text("Settings",fontSize=34.sp,fontWeight=FontWeight.Bold)
-                    Text("Your Pulse, your way.",color=Muted,fontSize=14.sp)
+                    PageHeading("Settings","MAKE IT YOURS","Your data, goals and personal style")
                     SettingsSections(settingsSection,{settingsSection=it})
                     if(settingsSection=="Appearance") { AppearancePicker(appearance,onAppearance);CustomColourPicker(appearance,onAppearance) }
                     if(settingsSection=="Overview") {
-                    JournalCard("HEALTH & DEVICES") {
-                        Text("Connect your health data",fontSize=22.sp)
-                        Text("Garmin steps and calories, device sharing, permissions and imports.",fontSize=13.sp)
-                        Button(onClick={page=6},modifier=Modifier.fillMaxWidth()){Text("Connections & imports")}
+                    SettingsMenuRow("Connections & imports","Devices, permissions and sync",R.drawable.symbol_monitoring){page=6}
+                    SettingsMenuRow("Sleep & heart-rate targets","Your sleep goal and heart-rate profile",R.drawable.symbol_bedtime){profile=true}
+                    Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(10.dp)) {
+                        OverviewStat("Step goal",String.format(Locale.getDefault(),"%,d",goals.steps),"Adjust target ›",Modifier.weight(1f)){goalEditor="steps"}
+                        OverviewStat("Calorie goal",goals.activeCalories.toString(),"Active kcal · adjust ›",Modifier.weight(1f)){goalEditor="calories"}
                     }
-                    TextButton(onClick={profile=true}){Text("Sleep & heart-rate targets")}
-                    Row { TextButton(onClick={goalEditor="steps"}){Text("Step goal")};TextButton(onClick={goalEditor="calories"}){Text("Calorie goal")} }
+                    SettingsMenuRow("Colours & accent","Presets or your own custom colour",R.drawable.symbol_settings){settingsSection="Appearance"}
+                    SettingsMenuRow("Arrange Home","Choose and reorder your favourites",R.drawable.symbol_home){editHome=true}
                     }
                     if(settingsSection=="Layout") { OutlinedButton(onClick={editHome=true}){Text("Edit home favourites")};DashboardEditor(preferences,onPreferences) }
                 }
                 6 -> {
                     TextButton(onClick={page=3}){Text("‹ Settings")}
-                    Text("Connections", fontSize = 28.sp, lineHeight = 32.sp, fontWeight = FontWeight.Bold)
+                    PageHeading("Connections","YOUR HEALTH DATA")
                     DataStatusCard(day, sync, onConnect, onHealthSettings, days,onRetry=onSync,onDevice=onSourceApp)
                     SetupCard(onConnect, onSourceApp, onHealthSettings)
                     StepSourceCard(sync,onStepSource)

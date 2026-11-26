@@ -34,14 +34,13 @@ internal enum class TrendMetric(val title:String,val unit:String) {
     var period by rememberSaveable{mutableIntStateOf(7)}
     var menu by remember{mutableStateOf(false)}
     var periodMenu by remember{mutableStateOf(false)}
-    Text("Trends",fontSize=28.sp,fontWeight=FontWeight.Bold)
-    Text("See what is changing over time",color=palette.muted,fontSize=13.sp)
+    PageHeading("Trends","YOUR HISTORY","Patterns across your recorded days")
     TrendOverview(days)
     Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween) {
         Box {OutlinedButton(onClick={menu=true}){Text(metric.title+" ▾")};DropdownMenu(menu,{menu=false}){TrendMetric.entries.forEach{m->DropdownMenuItem(text={Text(m.title)},onClick={metricName=m.name;menu=false})}}}
         if(mode!="Weekly") Box {OutlinedButton(onClick={periodMenu=true}){Text("$period days ▾")};DropdownMenu(periodMenu,{periodMenu=false}){listOf(7,14,30).forEach{n->DropdownMenuItem(text={Text("$n days")},onClick={period=n;periodMenu=false})}}}
     }
-    Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(6.dp)) {listOf("History","Usual range","Weekly").forEach{m->FilterChip(mode==m,{mode=m},label={Text(m,fontSize=12.sp)})}}
+    PulseTabs(listOf("History","Usual range","Weekly"),mode,{mode=it},scrollable=false)
     key(metric,mode,period) {
         Column(pageMotion(Triple(metric,mode,period)),verticalArrangement=Arrangement.spacedBy(12.dp)) {
             if(mode=="Weekly") {

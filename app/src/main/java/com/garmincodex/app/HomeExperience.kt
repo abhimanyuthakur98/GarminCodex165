@@ -28,9 +28,7 @@ import kotlin.math.roundToInt
 
 @Composable internal fun HomeSections(selected:String,onSelect:(String)->Unit) {
     Column(Modifier.testTag("home-sections")) {
-    Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),horizontalArrangement=Arrangement.spacedBy(6.dp)) {
-        listOf("Favourites","Activity","Sleep hub","Vitals","Weekly").forEach { name -> FilterChip(selected==name,{onSelect(name)},label={Text(name,fontSize=12.sp)}) }
-    }
+    PulseTabs(listOf("Favourites","Activity","Sleep hub","Vitals","Weekly"),selected,onSelect)
     }
 }
 
