@@ -65,20 +65,21 @@ internal enum class TrendMetric(val title:String,val unit:String) {
 
     val today=LocalDate.now()
     val dates=remember(endDate,period){(period-1 downTo 0).map{endDate.minusDays(it.toLong())}}
-    val byDate=remember(days){days.associateBy{it.date}}
+    val byDate=remember(days){days.distinctBy{it.date}.associateBy{it.date}}
     val values=remember(byDate,dates,metric){dates.map{byDate[it.toString()]?.let(metric::value)}}
     val bands=remember(days,dates,metric,baseline){dates.map{if(baseline)PersonalBaseline.calculate(days,it,metric::value) else null}}
-    var selected by rememberSaveable(metric,period,baseline){mutableIntStateOf(period-1)}
+    var selected by rememberSaveable(metric,period,baseline,endDate){mutableIntStateOf(period-1)}
     val date=dates[selected]
     val known=values.filterNotNull()
     val range=known+bands.filterNotNull().flatMap{listOf(it.lower,it.upper)}
     val max=(range.maxOrNull() ?: 1.0).coerceAtLeast(1.0)*1.1
     val reveal=chartEntrance()
     Column(Modifier.fillMaxWidth().background(palette.surface,androidx.compose.foundation.shape.RoundedCornerShape(24.dp)).padding(16.dp),verticalArrangement=Arrangement.spacedBy(8.dp)) {
-        Text(metric.format(values[selected]),fontSize=32.sp,fontWeight=FontWeight.Bold,color=Lime)
-        Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween){Text(date.format(DateTimeFormatter.ofPattern("d MMM"))+if(date==today) " · so far" else "",fontSize=12.sp,color=Color.Gray,modifier=Modifier.padding(top=16.dp));TextButton(onClick={onDay(date.toString())},enabled=byDate[date.toString()]!=null){Text("Open day ›")}}
+        Text(metric.format(values[selected]),fontSize=28.sp,fontWeight=FontWeight.Bold,color=Lime)
+        Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween){Text(date.format(DateTimeFormatter.ofPattern("d MMM"))+if(date==today) " · so far" else "",fontSize=12.sp,color=Color.Gray,modifier=Modifier.padding(top=12.dp));TextButton(onClick={onDay(date.toString())},enabled=byDate[date.toString()]!=null){Text("Open day ›")}}
+        Text(metricSource(byDate[date.toString()],metricKind(metric)),fontSize=11.sp,color=palette.muted)
         Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween){Text(metric.unit,fontSize=10.sp,color=Color.Gray);Text("Scale 0–${max.roundToInt()} ${metric.unit}",fontSize=10.sp,color=Color.Gray)}
-        Canvas(Modifier.fillMaxWidth().height(140.dp).semantics{contentDescription="${metric.title} trend chart. Use date slider below."}.pointerInput(period){detectTapGestures{selected=(it.x/size.width*period).toInt().coerceIn(0,period-1)}}) {
+        Canvas(Modifier.fillMaxWidth().height(140.dp).semantics{contentDescription="${metric.title} trend chart. Use date slider below."}.chartScrub(Triple(metric,period,endDate)){selected=chartIndex(it,period)}) {
             val width=size.width/period
             fun y(value:Double)=size.height*(1-value/max).toFloat()
             repeat(4){i->drawLine(Color.White.copy(alpha=.06f),Offset(0f,size.height*i/3),Offset(size.width,size.height*i/3))}
@@ -92,9 +93,13 @@ internal enum class TrendMetric(val title:String,val unit:String) {
             }
         }
         Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween){Text(dates.first().format(DateTimeFormatter.ofPattern("d MMM")),fontSize=11.sp,color=Color.Gray);Text(if(endDate==today)"Today" else endDate.format(DateTimeFormatter.ofPattern("d MMM")),fontSize=11.sp,color=Color.Gray)}
+        Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween) {
+            TextButton(enabled=selected>0,onClick={selected--},modifier=Modifier.semantics{contentDescription="Previous chart day"}){Text("‹ Previous")}
+            TextButton(enabled=selected<dates.lastIndex,onClick={selected++},modifier=Modifier.semantics{contentDescription="Next chart day"}){Text("Next ›")}
+        }
         Slider(selected.toFloat(),{selected=it.roundToInt()},valueRange=0f..(period-1).toFloat(),steps=period-2,modifier=Modifier.semantics{contentDescription="Select trend date"})
         if(baseline) Text(bands[selected]?.let{"Usual: ${metric.format(it.lower)} – ${metric.format(it.upper)}"} ?: "Needs 7 prior recorded days",fontSize=12.sp,color=palette.violet)
         else Text("${known.size}/$period days · average ${metric.format(known.takeIf{it.isNotEmpty()}?.average())}",fontSize=12.sp,color=Color.Gray)
-        ChartExplanation(if(baseline) "Shading is the middle 50% of the preceding 14 days, requiring 7 values. It describes your history, not a clinical healthy range. Missing days remain gaps." else "Tap or slide to inspect a date. Missing days remain gaps; zero values are real records. Only locally imported history appears. Today may be incomplete.")
+        ChartExplanation(if(baseline) "Shading is the middle 50% of the preceding 14 days, requiring 7 values. It describes your history, not a clinical healthy range. Missing days remain gaps." else "Tap, drag horizontally or use the date controls to inspect a date. Missing days remain gaps; zero values are real records. Only locally imported history appears. Today may be incomplete.")
     }
 }

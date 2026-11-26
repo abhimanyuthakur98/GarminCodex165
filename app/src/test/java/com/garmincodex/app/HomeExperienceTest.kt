@@ -53,6 +53,7 @@ class HomeExperienceTest {
         compose.onNodeWithText("12,345").assertExists()
         compose.onNodeWithContentDescription("Previous metric period").performScrollTo().performClick()
         compose.onNodeWithText("12,345").assertDoesNotExist()
+        compose.onNodeWithText("Data source & import status").performScrollTo().performClick()
         compose.onNodeWithText("Not imported yet").assertExists()
         compose.onNodeWithText("Week").performScrollTo().performClick()
         compose.onNodeWithContentDescription("Select trend date").performScrollTo().assertIsDisplayed()

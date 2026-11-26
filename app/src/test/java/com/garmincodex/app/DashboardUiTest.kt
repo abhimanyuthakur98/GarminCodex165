@@ -47,7 +47,7 @@ class DashboardUiTest {
         val days = (0L..10L).map { previewDay(today.minusDays(it).toString()) }
         compose.setContent { PulseTheme { PulseDashboard(days, SyncState(lastSync = System.currentTimeMillis()), DashboardState(), "", null, 480, 190, 55, {}, {}, {}, {}, {}, { _, _, _ -> }, {}, {}, {}, goals = goals, onGoals = { goals = it }) } }
         compose.onNodeWithTag("goal-Steps").performScrollTo().performClick()
-        compose.onNodeWithText("Keep moving.").assertIsDisplayed()
+        compose.onNode(hasText("Steps") and hasAnyAncestor(isDialog())).assertIsDisplayed()
 
         compose.onNodeWithText("Edit goal").performClick()
 
@@ -62,7 +62,7 @@ class DashboardUiTest {
         compose.onNodeWithContentDescription("Select activity hour").performScrollTo().performSemanticsAction(androidx.compose.ui.semantics.SemanticsActions.SetProgress) { it(12f) }
         compose.onNodeWithText("‹ Back").performScrollTo().performClick()
         compose.onNodeWithTag("goal-Calories").performScrollTo().performClick()
-        compose.onNodeWithText("Energy, unpacked.").assertIsDisplayed()
+        compose.onNode(hasText("Active calories") and hasAnyAncestor(isDialog())).assertIsDisplayed()
         compose.onNodeWithText("CALORIE BREAKDOWN").performScrollTo()
         compose.onNode(isDialog()).captureRoboImage("build/screenshots/calories-detail.png")
         compose.onNodeWithText("‹ Back").performScrollTo().performClick()
@@ -71,7 +71,7 @@ class DashboardUiTest {
         compose.onRoot().captureRoboImage("build/screenshots/fitness-age.png")
         compose.onNodeWithText("Today").performClick()
         compose.onNodeWithText("Heart rate").performScrollTo().performClick()
-        compose.onNodeWithText("Every heartbeat.").assertIsDisplayed()
+        compose.onNode(hasText("Heart rate") and hasAnyAncestor(isDialog())).assertIsDisplayed()
         compose.onNodeWithContentDescription("Select heart-rate sample").performScrollTo().performSemanticsAction(androidx.compose.ui.semantics.SemanticsActions.SetProgress) { it(12f) }
         compose.onNode(isDialog()).captureRoboImage("build/screenshots/heart-detail.png")
     }    @Test fun cardGoalAndAgeEditorsSave() {

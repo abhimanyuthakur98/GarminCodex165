@@ -118,33 +118,33 @@ private fun time(t: Long) = Instant.ofEpochMilli(t).atZone(ZoneId.systemDefault(
 
     Dialog(onDismissRequest = onClose, properties = DialogProperties(usePlatformDefaultWidth = false)) {
         Surface(Modifier.fillMaxSize(), color = palette.background) {
-            Column(Modifier.then(pageMotion(kind)).safeDrawingPadding().imePadding().verticalScroll(rememberScrollState()).padding(20.dp), verticalArrangement = Arrangement.spacedBy(20.dp)) {
+            Column(Modifier.then(pageMotion(kind)).safeDrawingPadding().imePadding().verticalScroll(rememberScrollState()).padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 val d=shown
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) { TextButton(onClick = onClose) { Text("‹ Back") }; Caption(d?.date ?: "No imported day"); if (kind == "steps" || kind == "calories") TextButton(onClick = { edit = true }) { Text("Edit goal") } }
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) { TextButton(onClick = onClose) { Text("‹ Back") }; Spacer(Modifier.weight(1f)); if (kind == "steps" || kind == "calories") TextButton(onClick = { edit = true }) { Text("Edit goal") } }
                 if (edit) InlineGoalForm(kind, goals, onGoals) { edit = false }
-                Text(when (kind) { "resting" -> "Resting heart rate"; "hrv" -> "Heart rate variability"; "energy" -> "Total energy"; "hr" -> "Every heartbeat."; "steps" -> "Keep moving."; "calories" -> "Energy, unpacked."; "sleep" -> "Inside your night."; "recovery" -> "Your recovery."; else -> "Your effort." }, fontSize = 34.sp, fontWeight = FontWeight.Bold, lineHeight = 38.sp)
+                Text(detailMetric(kind).title,fontSize=26.sp,fontWeight=FontWeight.Bold)
                 MetricNavigation(selectedDate,{selectedDate=it},range,{range=it})
-                DataFreshness(d,sync,kind)
+                if(range==1) MetricRecordInfo(d,sync,kind)
+                if(range==1) Text(comparisonText(recentComparison(detailHistory,LocalDate.parse(selectedDate),detailMetric(kind)),detailMetric(kind),LocalDate.parse(selectedDate)),fontSize=12.sp,color=Fog)
                 if(range>1) TrendPlot(detailHistory,detailMetric(kind),range,false,{selectedDate=it;range=1},java.time.LocalDate.parse(selectedDate))
                 else when (kind) {
                     "steps", "calories" -> {
                         val steps = kind == "steps"; val color = if (steps) Lime else Orange
-                        Text("Source: "+StepWindows.label(sync.stepSource)+" · via Health Connect",color=Fog,fontSize=12.sp)
                         val showTotal = !steps && d?.activeCalories == null && d?.calories != null
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.Bottom) { Text((if (steps) d?.steps?.toDouble() else if (showTotal) d?.calories else d?.activeCalories)?.roundToInt()?.let { String.format(Locale.US, "%,d", it) } ?: "—", fontSize = 58.sp, fontWeight = FontWeight.Bold, color = color); Text(if (steps) "steps" else if (showTotal) "total kcal" else "active kcal", color = Fog, modifier = Modifier.padding(bottom = 12.dp)) }
                         Text("Daily goal ${if (steps) goals.steps else goals.activeCalories} · tap Edit goal to change", color = Fog, fontSize = 12.sp)
                         if (!steps && d?.activeCalories==null) CalorieRepair(d,sync,onPermissions,onSettings,onSourceApp,onSync)
                         if (!steps) CalorieBreakdown(d)
-                        if (steps) Text("No hourly step limit. Daily totals use the full calendar day to avoid prorating cumulative watch records. For source comparisons and selection, open Settings → Connections & imports → Steps & calories.",color=Fog,fontSize=12.sp)
+                        if (steps) ChartExplanation("Daily totals use the full calendar day. Cumulative records are not spread across hours. Choose your activity source in Settings → Connections & imports.")
                         InsightPanel {
                             Caption("Hourly ${if (steps) "steps" else if (showTotal) "total energy" else "active energy"}")
-                            HourlyChart(HourBucket.decode(d?.hourly ?: ""), steps, color, showTotal)
-                            Text("Tap a bar to inspect its hour. Empty intervals mean no timed record, not zero. Step intervals longer than one hour are omitted here: distributing a cumulative daily total would invent an hourly pattern. The full daily count is still shown above.", color = Fog, fontSize = 11.sp)
+                            HourlyChart(HourBucket.decode(d?.hourly ?: ""), steps, color, showTotal,metricSource(d,kind))
+                            ChartExplanation("Tap or drag across a bar to inspect its time interval. Empty intervals are missing, not zero. Cumulative step records stay in the daily total without an invented hourly breakdown.")
                         }
                     }
                     "resting", "hrv", "energy" -> { val metric=detailMetric(kind);InsightPanel { Caption(metric.title);Text(metric.format(d?.let(metric::value)),fontSize=32.sp);Text("Imported daily measurement",color=Fog) } }
                     "hr" -> { InsightPanel { Caption("Heart rate • tap or scrub"); InteractiveHeart(d) }; HeartPanel(d); InsightPanel { Caption("Resting heart rate & HRV"); Text("Resting HR: ${d?.restingHr?.roundToInt()?.let { "$it bpm" } ?: "Not shared"}"); Text("HRV: ${d?.hrv?.roundToInt()?.let { "$it ms RMSSD" } ?: "Not shared"}"); Text("Imported daily measurements. Availability depends on your device app.",color=Fog,fontSize=12.sp) }; Text("Chart values are five-minute averages; daily low/high use original imported samples. Long gaps are not interpolated.", color = Fog, fontSize = 12.sp) }
-                    "sleep" -> { SleepPanel(d, need, false); InsightPanel { Caption("Stage-by-stage"); val spans = (d?.stages ?: "").split(';').mapNotNull { val p = it.split(','); if (p.size == 3) runCatching { SleepSpan(p[0].toLong(), p[1].toLong(), p[2].toInt()) }.getOrNull() else null }; if (spans.isEmpty()) Text("No sleep-stage records yet.", color = Fog); spans.forEach { s -> Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) { Text("${time(s.start)}–${time(s.end)}", color = Fog, fontSize = 12.sp); Text(when (s.stage) { 5 -> "Deep"; 4 -> "Light"; 6 -> "REM"; 1, 3, 7 -> "Awake"; 2 -> "Asleep"; else -> "Unknown" }, fontSize = 12.sp) } } } }
+                    "sleep" -> { SleepPanel(d,need,false);SleepStageExplorer(d) }
                     "recovery" -> { RecoveryPanel(d); InsightPanel { Caption("How this score is built"); Text("Resting HR: ${d?.restingHr?.roundToInt()?.toString() ?: "Not supplied"} · HRV: ${d?.hrv?.roundToInt()?.toString() ?: "Not supplied"}", color = Fog, fontSize = 12.sp); Text("40% sleep goal completion\n20% sleep efficiency\n40% overnight HR versus your baseline", lineHeight = 27.sp); Text("Requires 3 previous baseline nights. Missing stages or insufficient HR keep the score unavailable. HRV and Body Battery are not fabricated.", color = Fog, fontSize = 12.sp) } }
                     else -> { StrainPanel(d, maximum, resting); InsightPanel { Caption("HR reserve contribution"); Text("Each minute has a zone weight: 0, 1, 2, 3, 5, 8 or 12. Accumulated weighted minutes map onto a bounded 0–21 score.", color = Fog); Text("${d?.coveredMinutes ?: 0} minutes of measured coverage", color = Lime) } }
                 }
@@ -167,18 +167,20 @@ private fun time(t: Long) = Instant.ofEpochMilli(t).atZone(ZoneId.systemDefault(
         if (d?.activeCalories == null) Text("Active energy unavailable. Review the new active-calorie read permission in Connect, then sync. Your device app must also share this category.", color = Orange, fontSize = 12.sp)
     }
 }
-@Composable private fun HourlyChart(hours: List<HourBucket>, steps: Boolean, color: Color, total: Boolean = false) {
+@Composable private fun HourlyChart(hours: List<HourBucket>, steps: Boolean, color: Color, total: Boolean = false,source:String="Health Connect") {
     val palette = LocalPulseStyle.current
     val Fog = palette.muted
 
-    val entrance = chartEntrance()
-    var selected by remember(hours, steps) { mutableIntStateOf(-1) }
+    val entrance = chartEntrance(hours)
+    var selected by remember(hours, steps,total) { mutableIntStateOf(-1) }
     fun value(h: HourBucket) = if (steps) h.steps?.toDouble() else if (total) h.total else h.active
     val data = hours.filter { value(it) != null }
     val peak = data.maxByOrNull { value(it) ?: 0.0 }
     val chosen = hours.getOrNull(selected)
     Text(if (chosen == null) peak?.let { "Most active: ${time(it.start)} · ${value(it)!!.roundToInt()} ${if (steps) "steps" else "kcal"}" } ?: "No hourly records" else "${Instant.ofEpochMilli(chosen.start).atZone(ZoneId.systemDefault()).format(DateTimeFormatter.ofPattern("HH:mm XXX"))} · ${value(chosen)?.roundToInt()?.toString() ?: "No record"} ${if (steps) "steps" else "kcal"}", color = color, fontSize = 14.sp)
-    Canvas(Modifier.fillMaxWidth().height(180.dp).semantics { contentDescription = "Hourly activity chart. Use the hour selector below for accessible values." }.pointerInput(hours, steps) { detectTapGestures { p -> if (hours.isNotEmpty()) selected = (p.x / size.width * hours.size).toInt().coerceIn(hours.indices) } }) {
+    Text(source,color=Fog,fontSize=11.sp)
+    if(chosen!=null) Text("Interval ${time(chosen.start)}–${time(chosen.end)}",color=Fog,fontSize=11.sp)
+    Canvas(Modifier.fillMaxWidth().height(160.dp).semantics { contentDescription = "Hourly activity chart. Use the hour selector below for accessible values." }.chartScrub(Triple(hours,steps,total)){selected=chartIndex(it,hours.size)}) {
         if (hours.isEmpty()) return@Canvas
         val max = (data.maxOfOrNull { value(it) ?: 0.0 } ?: 1.0).coerceAtLeast(1.0); val width = size.width / hours.size
         repeat(4) { drawLine(Color.White.copy(alpha = .05f), Offset(0f, it * size.height / 4), Offset(size.width, it * size.height / 4), 1f) }
@@ -199,7 +201,8 @@ private fun time(t: Long) = Instant.ofEpochMilli(t).atZone(ZoneId.systemDefault(
     var selected by remember(points) { mutableIntStateOf(0) }
     val point = points.getOrNull(selected)
     Text(point?.let { "${it.bpm} bpm  ·  ${time(it.time)}" } ?: "No heart-rate records", color = Mint, fontSize = 28.sp, fontWeight = FontWeight.Bold)
-    Canvas(Modifier.fillMaxWidth().height(220.dp).pointerInput(points) { detectTapGestures { p -> if (points.isNotEmpty()) { val target = points.first().time + (p.x / size.width) * (points.last().time - points.first().time); selected = points.indices.minBy { abs(points[it].time - target) } } } }) {
+    Text("Health Connect · nearest recorded 5-minute average",color=Fog,fontSize=11.sp)
+    Canvas(Modifier.fillMaxWidth().height(180.dp).semantics{contentDescription="Heart-rate chart"}.chartScrub(points) { fraction -> if(points.isNotEmpty()){val target=points.first().time.toDouble()+fraction.toDouble()*(points.last().time-points.first().time);selected=points.indices.minBy{abs(points[it].time-target)}} }) {
         if (points.isEmpty()) return@Canvas
         fun x(p: HrPoint) = (p.time - points.first().time).toFloat() / (points.last().time - points.first().time).coerceAtLeast(1) * size.width
         fun y(p: HrPoint) = size.height * (1 - (p.bpm - 30) / 190f).coerceIn(0f, 1f)

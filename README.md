@@ -1,3 +1,11 @@
+## 0.23.0 — chart inspection and simpler details
+
+Trend, hourly activity and heart-rate charts accept taps and horizontal dragging, while sliders remain available for accessibility. Trend charts add previous/next date buttons and selected-record source labels. Sleep details gain an interactive stage timeline that leaves gaps unclassified and an expandable stage list.
+
+Detail screens use metric titles, tighter spacing and expandable metadata/explanations. Import warnings remain visible when metadata is collapsed. Historical comparisons use at least seven recorded days in the preceding fourteen, exclude duplicates and the selected day, and match the activity source. Today is explicitly partial rather than compared as a completed day. Heart-rate inspection identifies the nearest recorded five-minute average.
+
+Same package and signing identity; install over 0.22.0.
+
 ## 0.22.0 — sync confidence and sleep routine
 
 Partial-import category warnings and failed-attempt status survive reopening. Today, metric details and Connections distinguish saved values from failed refreshes. Connections offers retry/device-app actions and category buttons that route to permission or sharing settings. A successful import clears the last error; clearing imports removes these diagnostics. Source labels describe imported activity, not a claim about the watch's latest sync.
