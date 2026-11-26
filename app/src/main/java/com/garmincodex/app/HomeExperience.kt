@@ -66,7 +66,7 @@ internal fun metricSource(day:ConnectedDay?,kind:String):String = when(kind) {
 @Composable internal fun FavouriteCards(day:ConnectedDay?,sync:SyncState,goals:PersonalGoals,need:Int,onDetail:(String)->Unit,onConnection:()->Unit,history:List<ConnectedDay>,preferences:DashboardPreferences) {
     val prefs=preferences.normalized()
     val cards=prefs.homeOrder.filter{it !in prefs.homeHidden}
-    if(cards.isEmpty()) Text("Your favourites are empty. Tap Edit home to add trackers.",color=LocalPulseStyle.current.muted)
+    if(cards.isEmpty()) Text("Your favourites are empty. Hold here to add cards, or open Settings → Arrange Home.",color=LocalPulseStyle.current.muted)
     var position=0
     while(position<cards.size) {
         val id=cards[position]

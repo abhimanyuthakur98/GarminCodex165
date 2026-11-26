@@ -19,6 +19,8 @@ import java.time.format.DateTimeFormatter
     var expanded by remember(kind){mutableStateOf(false)}
     val p=LocalPulseStyle.current
     Column {
+        Text(metricSource(day,kind),fontSize=11.sp,color=p.primary)
+        Text("Pulse import · "+importStamp(day)+(if(sync.busy)" · refreshing" else ""),fontSize=10.sp,color=p.muted)
         if(!expanded && (sync.lastError.isNotBlank() || unavailableForMetric(sync,kind))) Text("Import needs attention · saved values may be older",fontSize=12.sp,color=p.warm)
         TextButton(onClick={expanded=!expanded},contentPadding=PaddingValues(0.dp)){Text(if(expanded)"Hide data source & import status" else "Data source & import status",fontSize=12.sp)}
         if(expanded) DataFreshness(day,sync,kind)

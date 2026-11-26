@@ -125,14 +125,15 @@ private fun time(t: Long) = Instant.ofEpochMilli(t).atZone(ZoneId.systemDefault(
                 Text(detailMetric(kind).title,fontSize=26.sp,fontWeight=FontWeight.Bold)
                 MetricNavigation(selectedDate,{selectedDate=it},range,{range=it})
                 if(range==1) MetricRecordInfo(d,sync,kind)
-                if(range==1) Text(comparisonText(recentComparison(detailHistory,LocalDate.parse(selectedDate),detailMetric(kind)),detailMetric(kind),LocalDate.parse(selectedDate)),fontSize=12.sp,color=Fog)
-                if(range>1) TrendPlot(detailHistory,detailMetric(kind),range,false,{selectedDate=it;range=1},java.time.LocalDate.parse(selectedDate))
+                val displayMetric=if(kind=="calories" && d?.activeCalories==null && d?.calories!=null)TrendMetric.ENERGY else detailMetric(kind)
+                if(range==1) Text(comparisonText(recentComparison(detailHistory,LocalDate.parse(selectedDate),displayMetric),displayMetric,LocalDate.parse(selectedDate)),fontSize=12.sp,color=Fog)
+                if(range>1) TrendPlot(detailHistory,displayMetric,range,false,{selectedDate=it;range=1},java.time.LocalDate.parse(selectedDate))
                 else when (kind) {
                     "steps", "calories" -> {
                         val steps = kind == "steps"; val color = if (steps) Lime else Orange
                         val showTotal = !steps && d?.activeCalories == null && d?.calories != null
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.Bottom) { Text((if (steps) d?.steps?.toDouble() else if (showTotal) d?.calories else d?.activeCalories)?.roundToInt()?.let { String.format(Locale.US, "%,d", it) } ?: "—", fontSize = 58.sp, fontWeight = FontWeight.Bold, color = color); Text(if (steps) "steps" else if (showTotal) "total kcal" else "active kcal", color = Fog, modifier = Modifier.padding(bottom = 12.dp)) }
-                        Text("Daily goal ${if (steps) goals.steps else goals.activeCalories} · tap Edit goal to change", color = Fog, fontSize = 12.sp)
+                        Text(if(showTotal)"Active goal ${goals.activeCalories} kcal · active calories not shared" else "Daily goal ${if (steps) goals.steps else goals.activeCalories} · tap Edit goal to change", color = Fog, fontSize = 12.sp)
                         if (!steps && d?.activeCalories==null) CalorieRepair(d,sync,onPermissions,onSettings,onSourceApp,onSync)
                         if (!steps) CalorieBreakdown(d)
                         if (steps) ChartExplanation("Daily totals use the full calendar day. Cumulative records are not spread across hours. Choose your activity source in Settings → Connections & imports.")
@@ -148,6 +149,7 @@ private fun time(t: Long) = Instant.ofEpochMilli(t).atZone(ZoneId.systemDefault(
                     "recovery" -> { RecoveryPanel(d); InsightPanel { Caption("How this score is built"); Text("Resting HR: ${d?.restingHr?.roundToInt()?.toString() ?: "Not supplied"} · HRV: ${d?.hrv?.roundToInt()?.toString() ?: "Not supplied"}", color = Fog, fontSize = 12.sp); Text("40% sleep goal completion\n20% sleep efficiency\n40% overnight HR versus your baseline", lineHeight = 27.sp); Text("Requires 3 previous baseline nights. Missing stages or insufficient HR keep the score unavailable. HRV and Body Battery are not fabricated.", color = Fog, fontSize = 12.sp) } }
                     else -> { StrainPanel(d, maximum, resting); InsightPanel { Caption("HR reserve contribution"); Text("Each minute has a zone weight: 0, 1, 2, 3, 5, 8 or 12. Accumulated weighted minutes map onto a bounded 0–21 score.", color = Fog); Text("${d?.coveredMinutes ?: 0} minutes of measured coverage", color = Lime) } }
                 }
+                if(range==1 && kind in setOf("steps","calories","sleep")) DetailWeek(detailHistory,LocalDate.parse(selectedDate),displayMetric){selectedDate=it}
                 Text("Health Connect · ${d?.date ?: "No data"}", color = Fog, fontSize = 10.sp)
             }
         }

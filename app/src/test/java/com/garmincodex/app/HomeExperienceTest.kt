@@ -26,7 +26,8 @@ class HomeExperienceTest {
         var prefs by mutableStateOf(DashboardPreferences())
         val day=previewDay(LocalDate.now().toString())
         compose.setContent{PulseTheme{PulseDashboard(listOf(day),SyncState(lastSync=1),DashboardState(),"",null,480,190,55,{},{},{},{},{},{_,_,_->},{},{},{},preferences=prefs,onPreferences={prefs=it})}}
-        compose.onNodeWithContentDescription("Edit home").performClick()
+        compose.onNodeWithTag("goal-Steps").performTouchInput { longClick() }
+        compose.onNodeWithText("Add or restore cards").performClick()
         compose.onNodeWithContentDescription("Pin Sleep").performClick()
         compose.onNodeWithText("Done").performClick()
         compose.onNodeWithText("Sleep").assertDoesNotExist()

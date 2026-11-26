@@ -62,6 +62,7 @@ private fun clock(t: Long?) = t?.let { Instant.ofEpochMilli(it).atZone(ZoneId.sy
 
     var homeSection by rememberSaveable { mutableStateOf("Favourites") }
     var editHome by rememberSaveable { mutableStateOf(false) }
+    var arrangeHome by rememberSaveable { mutableStateOf(false) }
     var expandedToday by rememberSaveable { mutableStateOf(false) }
     var journalRequest by rememberSaveable { mutableIntStateOf(0) }
     var journalDate by rememberSaveable { mutableStateOf(LocalDate.now().toString()) }
@@ -110,11 +111,11 @@ private fun clock(t: Long?) = t?.let { Instant.ofEpochMilli(it).atZone(ZoneId.sy
             Column(pageMotion(page),verticalArrangement=Arrangement.spacedBy(if(page==0 && !expandedToday) 8.dp else 14.dp)) {
             when (page) {
                 0 -> {
-                    TodayDate(selected, { selected = it }, { journalDate=selected;journalRequest++;page=5 }, if(!expandedToday && homeSection=="Favourites") ({editHome=true}) else null)
+                    TodayDate(selected, { selected = it }, { journalDate=selected;journalRequest++;page=5 })
                     if(!expandedToday) {
                         HomeSections(homeSection,{homeSection=it;scope.launch{scrolls[0].scrollTo(0)}})
                         when(homeSection) {
-                            "Favourites" -> TodaySnapshot(day,sync,goals,needState,{detail=it},{page=6},history=days,preferences=preferences,cacheLoading=cacheLoading)
+                            "Favourites" -> HoldToArrange({arrangeHome=true}) { TodaySnapshot(day,sync,goals,needState,{detail=it},{page=6},history=days,preferences=preferences,cacheLoading=cacheLoading) }
                             "Activity" -> { DataFreshness(day,sync,"activity");ActivityTiles(day,goals,chartEntrance(day?.updatedAt ?: 0L),{detail=it},sync);WeekActivity(days,selected,goals);TimelineCard(day){detail="sleep"};TrainingSummary(workouts) }
                             "Sleep hub" -> SleepHub(day,days,selected,goals,needState,onGoals,sync,{detail="sleep"},{profile=true})
                             "Vitals" -> { DataFreshness(day,sync,"health");VitalGrid(day){detail=it};BaselineCard(days) }
@@ -221,6 +222,7 @@ private fun clock(t: Long?) = t?.let { Instant.ofEpochMilli(it).atZone(ZoneId.sy
     }
     }
     }
+    if(arrangeHome) HomeArrange(preferences,day,onPreferences,{arrangeHome=false;editHome=true}){arrangeHome=false}
     if(editHome) HomeEditor(preferences,onPreferences){editHome=false}
     detail?.let { MetricDetails(it, day, goals, needState, maxState, restState, onGoals, sync, onConnect, onHealthSettings, onSourceApp, onSync,history=if(preview)listOfNotNull(day) else days,initialDate=selected) { detail = null } }
     goalEditor?.let { GoalEditor(it, goals, { goalEditor = null }, onGoals) }

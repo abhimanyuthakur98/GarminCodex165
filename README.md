@@ -1,3 +1,9 @@
+## 0.27.0 — hold to arrange and clearer detail screens
+
+Hold a Home card to enter a visual arrangement mode with wiggling card previews, a lifted drag preview, edge scrolling, hide controls, and Done. Steps and calories remain paired. Drop saves the new order; cancelling a drag preserves it. Accessible move actions and Settings' list editor remain available; hidden cards can be restored. The pencil shortcut is removed.
+
+Metric details keep source and Pulse import time visible, and steps/calories/sleep gain a seven-day strip with direct day navigation. Missing records remain gaps; activity strips use the selected record's source. Total-energy fallback uses total-energy comparisons and clearly separates the active goal. No device sync timestamp is invented. Same package and signing identity as 0.26.0.
+
 ## 0.26.0 — colourful cards and icon categories
 
 Home categories use five accessible icon tabs; Edit home and Journal use labelled icon buttons. Summary cards have brighter surfaces and accent borders to separate them from the background. Activity cards share equal dimensions, stronger accent gradients and readable goal states; sleep gains a richer violet tint. Calories prefer recorded active energy, then show explicitly labelled total energy when active energy is unavailable. Total energy never advances or celebrates the active-calorie goal. Missing data still links to sharing and permission diagnostics. Garmin source filtering is preserved.
