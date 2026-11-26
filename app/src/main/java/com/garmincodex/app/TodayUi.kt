@@ -32,7 +32,7 @@ private val Lavender=Color(0xFFC0AFF5)
         Column(Modifier.weight(1f)) {
             Text("pulse",fontSize=20.sp,fontWeight=FontWeight.Bold,letterSpacing=(-1).sp,modifier=Modifier.semantics{contentDescription="Pulse 165"})
             val imported=if(lastSync>0) Instant.ofEpochMilli(lastSync).atZone(ZoneId.systemDefault()) else null
-            Text(if(busy) phase.ifEmpty{"Preparing refresh…"} else imported?.let{"Updated "+it.format(DateTimeFormatter.ofPattern(if(it.toLocalDate()==LocalDate.now()) "HH:mm" else "d MMM · HH:mm"))} ?: "Your health, together",fontSize=10.sp,color=palette.muted)
+            Text(if(busy) (if(lastSync>0) "Refreshing · saved stats available" else "Importing health data…") else imported?.let{"Updated "+it.format(DateTimeFormatter.ofPattern(if(it.toLocalDate()==LocalDate.now()) "HH:mm" else "d MMM · HH:mm"))} ?: "Your health, together",fontSize=10.sp,color=palette.muted)
         }
         IconButton(onClick=onSync,enabled=!busy,modifier=Modifier.semantics{contentDescription=if(busy) "Syncing health data" else "Sync health data"}) {
             Icon(painterResource(R.drawable.symbol_refresh),null,tint=if(busy)palette.muted.copy(alpha=.4f) else palette.muted,modifier=Modifier.size(22.dp))
@@ -66,7 +66,7 @@ private val Lavender=Color(0xFFC0AFF5)
 
     Column(modifier.fillMaxWidth().clip(RoundedCornerShape(24.dp)).background(palette.surface).clickable(role=Role.Button,onClick=onClick).padding(16.dp),verticalArrangement=Arrangement.spacedBy(8.dp),content=content)
 }
-@Composable internal fun TodaySnapshot(day:ConnectedDay?,sync:SyncState,goals:PersonalGoals,sleepNeed:Int,onDetail:(String)->Unit,onConnection:()->Unit,history:List<ConnectedDay> = emptyList(),preferences:DashboardPreferences=DashboardPreferences()) {
+@Composable internal fun TodaySnapshot(day:ConnectedDay?,sync:SyncState,goals:PersonalGoals,sleepNeed:Int,onDetail:(String)->Unit,onConnection:()->Unit,history:List<ConnectedDay> = emptyList(),preferences:DashboardPreferences=DashboardPreferences(),cacheLoading:Boolean=false) {
     val palette = LocalPulseStyle.current
     val Lime = palette.primary
     val Orange = palette.warm
@@ -74,6 +74,12 @@ private val Lavender=Color(0xFFC0AFF5)
     val Mint = palette.primary
     val Lavender = palette.violet
 
+    if(cacheLoading && day==null) {
+        Column(Modifier.fillMaxWidth().background(palette.surface,RoundedCornerShape(20.dp)).padding(20.dp)) {
+            Text("Loading saved health data…",fontSize=16.sp,fontWeight=FontWeight.Medium)
+            Text("Your dashboard will appear here",fontSize=12.sp,color=Soft)
+        };return
+    }
     val needsAttention=listOf("Sync interrupted", "Health access changed", "Health Connect is unavailable", "Allow Pulse", "Could not revoke").any{sync.message.startsWith(it)}
     if(!sync.busy && (needsAttention || sync.lastError.isNotBlank() || sync.unavailable.isNotEmpty())) TextButton(onClick=onConnection){Text("Sync needs attention · review connection ›",color=Orange,fontSize=12.sp)}
     if(day==null || day.hrCount==0 && day.asleep==null && day.steps==null && day.activeCalories==null && day.recovery==null) {

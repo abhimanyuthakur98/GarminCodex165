@@ -1,3 +1,9 @@
+## 0.24.0 — everyday polish
+
+Saved health history starts loading with the ViewModel and remains cached while it lives. Sync progress updates no longer remap that history; only database or activity-source changes do. The initial local-read state is distinct from an empty account, and a same-day foreground refresh already in progress is not queued again. New-day follow-up refreshes remain supported. Refresh wording stays steady while saved stats remain usable.
+
+Home adds one concise activity takeaway that respects missing records and failed imports. Favourites use animated lazy rows, a 48dp drag handle and measured row heights for larger text. Back from a Home category returns to favourites. Existing package, signing key, settings and Garmin preference are preserved. These reduce unnecessary work; no physical-device startup timing claim is made.
+
 ## 0.23.0 — chart inspection and simpler details
 
 Trend, hourly activity and heart-rate charts accept taps and horizontal dragging, while sliders remain available for accessibility. Trend charts add previous/next date buttons and selected-record source labels. Sleep details gain an interactive stage timeline that leaves gaps unclassified and an expandable stage list.

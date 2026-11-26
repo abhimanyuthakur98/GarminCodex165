@@ -3,6 +3,9 @@ package com.garmincodex.app
 import androidx.compose.foundation.*
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -10,6 +13,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.*
@@ -61,8 +65,11 @@ internal fun metricSource(day:ConnectedDay?,kind:String):String = when(kind) {
         if(id in setOf("activity","sleep","week")) {
             when(id) {
                 "activity" -> {
-                    Text("Daily activity",fontWeight=FontWeight.SemiBold)
-                    ActivityTiles(day,goals,chartEntrance(day?.updatedAt ?: 0L),onDetail,sync)
+                    Column(verticalArrangement=Arrangement.spacedBy(3.dp)) {
+                        Text("Daily activity",fontWeight=FontWeight.SemiBold)
+                        Text(dailyTakeaway(day,sync,goals),fontSize=12.sp,color=LocalPulseStyle.current.muted)
+                    }
+                    ActivityTiles(day,goals,chartEntrance(day?.date ?: ""),onDetail,sync)
                     ActivityImportStatus(day,sync,onConnection)
                 }
                 "sleep" -> SleepHero(day,need,compact=true){onDetail("sleep")}
@@ -94,27 +101,30 @@ internal fun metricSource(day:ConnectedDay?,kind:String):String = when(kind) {
     val latest by rememberUpdatedState(prefs)
     val save by rememberUpdatedState(onSave)
     val rowHeight=with(LocalDensity.current){64.dp.toPx()}
+    var draggingId by remember{mutableStateOf<String?>(null)}
+    val listState=rememberLazyListState()
     Dialog(onDismissRequest=onClose,properties=DialogProperties(usePlatformDefaultWidth=false)) {
         Surface(Modifier.fillMaxSize().safeDrawingPadding(),color=p.background) {
             Column(Modifier.padding(20.dp)) {
                 Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically){Text("Edit home",fontSize=26.sp,fontWeight=FontWeight.Bold,modifier=Modifier.weight(1f));TextButton(onClick=onClose){Text("Done")}}
                 Text("Choose your favourites. Hold and drag a handle to reorder, or use the arrows. Changes save immediately.",fontSize=12.sp,color=p.muted)
-                Column(Modifier.weight(1f).verticalScroll(rememberScrollState())) {
-                    prefs.homeOrder.forEachIndexed { index,id -> key(id) {
-                        Row(Modifier.fillMaxWidth().heightIn(min=64.dp).testTag("home-row-$id"),verticalAlignment=Alignment.CenterVertically) {
-                            Text("≡",modifier=Modifier.padding(8.dp).semantics{contentDescription="Drag ${DashboardPreferences.homeName(id)}"}.pointerInput(id){
+                LazyColumn(Modifier.weight(1f).testTag("home-favourites-list"),state=listState) {
+                    itemsIndexed(prefs.homeOrder,key={_,id->id}) { index,id ->
+                        var measuredHeight by remember(id){mutableFloatStateOf(rowHeight)}
+                        Row(Modifier.animateItem().fillMaxWidth().heightIn(min=64.dp).onSizeChanged{measuredHeight=it.height.toFloat()}.background(if(draggingId==id)p.primary.copy(alpha=.12f) else androidx.compose.ui.graphics.Color.Transparent,RoundedCornerShape(12.dp)).testTag("home-row-$id"),verticalAlignment=Alignment.CenterVertically) {
+                            Text("≡",modifier=Modifier.size(48.dp).semantics{contentDescription="Drag ${DashboardPreferences.homeName(id)}"}.pointerInput(id){
                                 var travel=0f
-                                detectDragGesturesAfterLongPress(onDragStart={travel=0f},onDragEnd={travel=0f},onDragCancel={travel=0f}) { change,amount ->
+                                detectDragGesturesAfterLongPress(onDragStart={travel=0f;draggingId=id},onDragEnd={travel=0f;draggingId=null},onDragCancel={travel=0f;draggingId=null}) { change,amount ->
                                     change.consume();travel+=amount.y
-                                    if(kotlin.math.abs(travel)>=rowHeight){save(latest.moveHome(id,if(travel>0)1 else -1));travel=0f}
+                                    if(kotlin.math.abs(travel)>=measuredHeight){val direction=if(travel>0)1 else -1;save(latest.moveHome(id,direction));travel-=direction*measuredHeight}
                                 }
-                            },color=p.muted)
+                            }.wrapContentSize(Alignment.Center),color=p.muted)
                             Checkbox(id !in prefs.homeHidden,{visible->onSave(prefs.copy(homeHidden=if(visible)prefs.homeHidden-id else prefs.homeHidden+id))},modifier=Modifier.semantics{contentDescription="Pin ${DashboardPreferences.homeName(id)}"})
                             Text(DashboardPreferences.homeName(id),modifier=Modifier.weight(1f),fontSize=12.sp)
                             IconButton(enabled=index>0,onClick={onSave(prefs.moveHome(id,-1))},modifier=Modifier.semantics{contentDescription="Move favourite ${DashboardPreferences.homeName(id)} up"}){Text("↑")}
                             IconButton(enabled=index<prefs.homeOrder.lastIndex,onClick={onSave(prefs.moveHome(id,1))},modifier=Modifier.semantics{contentDescription="Move favourite ${DashboardPreferences.homeName(id)} down"}){Text("↓")}
                         }
-                    } }
+                    }
                 }
                 TextButton(onClick={onSave(prefs.copy(homeOrder=DashboardPreferences.HOME_CARDS,homeHidden=emptySet()))}){Text("Reset favourites")}
             }

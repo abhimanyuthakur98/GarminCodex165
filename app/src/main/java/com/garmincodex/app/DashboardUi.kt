@@ -48,7 +48,7 @@ private fun clock(t: Long?) = t?.let { Instant.ofEpochMilli(it).atZone(ZoneId.sy
 @OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 @Composable fun PulseDashboard(days: List<ConnectedDay>, sync: SyncState, live: DashboardState, connection: String, message: String?, sleepNeed: Int, maximumHr: Int, restingHr: Int,
     onConnect: () -> Unit, onSync: () -> Unit, onHealthSettings: () -> Unit, onSourceApp: () -> Unit, onBackground: () -> Unit,
-    onProfile: (Int, Int, Int) -> Unit, onClear: () -> Unit, onLive: () -> Unit, onStop: () -> Unit, goals: PersonalGoals = PersonalGoals(), onGoals: (PersonalGoals) -> Unit = {}, preferences: DashboardPreferences = DashboardPreferences(), onPreferences: (DashboardPreferences) -> Unit = {}, workouts: List<Workout> = emptyList(), checkIns: List<WorkoutCheckIn> = emptyList(), onCheckIn: (WorkoutCheckIn) -> Unit = {}, onImportFit: () -> Unit = {}, onRemoveWorkout: (String) -> Unit = {}, workoutMessage: String? = null, importingFit: Boolean = false, journal: List<JournalEntry> = emptyList(), habits: List<HabitTag> = emptyList(), onJournal: (JournalEntry) -> Unit = {}, onHabit: (HabitTag) -> Unit = {}, onDeleteJournal: (String) -> Unit = {}, onClearJournal: () -> Unit = {}, reminder: JournalReminder = JournalReminder(), onReminder: (JournalReminder) -> Unit = {}, miles: Boolean = false, onMiles: (Boolean) -> Unit = {}, onDismissMessage: () -> Unit = {}, onStepSource:(String)->Unit = {}, appearance:PulseStyle=PulseStyle.NEON_CYAN, onAppearance:(PulseStyle)->Unit = {}, onHistorySync:()->Unit = onSync,foregroundRequest:Int=0,foregroundDate:String=LocalDate.now().toString()) {
+    onProfile: (Int, Int, Int) -> Unit, onClear: () -> Unit, onLive: () -> Unit, onStop: () -> Unit, goals: PersonalGoals = PersonalGoals(), onGoals: (PersonalGoals) -> Unit = {}, preferences: DashboardPreferences = DashboardPreferences(), onPreferences: (DashboardPreferences) -> Unit = {}, workouts: List<Workout> = emptyList(), checkIns: List<WorkoutCheckIn> = emptyList(), onCheckIn: (WorkoutCheckIn) -> Unit = {}, onImportFit: () -> Unit = {}, onRemoveWorkout: (String) -> Unit = {}, workoutMessage: String? = null, importingFit: Boolean = false, journal: List<JournalEntry> = emptyList(), habits: List<HabitTag> = emptyList(), onJournal: (JournalEntry) -> Unit = {}, onHabit: (HabitTag) -> Unit = {}, onDeleteJournal: (String) -> Unit = {}, onClearJournal: () -> Unit = {}, reminder: JournalReminder = JournalReminder(), onReminder: (JournalReminder) -> Unit = {}, miles: Boolean = false, onMiles: (Boolean) -> Unit = {}, onDismissMessage: () -> Unit = {}, onStepSource:(String)->Unit = {}, appearance:PulseStyle=PulseStyle.NEON_CYAN, onAppearance:(PulseStyle)->Unit = {}, onHistorySync:()->Unit = onSync,foregroundRequest:Int=0,foregroundDate:String=LocalDate.now().toString(),cacheLoading:Boolean=false) {
     val palette = LocalPulseStyle.current
     val Lime = palette.primary
     val Orange = palette.warm
@@ -82,11 +82,12 @@ private fun clock(t: Long?) = t?.let { Instant.ofEpochMilli(it).atZone(ZoneId.sy
     val focusManager=androidx.compose.ui.platform.LocalFocusManager.current
     val notices=remember{SnackbarHostState()}
     LaunchedEffect(message){if(message!=null){notices.showSnackbar(message,withDismissAction=true,duration=SnackbarDuration.Long);onDismissMessage()}}
-    BackHandler(enabled=page!=0 || expandedToday || preview) {
+    BackHandler(enabled=page!=0 || expandedToday || preview || homeSection!="Favourites") {
         if(page==6) page=3
         else if(page==3) page=settingsReturnPage
         else if(page!=0) {page=0;expandedToday=false}
         else if(expandedToday) expandedToday=false
+        else if(homeSection!="Favourites") homeSection="Favourites"
         else preview=false
         scope.launch{scrolls[0].scrollTo(0)}
     }
@@ -113,7 +114,7 @@ private fun clock(t: Long?) = t?.let { Instant.ofEpochMilli(it).atZone(ZoneId.sy
                     if(!expandedToday) {
                         HomeSections(homeSection,{homeSection=it;scope.launch{scrolls[0].scrollTo(0)}})
                         when(homeSection) {
-                            "Favourites" -> TodaySnapshot(day,sync,goals,needState,{detail=it},{page=6},history=days,preferences=preferences)
+                            "Favourites" -> TodaySnapshot(day,sync,goals,needState,{detail=it},{page=6},history=days,preferences=preferences,cacheLoading=cacheLoading)
                             "Activity" -> { DataFreshness(day,sync,"activity");ActivityTiles(day,goals,chartEntrance(day?.updatedAt ?: 0L),{detail=it},sync);WeekActivity(days,selected,goals);TimelineCard(day){detail="sleep"};TrainingSummary(workouts) }
                             "Sleep hub" -> SleepHub(day,days,selected,goals,needState,onGoals,sync,{detail="sleep"},{profile=true})
                             "Vitals" -> { DataFreshness(day,sync,"health");VitalGrid(day){detail=it};BaselineCard(days) }

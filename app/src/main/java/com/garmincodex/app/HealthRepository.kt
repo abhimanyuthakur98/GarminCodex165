@@ -81,15 +81,17 @@ class DashboardViewModel(private val repo: HealthRepository, val sync: HealthCon
             finally { importingFit.value=false }
         }
     }
-    val connected = kotlinx.coroutines.flow.combine(dao.connected(),sync.status) { days,state -> days.map { ActivitySource.matching(it,state.stepSource) } }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+    val connected = cachedHealth(dao.connected(),sync.status).flowOn(Dispatchers.Default).stateIn(viewModelScope, SharingStarted.Eagerly, CachedHealth())
     val syncStatus = sync.status.asStateFlow()
     private var syncJob: Job? = null
     private var dayRefreshJob: Job? = null
+    private var refreshDate:String? = null
     fun refreshCurrentDay() {
+        if(syncJob?.isActive==true && refreshDate==LocalDate.now().toString())return
         if(dayRefreshJob?.isActive==true)return
         dayRefreshJob=viewModelScope.launch { syncJob?.join();refresh() }
     }
-    fun refresh(fullHistory:Boolean=false,onFinished: ((Boolean) -> Unit)? = null) { if (syncJob?.isActive == true) return; syncJob = viewModelScope.launch { val success=sync.sync(fullHistory);onFinished?.invoke(success) } }
+    fun refresh(fullHistory:Boolean=false,onFinished: ((Boolean) -> Unit)? = null) { if (syncJob?.isActive == true) return; refreshDate=LocalDate.now().toString();syncJob = viewModelScope.launch { val success=sync.sync(fullHistory);onFinished?.invoke(success) } }
     fun clearImported() { viewModelScope.launch { sync.clear() } }
     val state = repo.state.asStateFlow()
     val history = repo.history.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())

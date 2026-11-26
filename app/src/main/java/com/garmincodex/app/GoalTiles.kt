@@ -81,7 +81,7 @@ import kotlin.math.roundToInt
     val complete=day?.asleep?.let{it>=need && need>0} ?: false
     val spans=remember(day?.stages){day?.stages.orEmpty().split(';').mapNotNull { row -> val a=row.split(',');if(a.size==3)runCatching{SleepSpan(a[0].toLong(),a[1].toLong(),a[2].toInt())}.getOrNull() else null }}
     val colours=listOf(Color(0xFF8F75E8),colour,LocalPulseStyle.current.secondary,LocalPulseStyle.current.warm)
-    val reveal=chartEntrance(day?.updatedAt ?: 0L)
+    val reveal=chartEntrance(day?.date ?: "")
     fun stamp(t:Long?)=t?.let{Instant.ofEpochMilli(it).atZone(ZoneId.systemDefault()).format(DateTimeFormatter.ofPattern("HH:mm"))} ?: "—"
     Box(Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(LocalPulseStyle.current.surface)) {
         Column(Modifier.padding(if(compact)14.dp else 16.dp),verticalArrangement=Arrangement.spacedBy(if(compact)4.dp else 8.dp)) {
