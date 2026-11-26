@@ -174,7 +174,7 @@ internal fun detailMetric(kind:String):TrendMetric=when(kind){"steps"->TrendMetr
 @Composable internal fun ActivityImportStatus(day:ConnectedDay?,sync:SyncState,onConnection:()->Unit) {
     val p=LocalPulseStyle.current
     val missing=day?.steps==null || day.activeCalories==null
-    TextButton(onClick=onConnection,contentPadding=PaddingValues(horizontal=0.dp,vertical=4.dp)) {
+    TextButton(onClick=onConnection,contentPadding=PaddingValues(horizontal=8.dp,vertical=4.dp)) {
         Column(Modifier.fillMaxWidth(),verticalArrangement=Arrangement.spacedBy(2.dp)) {
             Text(if(day==null || day.activitySource=="legacy") "Activity source not confirmed ›" else StepWindows.label(day.activitySource)+" · via Health Connect ›",fontSize=11.sp,color=p.muted)
             Text(if(sync.busy) "Refreshing · showing saved records" else if(sync.lastError.isNotBlank()) "Last refresh failed · review connection" else if(unavailableForMetric(sync,"activity")) "Partial import · saved values may be older" else if(missing) "Missing activity · review sharing" else importStamp(day),fontSize=10.sp,color=if(missing || sync.lastError.isNotBlank() || unavailableForMetric(sync,"activity"))p.warm else p.muted)

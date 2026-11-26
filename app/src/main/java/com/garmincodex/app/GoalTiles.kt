@@ -64,9 +64,9 @@ import kotlin.math.roundToInt
 @Composable internal fun ActivityTiles(day:ConnectedDay?,goals:PersonalGoals,reveal:Float,onDetail:(String)->Unit,sync:SyncState) {
     val p=LocalPulseStyle.current
 
-    Row(Modifier.fillMaxWidth().height(IntrinsicSize.Max),horizontalArrangement=Arrangement.spacedBy(8.dp)) {
-        GoalTile("Steps",day?.steps?.toDouble(),goals.steps,"steps",p.primary,R.drawable.symbol_directions_walk,day?.date ?: "","goal-Steps",reveal,Modifier.weight(1f).fillMaxHeight(),{onDetail("steps")})
-        GoalTile("Calories",day?.activeCalories,goals.activeCalories,"active kcal",p.warm,R.drawable.symbol_local_fire_department,day?.date ?: "","goal-Calories",reveal,Modifier.weight(1f).fillMaxHeight(),{onDetail("calories")}) {
+    Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(8.dp)) {
+        GoalTile("Steps",day?.steps?.toDouble(),goals.steps,"steps",p.primary,R.drawable.symbol_directions_walk,day?.date ?: "","goal-Steps",reveal,Modifier.weight(1f),{onDetail("steps")})
+        GoalTile("Calories",day?.activeCalories,goals.activeCalories,"active kcal",p.warm,R.drawable.symbol_local_fire_department,day?.date ?: "","goal-Calories",reveal,Modifier.weight(1f),{onDetail("calories")}) {
             if(day?.activeCalories==null) {
                 day?.calories?.let { Text("Total calories",fontSize=10.sp);Text("${it.roundToInt()} kcal",fontSize=12.sp) }
                 Text(if(activeCaloriesAllowed(sync)) "Active goal unavailable · Fix ›" else "Allow active calories · Fix ›",fontSize=10.sp)
