@@ -42,7 +42,7 @@ internal fun DashboardPreferences.placeHome(id:String,target:String):DashboardPr
         customActions=listOf(CustomAccessibilityAction("Arrange Home"){arrange();true})
     }.pointerInput(Unit) {
         awaitEachGesture {
-            val down=awaitFirstDown(requireUnconsumed=false,pass=PointerEventPass.Initial)
+            val down=awaitFirstDown(requireUnconsumed=false)
             if(awaitLongPressOrCancellation(down.id)!=null) {
                 haptic.performHapticFeedback(HapticFeedbackType.LongPress);arrange()
                 do {
