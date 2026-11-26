@@ -23,7 +23,7 @@ class CalorieRepairTest {
   compose.onNode(hasText("2,100") and hasAnyAncestor(hasTestTag("goal-Calories")),useUnmergedTree=true).assertExists()
   compose.onNodeWithText("total kcal · active + resting").performScrollTo().assertIsDisplayed()
   compose.onNodeWithContentDescription("Celebrate Calories goal").assertDoesNotExist()
-  compose.onNodeWithText("Allow active calories ›").performClick()
+  compose.onNodeWithText("Allow active calories ›").performScrollTo().assertIsDisplayed().performClick()
   compose.onNodeWithText("Pulse needs read access").performScrollTo().assertIsDisplayed()
   compose.onNodeWithText("1 · Review Pulse access").performScrollTo().performClick()
   compose.onNodeWithText("No active-calorie record for this day").performScrollTo().assertIsDisplayed()
