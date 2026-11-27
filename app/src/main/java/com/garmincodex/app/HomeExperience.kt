@@ -96,7 +96,7 @@ internal fun metricSource(day:ConnectedDay?,kind:String):String = when(kind) {
     }
 }
 
-@Composable private fun FavouriteStat(id:String,day:ConnectedDay?,modifier:Modifier,onDetail:(String)->Unit) {
+@Composable internal fun FavouriteStat(id:String,day:ConnectedDay?,modifier:Modifier,onDetail:(String)->Unit) {
     val kind=if(id=="heart")"hr" else id
     val metric=detailMetric(kind)
     val value=day?.let(metric::value)

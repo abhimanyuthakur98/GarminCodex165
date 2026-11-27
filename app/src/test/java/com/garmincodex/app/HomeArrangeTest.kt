@@ -26,15 +26,18 @@ class HomeArrangeTest {
         val day=previewDay(LocalDate.now().toString()).copy(activitySource=ActivitySource.GARMIN)
         compose.setContent { PulseTheme { PulseDashboard(listOf(day),SyncState(lastSync=1),DashboardState(),"",null,480,190,55,{},{},{},{},{},{_,_,_->},{},{},{},preferences=prefs,onPreferences={prefs=it}) } }
         compose.onNodeWithContentDescription("Edit home").assertDoesNotExist()
+        val homeWidth=compose.onNodeWithTag("card-Steps").fetchSemanticsNode().boundsInRoot.width
         compose.onNodeWithTag("goal-Steps").performTouchInput { longClick() }
         compose.onNodeWithText("Arrange Home").assertIsDisplayed()
         compose.onNodeWithText("Edit goal").assertDoesNotExist()
+        val editWidth=compose.onNode(hasTestTag("card-Steps") and hasAnyAncestor(isDialog()),useUnmergedTree=true).fetchSemanticsNode().boundsInRoot.width
+        assertTrue(kotlin.math.abs(homeWidth-editWidth)<8f)
         compose.onNode(isDialog()).captureRoboImage("build/screenshots/arrange-home.png")
         val grid=compose.onNodeWithTag("arrange-grid")
         val origin=grid.fetchSemanticsNode().boundsInRoot.topLeft
         val first=compose.onNodeWithTag("arrange-activity").fetchSemanticsNode().boundsInRoot.center-origin
         val second=compose.onNodeWithTag("arrange-sleep").fetchSemanticsNode().boundsInRoot.center-origin
-        grid.performTouchInput { swipe(first,second,600) }
+        grid.performTouchInput { down(first);advanceEventTime(700);moveTo(second,600);up() }
         compose.runOnIdle { assertEquals("sleep",prefs.homeOrder.first()) }
         compose.onNodeWithContentDescription("Hide Sleep").performClick()
         compose.runOnIdle { assertTrue("sleep" in prefs.homeHidden) }
@@ -48,7 +51,7 @@ class HomeArrangeTest {
         val grid=compose.onNodeWithTag("arrange-grid")
         val origin=grid.fetchSemanticsNode().boundsInRoot.topLeft
         val first=compose.onNodeWithTag("arrange-activity").fetchSemanticsNode().boundsInRoot.center-origin
-        grid.performTouchInput { down(first);moveBy(Offset(60f,0f));cancel() }
+        grid.performTouchInput { down(first);advanceEventTime(700);moveBy(Offset(60f,0f));cancel() }
         compose.runOnIdle { assertEquals(DashboardPreferences.HOME_CARDS,prefs.homeOrder) }
     }
 
@@ -59,7 +62,20 @@ class HomeArrangeTest {
         val origin=grid.fetchSemanticsNode().boundsInRoot.topLeft
         val from=compose.onNodeWithTag("arrange-activity").fetchSemanticsNode().boundsInRoot.center-origin
         val to=compose.onNodeWithTag("arrange-recovery").fetchSemanticsNode().boundsInRoot.center-origin
-        grid.performTouchInput { swipe(from,to,600) }
+        grid.performTouchInput { down(from);advanceEventTime(700);moveTo(to,600);up() }
         compose.runOnIdle { assertEquals("activity",prefs.homeOrder[2]) }
+    }
+
+    @Test fun swipingOnACardScrollsWithoutReordering() {
+        var prefs by mutableStateOf(DashboardPreferences())
+        compose.setContent { PulseTheme { HomeArrange(prefs,previewDay(LocalDate.now().toString()),{prefs=it},{},{}) } }
+        val grid=compose.onNodeWithTag("arrange-grid")
+        val origin=grid.fetchSemanticsNode().boundsInRoot.topLeft
+        val from=compose.onNodeWithTag("arrange-sleep").fetchSemanticsNode().boundsInRoot.center-origin
+        val before=grid.fetchSemanticsNode().config[androidx.compose.ui.semantics.SemanticsProperties.VerticalScrollAxisRange].value()
+        grid.performTouchInput { swipe(from,Offset(from.x,30f),300) }
+        val after=grid.fetchSemanticsNode().config[androidx.compose.ui.semantics.SemanticsProperties.VerticalScrollAxisRange].value()
+        assertTrue("Swipe on the sleep card must scroll",after>before)
+        compose.runOnIdle { assertEquals(DashboardPreferences.HOME_CARDS,prefs.homeOrder) }
     }
 }

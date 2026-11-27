@@ -222,7 +222,7 @@ private fun clock(t: Long?) = t?.let { Instant.ofEpochMilli(it).atZone(ZoneId.sy
     }
     }
     }
-    if(arrangeHome) HomeArrange(preferences,day,onPreferences,{arrangeHome=false;editHome=true}){arrangeHome=false}
+    if(arrangeHome) HomeArrange(preferences,day,onPreferences,{arrangeHome=false;editHome=true},{arrangeHome=false},goals,needState,sync,days)
     if(editHome) HomeEditor(preferences,onPreferences){editHome=false}
     detail?.let { MetricDetails(it, day, goals, needState, maxState, restState, onGoals, sync, onConnect, onHealthSettings, onSourceApp, onSync,history=if(preview)listOfNotNull(day) else days,initialDate=selected) { detail = null } }
     goalEditor?.let { GoalEditor(it, goals, { goalEditor = null }, onGoals) }

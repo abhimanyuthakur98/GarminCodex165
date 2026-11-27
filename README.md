@@ -1,3 +1,9 @@
+## 0.28.0 — natural scrolling and full-size arrangement cards
+
+Swipe directly over cards to scroll in Arrange Home. Reordering starts only after holding a card; a normal swipe never saves a new order. The editor renders the same activity, sleep, weekly and health-stat components as Home, with matching horizontal spacing and full-/half-width layout. It receives the saved goals, sleep target, sync state and history, so previews match the dashboard. A touch shield prevents opening details while arranging without blocking scrolling.
+
+Same application ID and signing identity; install over 0.27.0.
+
 ## 0.27.0 — hold to arrange and clearer detail screens
 
 Hold a Home card to enter a visual arrangement mode with wiggling card previews, a lifted drag preview, edge scrolling, hide controls, and Done. Steps and calories remain paired. Drop saves the new order; cancelling a drag preserves it. Accessible move actions and Settings' list editor remain available; hidden cards can be restored. The pencil shortcut is removed.

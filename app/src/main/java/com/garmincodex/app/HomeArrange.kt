@@ -54,7 +54,7 @@ internal fun DashboardPreferences.placeHome(id:String,target:String):DashboardPr
     },verticalArrangement=Arrangement.spacedBy(8.dp),content=content)
 }
 
-@Composable internal fun HomeArrange(preferences:DashboardPreferences,day:ConnectedDay?,onSave:(DashboardPreferences)->Unit,onManage:()->Unit,onClose:()->Unit) {
+@Composable internal fun HomeArrange(preferences:DashboardPreferences,day:ConnectedDay?,onSave:(DashboardPreferences)->Unit,onManage:()->Unit,onClose:()->Unit,goals:PersonalGoals=PersonalGoals(),sleepNeed:Int=480,sync:SyncState=SyncState(),history:List<ConnectedDay> = emptyList()) {
     val p=LocalPulseStyle.current
     val prefs=preferences.normalized()
     val latest by rememberUpdatedState(prefs)
@@ -90,13 +90,16 @@ internal fun DashboardPreferences.placeHome(id:String,target:String):DashboardPr
                     Text("Arrange Home",fontSize=26.sp,fontWeight=FontWeight.SemiBold,modifier=Modifier.weight(1f))
                     TextButton(onClick=onClose){Text("Done")}
                 }
-                Text("Drag a card to move it. Steps and calories stay together. Changes save when you drop.",fontSize=12.sp,color=p.muted)
+                Text("Swipe anywhere to scroll. Hold a card, then drag to move it. Steps and calories stay together.",fontSize=12.sp,color=p.muted)
                 Box(Modifier.weight(1f).fillMaxWidth()) {
                     LazyVerticalGrid(columns=GridCells.Fixed(2),state=grid,userScrollEnabled=dragging==null,
                         modifier=Modifier.fillMaxSize().testTag("arrange-grid").pointerInput(Unit) {
                             awaitEachGesture {
-                                val down=awaitFirstDown(requireUnconsumed=false,pass=PointerEventPass.Initial)
+                                val down=awaitFirstDown(requireUnconsumed=false)
                                 val item=grid.layoutInfo.visibleItemsInfo.firstOrNull { down.position.x>=it.offset.x && down.position.x<=it.offset.x+it.size.width && down.position.y>=it.offset.y && down.position.y<=it.offset.y+it.size.height }
+                                if(item==null || awaitLongPressOrCancellation(down.id)==null)return@awaitEachGesture
+                                dragging=item.key as String;pointer=down.position;anchor=down.position-Offset(item.offset.x.toFloat(),item.offset.y.toFloat());dragWidth=item.size.width
+                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                                 try {
                                     while(true) {
                                         val event=awaitPointerEvent(PointerEventPass.Initial)
@@ -106,16 +109,12 @@ internal fun DashboardPreferences.placeHome(id:String,target:String):DashboardPr
                                             if(id!=null){change.consume();if(to!=null)save(latest.placeHome(id,to))}
                                             break
                                         }
-                                        if(dragging==null && item!=null && (change.position-down.position).getDistance()>viewConfiguration.touchSlop) {
-                                            dragging=item.key as String;anchor=down.position-Offset(item.offset.x.toFloat(),item.offset.y.toFloat());dragWidth=item.size.width
-                                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                        }
                                         if(dragging!=null){change.consume();pointer=change.position;target=targetAt(pointer)}
                                     }
                                 } finally { finish() }
                             }
-                        },contentPadding=PaddingValues(5.dp),horizontalArrangement=Arrangement.spacedBy(12.dp),verticalArrangement=Arrangement.spacedBy(12.dp)) {
-                        items(cards,key={it}) { id ->
+                        },contentPadding=PaddingValues(vertical=6.dp),horizontalArrangement=Arrangement.spacedBy(8.dp),verticalArrangement=Arrangement.spacedBy(8.dp)) {
+                        items(cards,key={it},span={GridItemSpan(if(it in setOf("activity","sleep","week"))2 else 1)}) { id ->
                             Box(Modifier.animateItem().graphicsLayer{rotationZ=wiggle*(if(cards.indexOf(id)%2==0)1 else -1);alpha=if(dragging==id).15f else 1f}.testTag("arrange-$id").semantics {
                                 contentDescription="Arrange ${DashboardPreferences.homeName(id)}"
                                 customActions=listOf(
@@ -123,7 +122,7 @@ internal fun DashboardPreferences.placeHome(id:String,target:String):DashboardPr
                                     CustomAccessibilityAction("Move later"){val i=cards.indexOf(id);if(i<cards.lastIndex)onSave(prefs.placeHome(id,cards[i+1]));i<cards.lastIndex}
                                 )
                             }) {
-                                ArrangePreview(id,day,Modifier.fillMaxWidth(),target==id && dragging!=id)
+                                ArrangeHomeCard(id,day,goals,sleepNeed,sync,history,Modifier.fillMaxWidth(),target==id && dragging!=id)
                                 IconButton(onClick={onSave(prefs.copy(homeHidden=prefs.homeHidden+id))},modifier=Modifier.align(Alignment.TopEnd).size(48.dp)) {
                                     Text("−",color=p.primary,fontSize=24.sp,modifier=Modifier.semantics{contentDescription="Hide ${DashboardPreferences.homeName(id)}"})
                                 }
@@ -131,7 +130,7 @@ internal fun DashboardPreferences.placeHome(id:String,target:String):DashboardPr
                         }
                     }
                     dragging?.let { id ->
-                        ArrangePreview(id,day,Modifier.offset { IntOffset((pointer.x-anchor.x).roundToInt(),(pointer.y-anchor.y).roundToInt()) }.width(with(density){dragWidth.toDp()}).graphicsLayer{scaleX=1.035f;scaleY=1.035f;shadowElevation=18.dp.toPx()},true)
+                        ArrangeHomeCard(id,day,goals,sleepNeed,sync,history,Modifier.offset { IntOffset((pointer.x-anchor.x).roundToInt(),(pointer.y-anchor.y).roundToInt()) }.width(with(density){dragWidth.toDp()}).graphicsLayer{scaleX=1.035f;scaleY=1.035f;shadowElevation=18.dp.toPx()},true)
                     }
                     if(cards.isEmpty())Text("No cards on Home. Add some below.",modifier=Modifier.align(Alignment.Center),color=p.muted)
                 }
@@ -141,16 +140,19 @@ internal fun DashboardPreferences.placeHome(id:String,target:String):DashboardPr
     }
 }
 
-@Composable private fun ArrangePreview(id:String,day:ConnectedDay?,modifier:Modifier,highlight:Boolean) {
+/** Render the same components, at the same widths, as Home. The shield suppresses
+ * detail/celebration taps only; swipes reach the grid and a hold begins reordering. */
+@Composable private fun ArrangeHomeCard(id:String,day:ConnectedDay?,goals:PersonalGoals,sleepNeed:Int,sync:SyncState,history:List<ConnectedDay>,modifier:Modifier,highlight:Boolean) {
     val p=LocalPulseStyle.current
-    val ink=when(id){"sleep"->p.violet;"energy"->p.warm;"recovery","hrv"->p.secondary;else->p.primary}
-    val icon=when(id){"activity"->R.drawable.symbol_directions_walk;"sleep"->R.drawable.symbol_bedtime;"week"->R.drawable.symbol_calendar;"energy"->R.drawable.symbol_local_fire_department;else->R.drawable.symbol_favorite}
-    val metric=detailMetric(if(id=="heart")"hr" else id)
-    val value=when(id){"activity"->day?.steps?.let{"%,d steps".format(it)} ?: "No steps";"week"->"7-day overview";else->day?.let(metric::value)?.let(metric::format) ?: "Not shared"}
-    Column(modifier.heightIn(min=152.dp).background(ink.copy(alpha=.16f).compositeOver(p.surface),RoundedCornerShape(22.dp)).border(if(highlight)2.dp else 1.dp,ink.copy(alpha=if(highlight).9f else .3f),RoundedCornerShape(22.dp)).padding(16.dp),verticalArrangement=Arrangement.spacedBy(10.dp)) {
-        Icon(painterResource(icon),null,tint=ink,modifier=Modifier.size(24.dp))
-        Text(DashboardPreferences.homeName(id),fontSize=13.sp,fontWeight=FontWeight.SemiBold,modifier=Modifier.padding(end=12.dp))
-        Text(value,fontSize=16.sp,color=ink)
-        if(id=="activity")Text(calorieTileValue(day).let{(it.value?.roundToInt()?.toString() ?: "—")+if(it.isActive)" active kcal" else " total kcal"},fontSize=11.sp,color=p.muted)
+    Box(modifier.then(if(highlight)Modifier.border(2.dp,p.primary,RoundedCornerShape(24.dp)) else Modifier)) {
+        Box(Modifier.fillMaxWidth().clearAndSetSemantics{}) {
+            when(id) {
+                "activity" -> ActivityTiles(day,goals,1f,{},sync)
+                "sleep" -> SleepHero(day,sleepNeed,compact=true){}
+                "week" -> WeekActivity(history,day?.date ?: java.time.LocalDate.now().toString(),goals)
+                else -> FavouriteStat(id,day,Modifier.fillMaxWidth()){}
+            }
+        }
+        Box(Modifier.matchParentSize().pointerInput(Unit){detectTapGestures(onTap={})})
     }
 }
